@@ -17,7 +17,7 @@ Gemma's Agentic AI Masters course — a Python + Claude Code curriculum built fo
 - `uv run ruff check .` — lint
 
 ## House style
-All course content follows the House Style Contract in `docs/superpowers/plans/2026-08-04-agentic-ai-masters-foundation.md` — lesson anatomy, homework TODO+tests, INDEX.md with mermaid palette.
+All course content follows the House Style Contract in `docs/superpowers/plans/2026-08-04-agentic-ai-masters-foundation.md` (as evolved in `.claude/skills/lesson-creator/SKILL.md` — the skill wins where they differ) — lesson anatomy, homework TODO+tests, INDEX.md with mermaid palette.
 
 ## Security — NON-NEGOTIABLE
 Never read, print, or commit `.env*`, `secrets/`, or token caches. Deny rules live in `.claude/settings.json` — never weaken them. Student files use anonymized names only (`student1_YYYY_MM_DD_SUBJECT.png`), never real names.

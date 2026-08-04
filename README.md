@@ -69,10 +69,10 @@ flowchart TB
     C7 --> R1
     C7 --> R2
 
-    classDef concept fill:#4F86C6,color:#fff,stroke:#2B4C7E     %% blue = concept
-    classDef win     fill:#59A96A,color:#fff,stroke:#2E5E3A     %% green = homework/win
-    classDef warn    fill:#F4A259,color:#333,stroke:#B87333     %% amber = pitfalls/errors
-    classDef ai      fill:#8E6BAF,color:#fff,stroke:#5D3F7A     %% purple = Claude/AI
+    classDef concept fill:#4F86C6,color:#fff,stroke:#2B4C7E
+    classDef win     fill:#59A96A,color:#fff,stroke:#2E5E3A
+    classDef warn    fill:#F4A259,color:#333,stroke:#B87333
+    classDef ai      fill:#8E6BAF,color:#fff,stroke:#5D3F7A
 ```
 
 You work left to right within each row, and top to bottom between rows: finish the Python course, then the Claude course, then the prototypes come alive. (The Teacher Planner and Automation Flows prototypes are built together first — see [`docs/adr/001-prototype-build-order.md`](docs/adr/001-prototype-build-order.md) for why.)

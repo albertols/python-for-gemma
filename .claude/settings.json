@@ -8,7 +8,8 @@
       "Read(**/secrets/**)",
       "Read(**/*token_cache*)",
       "Read(**/.msal_cache*)",
-      "Read(~/.azure/**)"
+      "Read(~/.azure/**)",
+      "Read(~/.cache/automation_flows/**)"
     ]
   }
 }

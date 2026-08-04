@@ -2,7 +2,7 @@
 
 This is one of your four end-of-course prototypes — see
 [`docs/adr/001-prototype-build-order.md`](../../docs/adr/001-prototype-build-order.md)
-for why it's built third. It's also the repo's **showcase for the
+for why it's built first, in parallel with the AI Teacher Planner. It's also the repo's **showcase for the
 security model**: every flow here talks to Microsoft Graph (Teams,
 OneDrive, SharePoint) using the device-code sign-in pattern, with
 **no client secret ever stored in this repo** — see

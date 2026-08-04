@@ -18,7 +18,7 @@ flowchart LR
     B["🏢 Microsoft sign-in"]:::concept
     C["💻 Local cache on your Mac"]:::win
     S["✋ STOP — no path exists"]:::warn
-    D["🤖 Any AI model, incl. Claude"]
+    D["🤖 Any AI model, incl. Claude"]:::ai
 
     A -- "1. you sign in here, once" --> B
     B -- "2. sends back a short-lived token" --> A
@@ -26,10 +26,10 @@ flowchart LR
     C -- "this is the end of the road" --> S
     S -. "blocked, always — never sent" .-> D
 
-    classDef concept fill:#4F86C6,color:#fff,stroke:#2B4C7E     %% blue = concept
-    classDef win     fill:#59A96A,color:#fff,stroke:#2E5E3A     %% green = homework/win
-    classDef warn    fill:#F4A259,color:#333,stroke:#B87333     %% amber = pitfalls/errors
-    classDef ai      fill:#8E6BAF,color:#fff,stroke:#5D3F7A     %% purple = Claude/AI
+    classDef concept fill:#4F86C6,color:#fff,stroke:#2B4C7E
+    classDef win     fill:#59A96A,color:#fff,stroke:#2E5E3A
+    classDef warn    fill:#F4A259,color:#333,stroke:#B87333
+    classDef ai      fill:#8E6BAF,color:#fff,stroke:#5D3F7A
 ```
 
 The token's whole journey is: **your browser → Microsoft → your Mac's local cache.** There is no arrow, anywhere in this repo's code, from that cache to Claude or to any other AI model. The amber ✋ node is a wall, not a door.

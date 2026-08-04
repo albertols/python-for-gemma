@@ -36,7 +36,7 @@ No rush, no wrong answers, and "I don't know" is a completely fine answer too �
 
 ## B. Examiner ✍️
 
-**B1.** Could you get 2–3 anonymized sample scans per paper type (remember: filenames like `student1_2026_01_15_business.png`, never a real name)?
+**B1.** Could you get 2–3 anonymized sample scans per paper type (remember: filenames like `student1_2026_01_15_BUSINESS.png`, never a real name)?
 
 > ✍️ Your answer:
 
