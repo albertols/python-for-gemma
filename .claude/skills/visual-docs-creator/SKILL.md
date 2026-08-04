@@ -109,14 +109,21 @@ classDef ai fill:#8E6BAF,color:#fff,stroke:#5D3F7A
 - `warn` (amber) — a pitfall, an error, something to watch out for.
 - `ai` (purple) — Claude/AI itself, or an AI-adjacent concept.
 
-Rules:
+Rules (track-conditional — verified against all 8 `python_course` and all 7
+`claude_course` `INDEX.md` files, and they genuinely differ):
 
-- **Only declare the `classDef`s actually used** in that diagram — a
-  diagram with no pitfalls omits `warn`; a diagram with no AI content
-  omits `ai`. Don't paste all four unconditionally.
-- No trailing comments, no alignment padding — one tight
+- **`python_course` diagrams: declare only the `classDef`s actually used.**
+  A diagram with no pitfalls omits `warn`; a diagram with no AI content
+  omits `ai`. Every `python_course/*/INDEX.md` trims this way — never paste
+  all four unconditionally there.
+- **`claude_course` diagrams: always declare all four `classDef`s**,
+  regardless of which ones the nodes in that diagram actually use. All 7
+  `claude_course/*/INDEX.md` files declare `concept`, `win`, `warn`, and
+  `ai` every time, even when a given diagram's nodes only use `ai`/`win` —
+  match that exactly, don't trim.
+- In both tracks: no trailing comments, no alignment padding — one tight
   `classDef <name> fill:...,color:...,stroke:...` line per class, in this
-  fixed order when present: `concept`, `win`, `warn`, `ai`.
+  fixed order: `concept`, `win`, `warn`, `ai`.
 - Colors are exact hex values, copied verbatim — never approximate or
   invent a shade.
 
@@ -132,6 +139,12 @@ flowchart LR
     classDef warn fill:#F4A259,color:#333,stroke:#B87333
 ```
 
+(This is the real `module_01_hello_python` diagram — a `python_course`
+example, so `ai` is correctly omitted since no node uses it. A
+`claude_course` diagram with the same three classes in use would still
+declare all four `classDef` lines, `ai` included — see the track-conditional
+rule above.)
+
 - `flowchart LR` (left-to-right), a short linear chain — 4 to 7 nodes,
   mirroring the module's actual teaching progression from first concept to
   the homework/exercise at the end.
@@ -143,8 +156,9 @@ flowchart LR
 - Every node gets exactly one `:::<class>` suffix from the palette above.
   The chain typically ends in a `:::win` node (the homework or exercise).
 - Put the `classDef` lines at the bottom of the diagram, after the node
-  chain, in the fixed order `concept`, `win`, `warn`, `ai` (only the ones
-  used).
+  chain, in the fixed order `concept`, `win`, `warn`, `ai` — trimmed to
+  used classes in `python_course`, always all four in `claude_course` (see
+  the track-conditional rule above).
 
 ## Links policy
 
@@ -203,9 +217,10 @@ flowchart LR
       4–7 nodes, sequential letter IDs, plain `-->` arrows.
 - [ ] Every node label starts with an emoji.
 - [ ] Every node has exactly one `:::<class>` suffix from the palette.
-- [ ] Only the `classDef`s actually used are declared, in fixed order
-      (`concept`, `win`, `warn`, `ai`), with exact hex values and no
-      trailing comments.
+- [ ] `classDef` declarations follow the track-conditional rule: only the
+      classes actually used, in `python_course`; all four, always, in
+      `claude_course` — fixed order (`concept`, `win`, `warn`, `ai`), exact
+      hex values, no trailing comments.
 - [ ] `python_course` table header is
       `| File | Concept | 📖 Docs | 🎬 Video |`; `claude_course` table
       header is `| Topic | Concept | 📖 Docs | 🎬 Video |`.

@@ -1,14 +1,15 @@
 ---
 name: lesson-creator
-description: Create or extend python_course/claude_course modules and lessons following the house style. Use when asked to add a lesson, module, or homework.
+description: Create or extend python_course and claude_course modules and lessons following the house style. Use when asked to add a lesson, module, or homework.
 ---
 
 # Lesson Creator
 
-Encodes the house style used by every module in `python_course/` (and the
-lesson-anatomy parts of `claude_course/`) so a new lesson, homework set, or
-whole module is indistinguishable from the hand-built ones already in the
-repo.
+Encodes the house style used by every module in `python_course/` so a new
+lesson, homework set, or whole module is indistinguishable from the
+hand-built ones already in the repo. Also routes `claude_course/` requests
+to the right place — see "Two tracks" immediately below before touching
+either directory.
 
 **Living exemplar:** `python_course/module_01_hello_python/` — when in
 doubt, open it and match its *shape* exactly (headers, underlines, marker
@@ -18,7 +19,27 @@ Where anything else you've read (including an older house-style planning
 doc) disagrees with this skill or the exemplar module, **this skill and the
 exemplar module win** — they reflect what the repo actually settled on.
 
-## Module anatomy
+## Two tracks — read this before creating anything
+
+This repo has two course tracks, and they are **not** structured the same
+way. Get this wrong and you'll create files that don't belong.
+
+- **`python_course/module_XX_<name>/`** — `INDEX.md` **+** `lesson_*.py` +
+  `homework_XX.py` + `test_homework_XX.py`. Everything in this skill (module
+  anatomy, lesson anatomy, homework anatomy, test anatomy, markers, the
+  RED/GREEN/revert ritual) applies here in full.
+- **`claude_course/module_XX_<name>/`** — `INDEX.md` **only**. Verified
+  against all 7 existing `claude_course` modules: there is no `lesson_*.py`,
+  no `homework_*.py`, no `test_homework_*.py`, ever — Claude Code itself is
+  the "lesson," and the module folder holds only its `INDEX.md` (concept
+  map, docs/video links, a hands-on exercise run against this repo, and
+  self-assessment criteria). **Never create `.py`, homework, or test files
+  under `claude_course/`.** For the exact section anatomy and content of a
+  `claude_course/*/INDEX.md` (its `📚 Learn` / `🛠 Hands-on exercise` /
+  `🧭 You know you've got it when…` variant), use the **`visual-docs-creator`**
+  skill — that's where the `claude_course` INDEX anatomy lives, in full.
+
+## Module anatomy (`python_course` — see "Two tracks" above for `claude_course`)
 
 A module lives at `python_course/module_XX_<name>/` and contains:
 
@@ -221,10 +242,23 @@ def test_function_name():
   though the homework module is still a stub.
 - Every test function/case carries `@pytest.mark.homework`. Nothing in a
   homework test file runs under a plain `uv run pytest`.
-- **Every** `assert` carries a `💡 Hint:` message. The hint points at the
-  technique or expression to use (e.g. `"sum(self.scores) / len(self.scores)"`,
+- **Every assert that can fail because of a student mistake carries a
+  `💡 Hint:` message.** The hint points at the technique or expression to
+  use (e.g. `"sum(self.scores) / len(self.scores)"`,
   `"read_text() then .splitlines()"`) — it never states the finished code
-  or gives away the literal expected value as the "answer".
+  or gives away the literal expected value as the "answer". This is *not*
+  absolute, though: a plain sanity check on something the scaffolding
+  already gave the student (e.g. `assert s.name == "Ana"` right after
+  constructing `Student("Ana", ...)`, or a happy-path first assert of a
+  pair where the *next* assert is the one that actually exercises the
+  student's TODO and carries the hint) may skip the hint — because that
+  assert can't meaningfully fail from a student mistake in the code they
+  wrote. See `python_course/module_07_oop/test_homework_07.py::test_student_average`
+  (`assert s.name == "Ana"`, no hint, then the hinted `average()` assert)
+  and `python_course/module_06_files_errors/test_homework_06.py::test_safe_average`
+  (unhinted `safe_average([10, 20]) == 15.0` happy path, then the hinted
+  empty-list edge case). When in doubt, add the hint — omit it only when an
+  exemplar shows the same pattern.
 - When a test needs multiple asserts, **order the safe ones first**: put
   an assert that can never raise on a bare stub (e.g. `f.exists()`) before
   one that would raise if the stub did nothing (e.g. `f.read_text()` on a
@@ -290,13 +324,16 @@ file that ships is always the **stub**, never a solved version. Follow this
 exact sequence for every module or lesson you add or change:
 
 1. Write `test_homework_XX.py` first — the full test suite for the module,
-   `@pytest.mark.homework` on every test, a `💡 Hint:` on every assert.
+   `@pytest.mark.homework` on every test, a `💡 Hint:` on every assert that
+   can fail from a student mistake (see the hint-omission carve-out in Test
+   anatomy above for the rare sanity-check exception).
 2. Write `homework_XX.py` as **stubs only** (function/method bodies are
    `# TODO: <hint>` + `return ...`; any class `__init__` is fully
    implemented, never a TODO).
 3. Run `uv run pytest python_course/module_XX_<name> -v -m homework` and
    capture the output — this is the **RED** capture. Confirm every test
-   fails, and that every failure shows your `💡 Hint:` message, not a raw
+   fails, and that every failure that's expected to carry a hint shows it,
+   not a raw
    traceback (`AttributeError`, `KeyError`, `TypeError`,
    `ZeroDivisionError`, etc. must never escape before the assert runs —
    see the stub-safety rule above).
@@ -340,8 +377,10 @@ Before calling a lesson/homework/module task done, confirm every item:
 - [ ] Homework stub bodies are `return ...` only — no code that could
       raise before an assert executes.
 - [ ] `test_homework_XX.py`: every test carries `@pytest.mark.homework`,
-      every assert carries a `💡 Hint:`, hints never leak the literal
-      answer, and asserts that could raise on a broken stub are ordered
+      every assert that can fail from a student mistake carries a
+      `💡 Hint:` (sanity checks on given scaffolding may omit it, per the
+      exemplars), hints never leak the literal answer, and asserts that
+      could raise on a broken stub are ordered
       after asserts that can't.
 - [ ] RED captured (stub run shows hinted failures, no tracebacks), GREEN
       captured (solved run shows all-pass), then reverted back to stubs.
