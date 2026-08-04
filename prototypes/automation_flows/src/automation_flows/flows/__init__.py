@@ -6,5 +6,5 @@ that builds the Microsoft Graph request it *would* make, with no
 network call and no auth required to test it. That planning step is
 what makes a flow's shape testable and reviewable before it ever
 touches a real token — see `docs/security.md
-<../../../../docs/security.md>`_ for why that boundary matters here.
+<../../../../../docs/security.md>`_ for why that boundary matters here.
 """

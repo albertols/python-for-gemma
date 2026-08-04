@@ -21,7 +21,7 @@ else. It is never committed (``**/*token_cache*`` is in the workspace
 ``.gitignore``), never opened by Claude (blocked by
 ``.claude/settings.json`` deny rules), and never pasted into a chat.
 Full picture, with a diagram: `docs/security.md
-<../../../docs/security.md>`_.
+<../../../../docs/security.md>`_.
 
 **What's next** (out of scope for this scaffold — no network calls
 here): the real sign-in step will use ``msal.PublicClientApplication``
