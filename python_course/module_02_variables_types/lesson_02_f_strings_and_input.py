@@ -1,16 +1,16 @@
 """
 🎓 LESSON 2.2 — f-strings and input()
-======================================
+====================================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How to build text from variables with f-strings
 - How to control decimal places inside an f-string (:.1f)
 - How to ask the user to type something with input()
 - Why input() always hands you back a str — and how to convert it
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/introduction.html#strings
 🎬 Video  : https://www.youtube.com/watch?v=k9TUPpGqYTo
 🖼 Visual : see INDEX.md concept map

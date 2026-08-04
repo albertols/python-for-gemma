@@ -36,7 +36,7 @@ flowchart LR
 | File | Concept | 📖 Docs | 🎬 Video |
 |---|---|---|---|
 | `lesson_01_if_elif_else.py` | Comparisons, `if`/`elif`/`else`, grade boundaries | [Python tutorial: if statements](https://docs.python.org/3/tutorial/controlflow.html#if-statements) | [Corey Schafer — Conditionals and Booleans](https://www.youtube.com/watch?v=DZwmZ8Usvnk) |
-| `lesson_02_loops.py` | `for`, `range()`, `while`, counting matches | [Python tutorial: for statements](https://docs.python.org/3/tutorial/controlflow.html#for-statements) | [Corey Schafer — Loops and Iterations](https://www.youtube.com/watch?v=6iF8Xb7Z3wQ) |
+| `lesson_02_loops.py` | `for`, `range()`, `while`, counting matches | [Python tutorial: the range() function](https://docs.python.org/3/tutorial/controlflow.html#the-range-function) | [Corey Schafer — Loops and Iterations](https://www.youtube.com/watch?v=6iF8Xb7Z3wQ) |
 
 ## 📝 Homework
 
@@ -49,9 +49,9 @@ uv run pytest python_course/module_04_control_flow -v -m homework
 ## ✅ Progress checklist
 
 - [ ] Ran `lesson_01_if_elif_else.py` and read every comment
-- [ ] Completed both 🧪 TRY IT experiments in lesson 4.1
+- [ ] Completed all three 🧪 TRY IT experiments in lesson 4.1
 - [ ] Ran `lesson_02_loops.py` and read every comment
-- [ ] Completed both 🧪 TRY IT experiments in lesson 4.2
+- [ ] Completed all three 🧪 TRY IT experiments in lesson 4.2
 - [ ] Filled in all three TODOs in `homework_04.py`
 - [ ] All three homework tests pass (`uv run pytest python_course/module_04_control_flow -v -m homework`)
 

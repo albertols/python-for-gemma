@@ -1,16 +1,16 @@
 """
 🎓 LESSON 3.1 — Lists and Tuples
-=================================
+===============================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How to store many values in one variable with a list
 - How to reach a single item with an index, and a slice of items with [start:stop]
 - How to grow a list with .append()
 - How a tuple is like a list that can never be changed once created
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/introduction.html#lists
 🎬 Video  : https://www.youtube.com/watch?v=W8KRzm-HUcc
 🖼 Visual : see INDEX.md concept map

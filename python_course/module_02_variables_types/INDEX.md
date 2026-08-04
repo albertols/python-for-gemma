@@ -49,9 +49,9 @@ uv run pytest python_course/module_02_variables_types -v -m homework
 ## ✅ Progress checklist
 
 - [ ] Ran `lesson_01_variables_and_types.py` and read every comment
-- [ ] Completed both 🧪 TRY IT experiments in lesson 2.1
+- [ ] Completed all three 🧪 TRY IT experiments in lesson 2.1
 - [ ] Ran `lesson_02_f_strings_and_input.py` and read every comment
-- [ ] Completed both 🧪 TRY IT experiments in lesson 2.2
+- [ ] Completed all three 🧪 TRY IT experiments in lesson 2.2
 - [ ] Filled in all three TODOs in `homework_02.py`
 - [ ] All three homework tests pass (`uv run pytest python_course/module_02_variables_types -v -m homework`)
 

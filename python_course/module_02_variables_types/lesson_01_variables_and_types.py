@@ -1,9 +1,9 @@
 """
 🎓 LESSON 2.1 — Variables and Types
-===================================
+==================================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How to store a value in a variable with =
 - The four starter data types: str, int, float, bool
 - How to check any value's type with type()
@@ -11,7 +11,7 @@ WHAT YOU WILL LEARN
 - The core arithmetic operators (+, -, *, /) on numbers
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/introduction.html#using-python-as-a-calculator
 🎬 Video  : https://www.youtube.com/results?search_query=python+variables+and+data+types+for+beginners
 🖼 Visual : see INDEX.md concept map

@@ -1,16 +1,16 @@
 """
 🎓 LESSON 4.2 — Loops
-======================
+====================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How a for loop repeats code once per item in a list — finally, no more copy-pasting!
 - How range() generates a sequence of numbers to loop over
 - How a while loop repeats code as long as a condition stays True
 - How to count matches inside a loop with a running total
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/controlflow.html#for-statements
 🎬 Video  : https://www.youtube.com/watch?v=6iF8Xb7Z3wQ
 🖼 Visual : see INDEX.md concept map

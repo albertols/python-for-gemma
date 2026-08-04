@@ -48,9 +48,9 @@ uv run pytest python_course/module_03_collections -v -m homework
 ## ✅ Progress checklist
 
 - [ ] Ran `lesson_01_lists_and_tuples.py` and read every comment
-- [ ] Completed both 🧪 TRY IT experiments in lesson 3.1
+- [ ] Completed all three 🧪 TRY IT experiments in lesson 3.1
 - [ ] Ran `lesson_02_dicts_and_sets.py` and read every comment
-- [ ] Completed both 🧪 TRY IT experiments in lesson 3.2
+- [ ] Completed all three 🧪 TRY IT experiments in lesson 3.2
 - [ ] Filled in all three TODOs in `homework_03.py`
 - [ ] All three homework tests pass (`uv run pytest python_course/module_03_collections -v -m homework`)
 

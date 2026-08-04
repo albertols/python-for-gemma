@@ -1,9 +1,9 @@
 """
 🎓 LESSON 4.1 — if, elif, else
-================================
+=============================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How comparison operators (==, !=, <, >, <=, >=) produce a bool
 - How an if statement runs code only when a condition is True
 - How elif checks another condition when the first was False
@@ -11,7 +11,7 @@ WHAT YOU WILL LEARN
 - How to chain several elif branches into grade boundaries
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/controlflow.html#if-statements
 🎬 Video  : https://www.youtube.com/watch?v=DZwmZ8Usvnk
 🖼 Visual : see INDEX.md concept map

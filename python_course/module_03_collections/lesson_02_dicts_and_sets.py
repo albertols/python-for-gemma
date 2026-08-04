@@ -1,16 +1,16 @@
 """
 🎓 LESSON 3.2 — Dictionaries and Sets
-======================================
+====================================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How a dictionary pairs a key with a value, like a gradebook
 - How to look up a value by key, and use .get() to avoid crashes
 - How .keys(), .values(), and .items() give you each part of a dictionary
 - How a set stores only unique values — perfect for de-duplicating a list
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/datastructures.html#dictionaries
 🎬 Video  : https://www.youtube.com/watch?v=daefaLgNkw0
 🖼 Visual : see INDEX.md concept map
