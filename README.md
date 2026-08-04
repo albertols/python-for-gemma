@@ -21,7 +21,7 @@ Welcome, Gemma! This repo is your own tailored Python + Claude Code course, buil
    ```bash
    uv run pytest tests -v
    ```
-5. **Open your first lesson:** [`python_course/module_01_hello_python/INDEX.md`](python_course/module_01_hello_python/INDEX.md) *(lands with the next module drop — if it's not there yet, more of the course is on its way!)*
+5. **Open your first lesson:** [`python_course/module_01_hello_python/INDEX.md`](python_course/module_01_hello_python/INDEX.md)
 
 💡 **One friendly heads-up:** each module's homework has its own check command, shaped like `uv run pytest python_course/module_XX_<name> -v -m homework`. That `-m homework` marker is how your exercises get run. Plain `uv run pytest` (used above, and by the shared CI) skips homework on purpose, so the course stays green while you're still mid-exercise — you're never "breaking the build" by working on your homework.
 
@@ -89,7 +89,7 @@ You work left to right within each row, and top to bottom between rows: finish t
 ## 📎 Before you go further
 
 - **[`QUESTIONS_FOR_GEMMA.md`](QUESTIONS_FOR_GEMMA.md)** — a short questionnaire that turns the prototypes above from scaffolds into tools built around *your* classroom. Answering it is also your first git exercise.
-- **`docs/how_to_learn_claude.md`** — your guide to the Claude Code course *(lands alongside the Claude course modules)*.
+- **[`docs/how_to_learn_claude.md`](docs/how_to_learn_claude.md)** — your guide to the Claude Code course.
 - **[`docs/security.md`](docs/security.md)** — a plain-language explanation of how your passwords and tokens stay safe in this repo.
 
 Whenever you're stuck: re-read the lesson comments first, then try the homework-checker agent, then ask Claude to *explain* — never to solve it for you. You've got this. 💪

@@ -58,7 +58,7 @@ No rush, no wrong answers, and "I don't know" is a completely fine answer too �
 
 ---
 
-## C. Practice Companion 📝
+## C. Homework Companion 📝
 
 **C1.** Which units or topics do your students struggle with most?
 

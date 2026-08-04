@@ -618,7 +618,7 @@ def test_plan_download_builds_graph_url():
 
 ### Task 12: ai_homework_companion scaffold
 
-**Files:** `prototypes/ai_homework_companion/README.md`, `src/ai_homework_companion/models.py`, `styles/ib_business.md`, `styles/edexcel_ial_business.md`, `styles/edexcel_igcse_business.md`, `prompts/generate_practice_set.md`, `tests/test_models.py`
+**Files:** `prototypes/ai_homework_companion/README.md`, `src/ai_homework_companion/models.py`, `styles/ib_business.md`, `styles/edexcel_ial_business.md`, `styles/edexcel_igcse_business.md`, `prompts/generate_practice_set.md`, `tests/test_companion_models.py` (unique basename repo-wide — pytest prepend import mode requires it for rootless test modules)
 
 **Interfaces:**
 - Produces: `PracticeQuestion(command_word: str, marks: int, text: str)`, `PracticeSet(title: str, case_study: str, questions: list[PracticeQuestion])` with `.total_marks() -> int`.
@@ -646,7 +646,7 @@ def test_total_marks():
 
 ### Task 13: ai_examiner scaffold
 
-**Files:** `prototypes/ai_examiner/README.md`, `src/ai_examiner/models.py`, `mock_data/student1_2026_03_01_BUSINESS.png`, `mock_data/mock_rubric.md`, `tests/test_models.py`
+**Files:** `prototypes/ai_examiner/README.md`, `src/ai_examiner/models.py`, `mock_data/student1_2026_03_01_BUSINESS.png`, `mock_data/mock_rubric.md`, `tests/test_examiner_models.py` (unique basename repo-wide)
 
 **Interfaces:**
 - Produces: `BLTParagraph(point: str, because: str, leads_to: str, therefore: str, moreover: str | None = None)` with `.completeness() -> float` (fraction of the 4 core elements that are non-empty); `ExamSubmission(student_id: str, exam_date: date, subject: str, image_path: Path)` with classmethod `from_filename(path: Path) -> ExamSubmission` parsing `student1_2026_03_01_BUSINESS.png`; `MarkScheme(levels: dict[int, str], max_marks: int)`.
