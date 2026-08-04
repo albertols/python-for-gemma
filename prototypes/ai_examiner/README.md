@@ -45,7 +45,7 @@ word — see the sign-off step in the pipeline below.
   level-descriptor mark scheme (4 levels, BLT + application expectations
   per level), standing in until a real one arrives — see its own ⚠️
   header for exactly what's illustrative versus sourced.
-- **`tests/test_models.py`** — two passing tests: `BLTParagraph`
+- **`tests/test_examiner_models.py`** — two passing tests: `BLTParagraph`
   completeness scoring (a full paragraph scores 1.0, a Point-and-Because
   fragment scores 0.5), and `ExamSubmission.from_filename()` parsing.
 

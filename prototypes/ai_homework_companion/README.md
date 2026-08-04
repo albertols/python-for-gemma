@@ -59,7 +59,7 @@ one shared mental model, not two disconnected tools.
   as placeholders, instructions to read the matching style guide rather
   than freelancing exam knowledge, and an output shape that maps
   directly onto `PracticeSet`.
-- **`tests/test_models.py`** — one passing test, building a two-question
+- **`tests/test_companion_models.py`** — one passing test, building a two-question
   `PracticeSet` and checking `total_marks()` sums correctly.
 
 Try it yourself:

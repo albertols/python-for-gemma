@@ -100,8 +100,9 @@ class BLTParagraph:
         Only `point`, `because`, `leads_to`, and `therefore` count —
         `moreover` is a bonus element for the strongest answers, not one
         of the 4 core elements, so it never affects this score. An empty
-        string counts as missing; a present-but-empty `moreover` field
-        (its default) is expected and not penalised here.
+        string counts as missing; `moreover` left absent (`None`, its
+        default — the student simply didn't write one) is expected and
+        not penalised here.
 
         A full paragraph (all 4 non-empty) scores 1.0; a Point-and-Because
         fragment with no analysis or impact scores 0.5 — this is a rough
