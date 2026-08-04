@@ -22,8 +22,10 @@ not silently invent a number where you see that flag; ask instead.
 
 ⚠️ Exact current-syllabus paper count, timing, and whether Paper 1's case
 study is pre-released or unseen should be confirmed against the official
-IB subject guide (or with Gemma) before generating a live set — flag
-raised pending **C1**/**C2**.
+IB subject guide, or by asking Gemma directly — this is paper
+administration, not something **C1–C3** resolve (they cover struggle
+topics, mark-size preference, and case-study length, not paper
+structure).
 
 ## 2. Command-word ladder
 
@@ -44,6 +46,13 @@ one.
 | **"To what extent…"** | Build a balanced argument for and against a given statement, concluding with a considered, supported judgement on how far you agree | Full BLT + Moreover, essay length |
 
 ## 3. Mark sizes and timing rule-of-thumb
+
+⚠️ The pairings below are typical/illustrative, built from general
+knowledge of the specification rather than an official IB mark scheme —
+confirm the real tariffs against IB's published mark schemes, or ask
+Gemma directly, before treating this table as settled. **C2** tells us
+which sizes to prioritise generating once the real tariffs are confirmed
+— it's a preference question, not a source for the numbers themselves.
 
 | Marks | Typical role |
 |---|---|

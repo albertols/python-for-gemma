@@ -27,8 +27,10 @@ extracts, moving from short knowledge questions up to one extended-response
 or essay question. ⚠️ Unit numbers/titles above match the specification
 this guide was written against; specifications get revised, so confirm
 they (plus exact question count, total marks, and timing per unit)
-against the specific papers Gemma teaches — flag raised pending
-**C1**/**C2**.
+against the specific papers Gemma teaches, or by asking her directly —
+this is paper administration, not something **C1–C3** resolve (they
+cover struggle topics, mark-size preference, and case-study length, not
+paper structure).
 
 ## 2. Command-word ladder
 
@@ -55,6 +57,14 @@ interchangeable. See **B3** in `QUESTIONS_FOR_GEMMA.md` for where Gemma's
 mark schemes live.
 
 ## 3. Mark sizes and timing rule-of-thumb
+
+⚠️ The pairings below are typical/illustrative, built from general
+knowledge of the specification rather than an official Edexcel mark
+scheme — confirm the real tariffs against Examwizard or wherever Gemma's
+mark schemes live (see **B3**) before treating this table as settled.
+**C2** tells us which sizes to prioritise generating once the real
+tariffs are confirmed — it's a preference question, not a source for the
+numbers themselves.
 
 | Marks | Typical role |
 |---|---|
@@ -83,8 +93,9 @@ BLT paragraph plan first saves more time than it costs.
   but conventionally uses UK-style business framing (£ currency, UK
   company naming conventions like "Ltd") even where the business itself
   operates internationally, which is especially common on Unit 4. ⚠️
-  Confirm this matches what Gemma's actual papers look like — flag raised
-  pending **C2**/**C3**.
+  Confirm this matches what Gemma's actual papers look like by asking her
+  directly — register/currency convention isn't asked by **C1–C3**
+  either.
 
 ## 5. BLT expectations at each level
 

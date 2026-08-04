@@ -20,10 +20,12 @@ run as an agent turn; it isn't executable Python.
 You are generating an exam-style practice set for {{board}}, covering
 {{unit_or_topic}}.
 
-1. Read the matching style guide before writing anything:
-   - IB Business → styles/ib_business.md
-   - Edexcel IAL Business → styles/edexcel_ial_business.md
-   - Edexcel IGCSE Business → styles/edexcel_igcse_business.md
+1. Read the matching style guide before writing anything (paths below are
+   relative to the `ai_homework_companion` prototype root, i.e.
+   `prototypes/ai_homework_companion/`):
+   - IB Business → `prototypes/ai_homework_companion/styles/ib_business.md`
+   - Edexcel IAL Business → `prototypes/ai_homework_companion/styles/edexcel_ial_business.md`
+   - Edexcel IGCSE Business → `prototypes/ai_homework_companion/styles/edexcel_igcse_business.md`
    Everything below defers to that file — its command-word ladder, mark
    sizes, case-study conventions, and BLT expectations are the source of
    truth, not general exam knowledge. If the style guide flags a detail

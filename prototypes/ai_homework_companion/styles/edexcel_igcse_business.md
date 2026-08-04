@@ -15,8 +15,11 @@ not silently invent a number where you see that flag; ask instead.
 
 ⚠️ There is more than one Pearson International GCSE Business
 specification in circulation, so the exact paper count and structure
-below is a general starting point, not a confirmed fact — flag raised
-pending **C1**/**C2**.
+below is a general starting point, not a confirmed fact — confirm
+against the specification Gemma teaches, or by asking her directly. This
+is paper administration, not something **C1–C3** resolve (they cover
+struggle topics, mark-size preference, and case-study length, not paper
+structure).
 
 | Paper | What it's built around |
 |---|---|
@@ -46,10 +49,17 @@ one.
 
 ## 3. Mark sizes and timing rule-of-thumb
 
-IGCSE questions top out lower than IB or Edexcel IAL — there is no
-20-mark essay tier here (that belongs to AS/A-level and IB content); the
-highest tariff on a typical IGCSE Business paper is an Assess/Evaluate
-question worth around 8–12 marks.
+⚠️ IGCSE questions are *assumed* to top out lower than IB or Edexcel
+IAL — the table below has no 20-mark essay tier, on the reasoning that
+the project brief calls out a 20-mark essay explicitly for IAL and IB but
+not IGCSE. That's an inference, not a sourced fact. The whole table —
+tariffs, the 8–12 ceiling, and the row/command-word pairings — is
+typical/illustrative, built from general knowledge of the specification
+rather than an official Edexcel mark scheme. Confirm the real tariffs and
+ceiling against Gemma's specific paper, or wherever her mark schemes live
+(see **B3**), before treating this as settled. **C2** tells us which
+sizes to prioritise generating once the real tariffs are confirmed — it's
+a preference question, not a source for the numbers themselves.
 
 | Marks | Typical role |
 |---|---|
@@ -57,7 +67,7 @@ question worth around 8–12 marks.
 | **4** | Short Explain |
 | **6** | Analyse |
 | **8–9** | Discuss / Assess |
-| **12** | Evaluate — top tariff on this paper, ⚠️ confirm exact ceiling against Gemma's specific paper (pending **C2**) |
+| **12** | Evaluate — top tariff on this paper |
 
 **Timing rule of thumb:** roughly one minute per mark, plus a minute or
 two of planning before starting any 6-mark-or-higher response — sketching
@@ -70,8 +80,10 @@ a BLT paragraph plan first saves more time than it costs.
   practised. Because IGCSE papers commonly use several shorter contexts
   rather than one long one (see §1), a single `PracticeSet.case_study`
   generated for this board may need to read as 2–3 short vignettes rather
-  than one extended narrative — ⚠️ confirm which shape matches Gemma's
-  actual papers (pending **C2**/**C3**).
+  than one extended narrative — ⚠️ **C3** covers case-study *length*, but
+  not this multi-context *shape*; confirm which shape matches Gemma's
+  actual papers by asking her directly if her C3 answer doesn't settle
+  it.
 - **Quantitative data**: revenue, costs, and market share figures a
   student can quote and manipulate (e.g. "revenue rose from £120,000 to
   £150,000") — numbers should be usable as evidence, not decoration.
@@ -83,7 +95,8 @@ a BLT paragraph plan first saves more time than it costs.
 - **Register**: Edexcel IGCSE is aimed at international candidates;
   conventionally uses UK-style business framing (£ currency, UK company
   naming conventions like "Ltd") but the setting itself can be UK or
-  international — ⚠️ confirm which fits Gemma's cohort (pending **C2**).
+  international — ⚠️ confirm which fits Gemma's cohort by asking her
+  directly; register/currency convention isn't asked by **C1–C3** either.
 
 ## 5. BLT expectations at each level
 

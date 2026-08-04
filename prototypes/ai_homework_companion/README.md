@@ -95,7 +95,7 @@ build:
 | Question | Unblocks |
 |---|---|
 | **C1** — which units/topics do your students struggle with most? | Choosing the first real `{{unit_or_topic}}` to generate |
-| **C2** — which question sizes matter most (4, 8, 10, 12, 20)? | Tuning `{{question_sizes}}` and confirming the mark-size tables in each style guide |
+| **C2** — which question sizes matter most (4, 8, 10, 12, 20)? | Tuning `{{question_sizes}}` to what Gemma actually wants drilled (the style guides' mark-size tables themselves still need checking against a real mark scheme — see each guide's own ⚠️ flags and **B3**) |
 | **C3** — how long should a case study be? | Setting `{{case_study_length}}` accurately |
 
 Each style guide also flags its own **⚠️ verify with Gemma** details
