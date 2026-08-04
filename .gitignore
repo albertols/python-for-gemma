@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# ── SECURITY: secrets NEVER enter git ──
+.env
+.env.*
+**/secrets/
+**/*token_cache*
+**/.msal_cache*
+
+# Real student data never enters git — mock_data/ only
+prototypes/*/real_data/
+
+# Local session notes
+.remember/

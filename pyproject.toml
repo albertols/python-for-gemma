@@ -1,0 +1,34 @@
+[project]
+name = "python-for-gemma"
+version = "0.1.0"
+description = "Agentic AI Masters for Education — Gemma's learning repo"
+requires-python = ">=3.12"
+dependencies = [
+    "ai-teacher-planner",
+    "automation-flows",
+    "ai-homework-companion",
+    "ai-examiner",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.4", "pre-commit>=3.7"]
+
+[tool.uv.workspace]
+members = ["prototypes/*"]
+
+[tool.uv.sources]
+ai-teacher-planner = { workspace = true }
+automation-flows = { workspace = true }
+ai-homework-companion = { workspace = true }
+ai-examiner = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "python_course", "prototypes"]
+markers = ["homework: Gemma's exercises — excluded from CI, run per-module"]
+addopts = "-m 'not homework'"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

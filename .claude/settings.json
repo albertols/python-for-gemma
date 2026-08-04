@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/*token_cache*)",
+      "Read(**/.msal_cache*)",
+      "Read(~/.azure/**)"
+    ]
+  }
+}
