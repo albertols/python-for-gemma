@@ -1,22 +1,22 @@
 """
 🎓 LESSON 1.2 — Reading Errors
-===============================
+=============================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - That red error text is FEEDBACK, not failure — every programmer sees it daily
 - How to read a Python traceback from the BOTTOM up
 - The three things every traceback tells you: error type, message, line number
 - How to turn a broken line back into a working one
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/errors.html
 🎬 Video  : https://www.youtube.com/results?search_query=python+how+to+read+error+messages
 🖼 Visual : see INDEX.md concept map
 
 HOW TO RUN ME
---------------
+-------------
     uv run python python_course/module_01_hello_python/lesson_02_reading_errors.py
 """
 

@@ -1,22 +1,22 @@
 """
 🎓 LESSON 1.1 — Your First Program
-===================================
+=================================
 
 WHAT YOU WILL LEARN
---------------------
+-------------------
 - How to make Python show text on screen with print()
 - Why text in Python lives inside quotes ("like this")
 - How to leave notes for humans (comments) that Python ignores
 - Why comments matter especially for a teacher-turned-coder like you
 
 RESOURCES (open these!)
-------------------------
+-----------------------
 📖 Docs   : https://docs.python.org/3/tutorial/introduction.html
 🎬 Video  : https://www.youtube.com/watch?v=_uQrJ0TkZlc
 🖼 Visual : see INDEX.md concept map
 
 HOW TO RUN ME
---------------
+-------------
     uv run python python_course/module_01_hello_python/lesson_01_your_first_program.py
 """
 
@@ -36,6 +36,8 @@ print("Good morning, Year 12 Business!")
 # name badge: the quotes are the badge, the text inside is the name.
 teacher_name = "Ms. Gemma"
 subject = "Economics"
+# Commas hand print() several things to say — it joins them into one line,
+# with a space between each, automatically. No manual gluing needed.
 print("Today's teacher is", teacher_name, "and the subject is", subject)
 
 # ── 3. COMMENTS — NOTES ONLY HUMANS READ ────────────────────────
