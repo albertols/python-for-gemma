@@ -93,16 +93,16 @@ python-for-gemma/
 2. **Walkthrough code**: heavily commented, comments explain *why* and name the concept.
 3. **`# 🧪 TRY IT` blocks**: small experiments she runs and modifies.
 4. **Homework**: `TODO`-marked function stubs at the bottom of `homework_XX.py`.
-5. **Validation**: `tests/test_homework_XX.py` — she runs `uv run pytest python_course/module_XX` and gets red/green feedback. Tests contain friendly assertion messages that hint without revealing answers.
+5. **Validation**: `test_homework_XX.py` — she runs `uv run pytest python_course/module_XX -v -m homework` and gets red/green feedback. Tests contain friendly assertion messages that hint without revealing answers. Homework tests carry the `homework` pytest marker and are excluded from the default run (`addopts = "-m 'not homework'"`) so CI stays green while stubs are unfinished.
 
 ### Module structure
 
 ```
 module_01_hello_python/
-├── INDEX.md          # recap, colored mermaid diagram with icons, links table, progress checklist
-├── lesson_01_*.py    # 2–3 lessons per module
+├── INDEX.md              # recap, colored mermaid diagram with icons, links table, progress checklist
+├── lesson_01_*.py        # 2–3 lessons per module
 ├── homework_01.py
-└── tests/test_homework_01.py
+└── test_homework_01.py   # beside the homework (flat folder → simple pytest imports for a beginner)
 ```
 
 `INDEX.md` requirements: visual-first — one colored mermaid diagram (with emoji icons) per module summarizing the concepts; a links table (docs / video / image per lesson); a checkbox progress list; a "when you're stuck" section pointing to the homework-checker agent.
