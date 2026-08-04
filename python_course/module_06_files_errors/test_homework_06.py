@@ -17,6 +17,7 @@ def test_read_register(tmp_path):
 def test_save_marks(tmp_path):
     f = tmp_path / "marks.csv"
     homework_06.save_marks(f, {"Ana": 17, "Ben": 14})
+    assert f.exists(), "💡 Hint: your function must CREATE the file — path.write_text(...) does that."
     assert f.read_text() == "Ana,17\nBen,14\n", "💡 Hint: one 'name,mark' line each, newline after every line."
 
 
