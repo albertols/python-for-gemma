@@ -24,7 +24,7 @@ HOW TO RUN ME
 # print() is Python's equivalent of writing on the whiteboard: whatever
 # you put inside the brackets gets displayed for everyone to see. Think
 # of it as the class register call — you say a name, the class hears it.
-print("Good morning, Year 12 Business!")
+print("Good morning, Year 11 Business!")
 
 # 🧪 TRY IT: change "Year 12 Business" to your actual class name and
 # re-run this file (uv run python python_course/module_01_hello_python/lesson_01_your_first_program.py).
@@ -34,8 +34,8 @@ print("Good morning, Year 12 Business!")
 # wrapped in quotes — single 'like this' or double "like this" both
 # work, just be consistent. It's like writing a student's name on a
 # name badge: the quotes are the badge, the text inside is the name.
-teacher_name = "Ms. Gemma"
-subject = "Economics"
+teacher_name = "Gemma"
+subject = "Business"
 # Commas hand print() several things to say — it joins them into one line,
 # with a space between each, automatically. No manual gluing needed.
 print("Today's teacher is", teacher_name, "and the subject is", subject)

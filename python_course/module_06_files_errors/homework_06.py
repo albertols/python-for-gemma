@@ -17,7 +17,9 @@ def read_register(path: Path) -> list:
     """
     # TODO: read_text() then .splitlines() — watch out for the empty
     # last line if you split on '\n' instead.
-    return ...
+    contents = path.read_text()
+    names = contents.splitlines()
+    return names
 
 
 def save_marks(path: Path, marks: dict) -> None:
@@ -30,7 +32,13 @@ def save_marks(path: Path, marks: dict) -> None:
     """
     # TODO: build one "name,mark" line per entry in marks, join them
     # with a newline, and don't forget the newline after the LAST line too.
-    return ...
+
+    lines = []
+
+    for name, mark in marks.items():
+        lines.append(f"{name},{mark}")
+
+    path.write_text("\n".join(lines) + "\n")
 
 
 def safe_average(scores: list) -> float:
@@ -44,4 +52,10 @@ def safe_average(scores: list) -> float:
     """
     # TODO: try summing and dividing; catch ZeroDivisionError (an empty
     # list makes len(scores) == 0) and return 0.0 instead of crashing.
-    return ...
+
+    try:
+        average = sum(scores) / len(scores)
+        return average
+
+    except ZeroDivisionError:
+        return 0.0

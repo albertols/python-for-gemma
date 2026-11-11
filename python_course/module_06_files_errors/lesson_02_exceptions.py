@@ -41,7 +41,7 @@ print("Dividing by zero raises ZeroDivisionError — Python refuses to guess an 
 # going" — like having a backup activity ready for when the projector
 # fails, rather than cancelling the whole lesson.
 try:
-    average = sum(empty_scores) / len(empty_scores)
+    average = sum([10,20]) / len(empty_scores)
 except ZeroDivisionError:
     print("No scores recorded — defaulting average to 0.0")
     average = 0.0
@@ -59,7 +59,7 @@ print("Average:", average)
 # actually planned for.
 register = {"Ana": 17, "Ben": 14}
 try:
-    mark = register["Cai"]
+    mark = register["Ana"]
 except KeyError:
     print("Cai isn't in the register yet — treating as no mark.")
     mark = None
@@ -75,6 +75,7 @@ print("Cai's mark:", mark)
 # script; it's exactly the pattern your homework's safe_average() uses
 # to survive an empty list instead of crashing.
 missing_file = sandbox / "does_not_exist.txt"
+missing_file.write_text("Dev\n")
 try:
     contents = missing_file.read_text()
 except FileNotFoundError:

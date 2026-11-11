@@ -41,7 +41,7 @@ print("Sandbox folder ready at:", sandbox)
 # putting it in a folder. \n means "start a new line", exactly like
 # pressing Enter between names.
 register_file = sandbox / "register.txt"
-register_file.write_text("Ana\nBen\nCai\n")
+register_file.write_text("Ana\nBen\nCai\nGem")
 print("Wrote register.txt — open", register_file, "in your editor to see it.")
 
 # 🧪 TRY IT: open sandbox/register.txt in your file explorer or IDE —
@@ -69,7 +69,7 @@ print("split('\\n') instead ->", naive_split, "(see the trailing '' ?)")
 # — here, a student's name and their mark. No special library needed
 # to write one by hand: just build the right string.
 marks_file = sandbox / "marks.csv"
-marks = {"Ana": 17, "Ben": 14}
+marks = {"Ana": 17, "Ben": 14, "Gem": 18}
 lines = []
 for student_name, mark in marks.items():
     lines.append(f"{student_name},{mark}")

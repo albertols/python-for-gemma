@@ -30,6 +30,8 @@ print("Register:", register)
 
 # 🧪 TRY IT: create your own list called `subjects` with three subjects
 # you teach, then print() it.
+subjects = ["Business Y11", "Business Y12", "Business Y13"]
+print("Subjects:" , subjects)
 
 # ── 2. INDEXING — REACHING ONE ITEM BY POSITION ─────────────────
 # Every item in a list has a position number called an INDEX, and
@@ -52,6 +54,7 @@ print("First two:", first_two)
 
 # 🧪 TRY IT: predict what register[1:3] will print before you add a
 # print(register[1:3]) line and run this file to check.
+print(register[1:3])
 
 # ── 4. .append() — GROWING A LIST ────────────────────────────────
 # .append() adds one new item to the END of a list — like a late

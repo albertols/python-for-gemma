@@ -10,13 +10,11 @@ def test_greet_the_class():
         "💡 Hint: return (don't print!) the exact text — capitals and the '!' matter."
     )
 
-
 @pytest.mark.homework
 def test_school_motto():
     assert homework_01.school_motto() == "Learn together, grow together", (
         "💡 Hint: check the spelling and the comma. Strings must match EXACTLY."
     )
-
 
 @pytest.mark.homework
 def test_fixed_price_label():

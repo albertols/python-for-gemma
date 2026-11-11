@@ -25,7 +25,7 @@ HOW TO RUN ME
 # items by a meaningful KEY instead — curly braces, key: value pairs.
 # It's exactly a gradebook: instead of "student in seat 2", you look
 # a mark up directly by the student's NAME.
-gradebook = {"Ana": 61, "Ben": 74, "Cai": 68}
+gradebook = {"Ana": 61, "Ben": 74, "Cai": 68, "Alberto": 90}
 print("Gradebook:", gradebook)
 
 # 🧪 TRY IT: add a fourth student to `gradebook` (another key: value
@@ -74,5 +74,6 @@ print("Unique subjects:", unique_subjects)
 
 # 🧪 TRY IT: check membership with "Economics" in unique_subjects —
 # print() the result (a bool!) and see it return True.
+print("Economics" in unique_subjects)
 
 print("✅ Lesson 3.2 complete — you can now look things up by key and de-duplicate a list with a set!")

@@ -52,7 +52,7 @@ def apply_curve(scores, bonus):
     return curved
 
 
-print(apply_curve([58, 63], 2))
+print(apply_curve([58, 63], 5))
 
 # 🧪 TRY IT: change bonus to 5 and re-run — watch both curved scores
 # rise by 5 instead of 2.
@@ -72,7 +72,7 @@ def format_report(name, scores, total):
     return f"{name}: " + ", ".join(pieces)
 
 
-print(format_report("Ana", [15, 18], 20))
+print(format_report("Ana", [15, 18, 14], 20))
 
 # 🧪 TRY IT: add a third score to the list (e.g. [15, 18, 20]) and
 # re-run — watch format_report() handle it with zero changes to its code.

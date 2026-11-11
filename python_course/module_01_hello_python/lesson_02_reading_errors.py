@@ -63,7 +63,7 @@ print("A NameError usually means a typo in a variable name.")
 # mirrors how you might annotate a mock exam: showing the mistake next
 # to the correction, so the pattern sinks in.
 number_of_students = 28
-# print("Class size:", class_size)              # ❌ NameError — 'class_size' was never defined
+#print("Class size:", class_size)              # ❌ NameError — 'class_size' was never defined
 print("Class size:", number_of_students)  # ✅ fixed — using the name we actually defined
 
 # 🧪 TRY IT: uncomment the ❌ line above, save the file, and re-run it

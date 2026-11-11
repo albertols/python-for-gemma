@@ -47,7 +47,7 @@ def percentage(score, total):
 
 
 print(percentage(15, 20))
-
+print(percentage(20, 20))
 # 🧪 TRY IT: call percentage(20, 20) on its own line and print() the
 # result — confirm a perfect score returns 100.0.
 
@@ -59,6 +59,7 @@ print(percentage(15, 20))
 # same function, percentage(), now works for ANY student.
 print(percentage(18, 20))
 print(percentage(7, 10))
+print(percentage(14, 16))
 
 # 🧪 TRY IT: call percentage() with your own two numbers (e.g. a mark
 # out of a homework you've set) and print() the result.

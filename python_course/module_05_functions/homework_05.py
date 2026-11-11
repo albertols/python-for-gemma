@@ -14,19 +14,24 @@ def percentage(score: int, total: int) -> float:
         75.0
     """
     # TODO: return score / total * 100 as a float.
-    return ...
+    return score / total * 100
 
 
 def apply_curve(scores: list, bonus: int) -> list:
     """Return a NEW list with bonus added to every score.
 
     Example:
-        >>> apply_curve([58, 63], 2)
+        >>> apply_curve([58, 63], 5)
         [60, 65]
     """
     # TODO: build and return a NEW list — loop over scores, appending
     # score + bonus to the new list. Don't change the original list.
-    return ...
+
+    new_scores = []
+    for score in scores:
+        scores = [55, 75]
+        new_scores.append(score + bonus)
+    return new_scores
 
 
 def format_report(name: str, scores: list, total: int) -> str:
@@ -39,4 +44,9 @@ def format_report(name: str, scores: list, total: int) -> str:
     # TODO: DRY — call your percentage() function for each score (don't
     # recalculate the formula here). Build a "score/total (pct%)" piece
     # per score, then join the pieces with ", " and prefix "name: ".
-    return ...
+    pieces = []
+    for score in scores:
+        pct = percentage(score, total)
+        pieces.append(f"{score}/{total} ({pct}%)")
+    return f"{name}: " + ", ".join(pieces)
+
