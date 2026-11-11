@@ -26,7 +26,7 @@ HOW TO RUN ME
 # gives you the missing piece: run the SAME indented block once for
 # EVERY item in a list automatically — like calling a register out
 # loud, one name at a time, without writing "print(name)" thirty times.
-register = ["Aisha", "Ben", "Chidi", "Dev"]
+register = ["Aisha", "Ben", "Chidi", "Dev", "Alberto"]
 for student in register:
     print("Present:", student)
 
@@ -48,7 +48,7 @@ for period in range(3):
 # with no fixed number decided in advance. Be careful: something
 # inside the loop MUST eventually make the condition False, or it
 # repeats forever — here, `questions_left` counts down each time.
-questions_left = 3
+questions_left = 5
 while questions_left > 0:
     print("Questions remaining:", questions_left)
     questions_left = questions_left - 1
@@ -63,7 +63,7 @@ print("No more questions — moving on.")
 # scripts in a pile scored above the pass mark, one tick per pass,
 # building the total as they go through the stack.
 scores = [35, 62, 41, 78, 39]
-pass_mark = 40
+pass_mark = 50
 passes = 0
 for score in scores:
     if score >= pass_mark:

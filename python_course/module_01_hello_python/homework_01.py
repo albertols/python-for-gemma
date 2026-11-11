@@ -14,7 +14,7 @@ def greet_the_class() -> str:
         'Hello, Year 12 Business!'
     """
     # TODO: return the exact text "Hello, Year 12 Business!" — capitals and the "!" matter.
-    return ...
+    return 'Hello, Year 12 Business!'
 
 
 def school_motto() -> str:
@@ -25,7 +25,7 @@ def school_motto() -> str:
         'Learn together, grow together'
     """
     # TODO: return the exact text "Learn together, grow together" — check spelling and the comma.
-    return ...
+    return "Learn together, grow together"
 
 
 def fixed_price_label() -> str:
@@ -36,4 +36,4 @@ def fixed_price_label() -> str:
         'Price: £9.99'
     """
     # TODO: return the exact text "Price: £9.99" — note the space after the colon.
-    return ...
+    return "Price: £9.99"

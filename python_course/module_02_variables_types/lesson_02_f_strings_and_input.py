@@ -26,8 +26,8 @@ HOW TO RUN ME
 # that variable's value. It's like a mail-merge template for a report
 # card: the sentence stays fixed, but the name and mark change per
 # student, filled in automatically instead of retyped by hand.
-student_name = "Kofi"
-score = 18
+student_name = "Belle"
+score = 21
 print(f"{student_name} scored {score}")
 
 # 🧪 TRY IT: change student_name and score to a different student and
@@ -48,7 +48,7 @@ print(f"{student_name} scored {score}/{total_marks} ({score / total_marks * 100}
 # Python "format this as a float, one decimal place", the same way
 # you'd round a percentage on a report card to one decimal instead of
 # printing every digit a calculator gives you.
-print(f"{student_name} scored {score}/{total_marks} ({score / total_marks * 100:.1f}%)")
+print(f"{student_name} scored {score}/{total_marks} ({score / total_marks * 100:.2f}%)")
 
 # 🧪 TRY IT: change :.1f to :.2f (two decimal places) or :.0f (whole
 # number) and re-run — see how the same calculation gets reformatted.
@@ -71,7 +71,7 @@ print("Hello,", entered_name)
 # paper: it's still handwriting until YOU decide to treat it as a
 # number. Use int() or float() to convert it before doing arithmetic,
 # or Python will try to "add" text and complain.
-entered_score_text = "17"  # ✅ stand-in for input("Score out of 20? ")
+entered_score_text = "18"  # ✅ stand-in for input("Score out of 20? ")
 entered_score = int(entered_score_text)  # convert str → int before doing maths
 print(f"{entered_name} scored {entered_score}/20 ({entered_score / 20 * 100:.1f}%)")
 

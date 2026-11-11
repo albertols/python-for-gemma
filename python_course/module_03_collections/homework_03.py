@@ -15,7 +15,7 @@ def first_three(students: list) -> list:
     """
     # TODO: slice the list — students[start:stop]. Remember stop is
     # NOT included, so you need the index just past the third name.
-    return ...
+    return (students[0:3])
 
 
 def top_student(grades: dict) -> str:
@@ -27,8 +27,9 @@ def top_student(grades: dict) -> str:
     """
     # TODO: use max() on the dictionary, with key=grades.get so it
     # compares by MARK instead of comparing the names alphabetically.
-    return ...
+    return max (grades, key=grades.get)
 
+# DIFFICULT to remember --- Key (name), Value (mark), Item (pair)**
 
 def unique_subjects(subjects: list) -> set:
     """Return the set of subjects with duplicates removed.
@@ -38,4 +39,5 @@ def unique_subjects(subjects: list) -> set:
         {'Business', 'Econ'}
     """
     # TODO: wrap the list in set() to keep only one of each subject.
-    return ...
+    unique_subjects = set(subjects)
+    return set(unique_subjects)

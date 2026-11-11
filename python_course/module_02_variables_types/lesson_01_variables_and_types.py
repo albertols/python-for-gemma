@@ -27,11 +27,13 @@ HOW TO RUN ME
 # student's name on an exercise book so you always know whose work it
 # is, a variable name lets you find the value again later by name
 # instead of retyping it every time.
-student_name = "Priya"
+student_name = "Belle"
 print("Student name:", student_name)
 
 # 🧪 TRY IT: create a variable called `favourite_subject` holding your
 # favourite subject to teach, then print() it.
+favourite_subject = "Business"
+print("Favourite subject:", favourite_subject)
 
 # ── 2. FOUR STARTER TYPES — str, int, float, bool ───────────────
 # Every value in Python has a TYPE — the kind of thing it is. The four
@@ -61,6 +63,7 @@ print(type(is_present))
 # 🧪 TRY IT: run type("17") and compare it with type(17) — one is text
 # that LOOKS like a number, the other is a real number. Predict the
 # output before you check it.
+print (type(17))
 
 # ── 4. NAMING VARIABLES WELL — snake_case AND MEANING ───────────
 # Python variable names conventionally use snake_case: lowercase
@@ -87,5 +90,9 @@ print("Percentage:", percentage)
 
 # 🧪 TRY IT: add a new pair of score/total variables for a different
 # student and print() their percentage too.
+score = 12
+total = 20
+percentage = score / total * 100
+print("Percentage:", percentage)
 
 print("✅ Lesson 2.1 complete — you can now name, store, and check the type of a value!")
