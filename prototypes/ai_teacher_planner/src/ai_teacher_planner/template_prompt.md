@@ -351,18 +351,20 @@ What's one idea you'd *borrow* and one thing you'd deliberately do
 **5.2** For the **assessment calendar**: how many formal assessments per term
 per group? Who sets the dates: you, the department, or the school?
 
-> ✍️ Your answer:
+> ✍️ Your answer: For each group minimum we need two assessments per term. For igcse the assessments are decided by out head of department for now, but I can also do 2 non-formal versions so could be still worth planning. 
+> For ibdp and ial I need to come up with minimum two assessments - these are normally timed exam practice for ial, and for ibdp they stem mostly from timed exam practice, but also includes any projects. Prompt me for a breakdown example of weightings.
 
 **5.3** For the **report calendar**: what has to be ready for a report
 (grades, comments, effort scores…)? How far ahead do you need a reminder?
 
-> ✍️ Your answer:
+> ✍️ Your answer: See the Calanedar All staff for report deadlines.
+> Reports are made up of Current Attainment Grade (CAG not sent home), Projected Attainment Grade (PAG sent home) and then Behaviour, Attitude to Learning and Independent Study are rated out of 4, 1 being great, 4 needing attention.
 
 **5.4** Should the planner ever see **student data**? If yes, which
 fields, and why? (Tip: the safest data is data the app never touches. See
 Part 9.)
 
-> ✍️ Your answer:
+> ✍️ Your answer: It would be good for it to have an idea of average marks or if there was a certain exam practice question that many in the class underperformed to inform future planning.
 
 **5.5** 🤔 Which of these inputs could you give the app **on day one**, and
 which would need permission from IT or the department?
@@ -382,25 +384,23 @@ which would need permission from IT or the department?
 Strike out ~~ideas you hate~~. Add your own at the bottom.
 
 ### 6A. Planning and pacing
-
-| # | Feature | M/S/C/W | Question for you |
-|---|---|---|---|
-| 1 | **Spec → lesson sequence**: pick topics, set lessons per topic, auto-spread over real teaching weeks (holiday-aware) | | Do you decide lessons-per-topic, or should the AI suggest them? |
-| 2 | **Parallel-group parity tracker**: "12B is 2 lessons behind 12A on topic 3.2" | | Would you rather be *warned*, or have the app *suggest* catch-up options (merge two lessons, set as homework…)? |
-| 3 | **Tile/board view**: topics as columns, lessons as cards you drag around, Trello style | | Columns = topics, weeks, or groups? |
-| 4 | **Spec-coverage checklist**: every spec point ticked when *taught* and when *assessed* | | Is "taught but never assessed" a gap you'd want flagged? |
-| 5 | **"Lost lesson" re-planner**: a snow day / trip / INSET is added → the rest of the term reflows | | Should it reflow automatically or ask you first? |
-| 6 | **Cover-lesson generator** for when you're absent | | |
+| # | Feature | M/S/C/W | Question for you | Your answer |
+|---|---|---|---|---|
+| 1 | Spec → lesson sequence: pick topics, set lessons per topic, auto-spread over real teaching weeks (holiday-aware) | M | Do you decide lessons-per-topic, or should the AI suggest them? | Suggest them, but consider some of the long term planning dcuments we have in terms of overall timings in lessons. And also the anticipated topics that may be tricy for students. |
+| 2 | Parallel-group parity tracker: e.g. '12B is 2 lessons behind 12A on topic 3.2' | M | Would you rather be warned, or have the app suggest catch-up options (merge two lessons, set as homework…)? | Both |
+| 3 | Tile/board view: topics as columns, lessons as cards you drag around, Trello style | M | Columns = topics, weeks, or groups? | I would like the planner to be in the same format as my timetable so that I can easily compare, especially as my school has a two week schedule. |
+| 4 | Spec-coverage checklist: every spec point ticked when taught and when assessed | S | Is 'taught but never assessed' a gap you'd want flagged? | Yes, although I will not be able to assess every aspect of the specification. |
+| 5 | Lost lesson re-planner: a snow day / trip / INSET is added → the rest of the term reflows | S | Should it reflow automatically or ask you first? | Check with me first - but give me a preview of what the reflow is. |
+| 6 | Cover-lesson generator for when you're absent | S | What should the generator include or take into account? | What was previously planned for the day missed so that we can try and still cover some of those objectives with independent work. |
 
 ### 6B. Resources and tasks
-
 | # | Feature | M/S/C/W | Question for you |
 |---|---|---|---|
-| 7 | **Resource refresher**: reads a chapter PowerPoint and suggests *where* to insert current-events slides (real companies, recent news), with sources | | Output as suggested slides to paste, or a list of "after slide 12, add…"? |
-| 8 | **AI-resistant independent tasks, by year group** (see 📝 draft below) | | |
-| 9 | **Class activity ideas** linked to a teaching-strategy library (retrieval practice, think-pair-share, debates…) | | Which strategies do you already use and love? |
-| 10 | **Differentiation**: stretch and challenge / support versions of a task | | |
-| 11 | **Fresh exam practice**: new case studies and question variants in the board's style, so leaked answers don't help | | ⚠️ This overlaps with the **AI Examiner** and **Homework Companion** prototypes. Where should it live? |
+| 7 | Resource refresher: reads a chapter PowerPoint and suggests where to insert current-events slides (real companies, recent news), with sources. | M | Output as suggested slides to paste, or a list of 'after slide 12, add…'? Answer: Yes suggested slides to paste but also a suggested about where to include it to maintain flow. |
+| 8 | AI-resistant independent tasks, by year group (see 📝 draft below). | S |  |
+| 9 | Class activity ideas linked to a teaching-strategy library (retrieval practice, think-pair-share, debates…). |  | Which strategies do you already use and love? Answer: I do like the idea of retrieval practice suggestions and other active learning, as long as they are not too time consuming in ial or igcse classes, as I have more time and flexibility in ibdp lessons. |
+| 10 | Differentiation: stretch and challenge / support versions of a task. | C |  |
+| 11 | Fresh exam practice: new case studies and question variants in the board's style, so leaked answers don't help. | M | ⚠️ This overlaps with the AI Examiner and Homework Companion prototypes. Where should it live? Answer: This may be better to be in the AI Examiner prototype, so you can remind me then. |
 
 📝 **Draft for feature 8: check and correct.**
 
@@ -410,34 +410,33 @@ Strike out ~~ideas you hate~~. Add your own at the bottom.
 >   class with doubts/questions** (flipped learning).
 > - **Y13, after the lesson:** **review content already covered** and
 >   **make their own connections to the real world**.
-> - In general: tasks should be hard to hand to an AI. That points towards
->   personal judgement, local or recent examples, and students' own
->   questions, not plain fact recall.
+> - In general: tasks should be hard to hand to an AI. That points towards 
+> - judgement, local or recent global examples, and students' own
+>   questions, not plain fact recall. They also should involve the student practicing the PBLT structure of paragraphs.
 
 > ✍️ Corrections / additions:
 
 **6.1** 🤔 Give one example of a task you set recently that a student
 *could* have completed with AI, and how you'd change it so they couldn't.
 
-> ✍️ Your answer:
+> ✍️ Your answer: Notetaking from a chapter of the textbook - they could have uploaded the pdf and asked AI to summarise it for them.
 
 ### 6C. Calendars and tracking
 
 | # | Feature | M/S/C/W | Question for you |
 |---|---|---|---|
-| 12 | **Assessment calendar view**: all groups' assessments on one screen, with **clash warnings** (e.g. two deadlines in mock week) | | |
-| 13 | **Report calendar + reminders**: "Y12 reports due in 10 days; 2 groups have no assessment grade yet" | | Reminder by email, Teams, or in-app? |
-| 14 | **Lesson reflection log**: a one-line "what worked / what didn't" after each lesson, shown to you next year | | |
-| 15 | **Export**: to PowerPoint / Word / Excel / Teams | | Which one do you *actually* open every day? |
+| 12 | Assessment calendar view: all groups' assessments on one screen, with clash warnings (e.g. two deadlines in mock week). | S |  |
+| 13 | Report calendar + reminders: 'Y12 reports due in 10 days; 2 groups have no assessment grade yet'. | M | Reminder by email, Teams, or in-app? Answer: In app reminder for now |
+| 14 | Lesson reflection log: a one-line 'what worked / what didn't' after each lesson, shown to you next year. | C |  |
+| 15 | Export: to PowerPoint / Word / Excel / Teams. | M | Which one do you actually open every day? Answer: All of them all day long. |
 
 ### 6D. The bigger "360 platform" (later, probably)
-
 | # | Feature | M/S/C/W | Question for you |
 |---|---|---|---|
-| 16 | **Student view**: see upcoming pre-lesson tasks and assessment dates | | |
-| 17 | **Parent view**: see upcoming assessments / report dates | | Is this helpful or a source of extra emails? 😅 |
-| 18 | **Department view**: Head of Department sees coverage across all teachers | | |
-| 19 | **Shared resource library** across the department | | |
+| 16 | Student view: see upcoming pre-lesson tasks and assessment dates. | S |  |
+| 17 | Parent view: see upcoming assessments / report dates. | W | Is this helpful or a source of extra emails? 😅 Answer: Source of extra emails, especially with older students (15-18 years ld) |
+| 18 | Department view: Head of Department sees coverage across all teachers. | C |  |
+| 19 | Shared resource library across the department. | S |  |
 
 ### 6E. Your own ideas
 
@@ -479,17 +478,17 @@ one, and why?
 **7.2** Who is "Admin" in real life: school IT, the Head of Department, or
 you? Do we need a separate **Head of Department** role?
 
-> ✍️ Your answer:
+> ✍️ Your answer: Yes a Head of department role could be interesting. And also a Head of Curriculum.
 
 **7.3** Should a student see **only their own group's** tasks, or all three
 parallel groups'? Why might that matter?
 
-> ✍️ Your answer:
+> ✍️ Your answer: Only their own group - comparing causes more parent emails etc.
 
 **7.4** 🤔 Name one thing that would cause a **real problem** if the wrong
 role could see it.
 
-> ✍️ Your answer:
+> ✍️ Your answer: Seeing a planned cover lesson before being notified of the absence. 
 
 ---
 
@@ -516,17 +515,17 @@ student names or data are visible.
 
 **8.4** Quick preferences (circle one):
 
-- Device you'll plan on most: **laptop / iPad / phone**
-- Light mode / dark mode / both
+- Device you'll plan on most: **laptop**
+- dark mode
 - Colour-code by: **group / topic / year / curriculum**
-- Density: **lots on one screen** / **calm and spacious**
+- Density: **calm and spacious**
 
 > ✍️ Your answer:
 
 **8.5** What's the **first screen** you want to see when you open the app on
 a Monday morning?
 
-> ✍️ Your answer:
+> ✍️ Your answer: Daily Planner and reminders for the week ahead.
 
 ---
 
@@ -549,8 +548,8 @@ a Monday morning?
 > - 👩‍🏫 **Human in the loop.** The teacher reviews every AI-generated
 >   resource, task or question **before students see it**.
 > - ⚖️ **Copyright.** Past papers and mark schemes belong to the exam
->   boards. The app may use them as *style references* for new questions,
->   but must not republish them.
+>   boards. The app may use them as or as actual resources for tasks or as **style references * for new questions,
+>   but must not republish them as its' own.
 > - 🧱 **Tech stack (Alberto's decision).** TypeScript + React web app,
 >   modular, so it can later join a wider "360 platform" for teachers,
 >   students and parents. This replaces the earlier Python plan
@@ -561,17 +560,17 @@ a Monday morning?
 **9.2** What would your **school** (IT, safeguarding lead, leadership) need
 to approve before you could use this with real classes?
 
-> ✍️ Your answer:
+> ✍️ Your answer: They may need to gove me access natively to Microsoft 365 on my Mac.
 
 **9.3** Budget: is any paid service OK (AI API costs, hosting), or must it
 be free?
 
-> ✍️ Your answer:
+> ✍️ Your answer: Free
 
 **9.4** 🤔 Which rule in 9.1 do you think an AI is **most likely** to break
 if you don't spell it out? Why?
 
-> ✍️ Your answer:
+> ✍️ Your answer: Maybe the copyright with resources found.
 
 ---
 
@@ -681,13 +680,13 @@ tests for that code, all on its own?
 
 **12.1** What do you want the AI to hand back? Tick:
 
-- [ ] A written **spec** (`docs/superpowers/specs/…-ai-teacher-planner-design.md`)
-- [ ] A list of **ADRs** to write (one per big decision)
-- [ ] A **phased roadmap**: MVP → v2 → "360 platform"
-- [ ] **Mermaid diagrams** (architecture, user flow, roles)
-- [ ] A **step-by-step build plan** with tests first (TDD)
-- [ ] A **risk list** (privacy, copyright, AI hallucination, school approval)
-- [ ] A list of **open questions** for me
+- [x] A written **spec** (`docs/superpowers/specs/…-ai-teacher-planner-design.md`)
+- [x] A list of **ADRs** to write (one per big decision)
+- [x] A **phased roadmap**: MVP → v2 → "360 platform"
+- [x] **Mermaid diagrams** (architecture, user flow, roles)
+- [x] A **step-by-step build plan** with tests first (TDD)
+- [x] A **risk list** (privacy, copyright, AI hallucination, school approval)
+- [x] A list of **open questions** for me
 - [ ] Other:
 
 **12.2** `TODO:` Once Parts 1–11 are done, copy this skeleton, replace each
