@@ -106,22 +106,25 @@ rules for student data.`
 
 **1.1** Which kinds of expertise does the AI need for *this* job? Tick or add.
 
-- [ ] Software architect (TypeScript/React web apps)
-- [ ] Experienced international-school teacher / Head of Department
-- [ ] Exam-board specialist (Edexcel IAL / IGCSE / IB)
-- [ ] UX designer for busy teachers
-- [ ] Data-protection / safeguarding advisor
+- [x] Software architect (TypeScript/React web apps)
+- [x] Experienced international-school teacher / Head of Department
+- [x] Exam-board specialist (Edexcel IAL / IGCSE / IB)
+- [x] UX designer for busy teachers
+- [x] Data-protection / safeguarding advisor
 - [ ] Other:
 
 **1.2** `TODO:` Write your own role sentence (1–3 sentences), combining what
 you ticked.
 
-> ✍️ Your answer:
+> ✍️ Your answer: You are a senior product architect who has built a planning tool
+for an international school teacher. You have a deep understanding of the Pearson Edexcel Business ial, Pearson Edexcel Business igcse (9-1)
+and ibdp Business Management curricula. You also understand the workings and complexities of UK-style two-week school timetables, and safeguarding
+rules for student data, including names, marks and any personal information (SEND, Mental Health status, exam arrangements). This platform should allow me to encapsulate my daily routines of planning lessons, creating resources, tracking students progress and ensuring I am able to cover all aspects of the curriculum set out by the subject syllabus and assessment objectives. 
 
 **1.3** 🤔 Think about it: what might go wrong if the AI were *only* a
 software architect, with no teacher in its role?
 
-> ✍️ Your answer:
+> ✍️ Your answer: You would end up creating a generic planning tool that would simplify the day-to-day reality of a teacher, students and a school. It would simply be a calendar style tool that follows a basic routine and assumes that no flexibility would be needed. You would also end up providing generic resources and lesson ideas that are not based on a specific curriculum or syllabus. For instance, creating some generic worksheets to use with Business students, without considering the specific assessment objectives and required content, and how that differs between different exam boards. In addition you would not consider the importance of saving a teacher time of completing repetitive tasks, such as inputting data in a marksheet by hand and using this to inform of student progress etc. 
 
 ---
 
@@ -134,18 +137,20 @@ software architect, with no teacher in its role?
 
 **2.1** 📝 **Draft: check and correct.**
 
-> - I teach in an international school delivering several curricula: IB
->   Diploma, Pearson Edexcel IGCSE and Pearson Edexcel IAL.
-> - My subjects are Business and Economics.
+> - I teach in an international/British school delivering several Business curricula: IB
+>   Diploma (ibdp), Pearson Edexcel IGCSE (igcse) and Pearson Edexcel IAL (ial).
+> - This year I am only teaching Business. But in the future I will need the planner to help me plan a multitude of subjects and levels. So please bare this in mind in the design.
 > - I often teach **three parallel groups at the same level**
->   (e.g. three IAL Business groups) and deliver the same lessons to all
->   three, with minor changes.
-> - The school runs a **two-week timetable** (Week A / Week B), so the
->   groups don't get the same number of lessons, especially around
->   holidays.
-> - School systems: MS Teams + OneDrive/SharePoint (main), SIMS (in a VM),
->   Toddle (IB), Examwizard (Edexcel past papers), Cognita Connect (parents),
->   SchoolCloud (parents' evenings).
+>   (e.g. three ial Y13 Business groups for unit 4) and deliver the same lessons to all
+>   three, with minor changes depending on timings of timetables and ability level of student groups.
+> - The school runs a **two-week timetable** (Week 1 / Week 2), so the
+>   groups don't always get the same number of lessons when we have holidays, or school events happening (some planned some unforeseen).
+> - ![timetable_26_27.png](../resoruces/school_admin/timetable_26_27.png) "400" means I supervise a study hall. Blank cells mean I have preparation time. Grey coloured cells mean I have break/lunch, or Form that requires no planning.
+> - Over two weeks I teach one igcse Edexcel Business group ("11D") for five 55minute periods, one ibdp Business Management group in Y12 that is split into Standard Level ("IB S") and Higher Level ("IB H") leveled groups where "IB S lessons" is made up of students from both "IB S" and "IB H" and I have six 55minute periods, and the "IB H" group is only "IB H" students and I have four 55minute periods. I need to be able to cover the Higher Level only content that could be from Y12 or Y13 ibdp content with the IB H group when I have them alone, which can be difficult, especially at the beginning of the course as we have not covered some of the basics in IB S yet, such as Unit 1. 
+> - I also teach three ial Edexcel Y13 Business groups ("13 1", "13 3", and "13 5") for six 55minute periods each. 
+> - School systems: MS Teams (Classes for igcse and ial for communication, assignments, adding marks etc, and also as a general communication tool for staff in school as Teams) + OneDrive/SharePoint (main source of where my teaching and planning resources live), SIMS Next Gen (previous legacy SIMS was in a Virtual Machine) features seating plans, markbooks, behavior dashboards, attendance tracking, and pupil profiles.,
+>   Toddle (for ibdp only, used for class communication, assignments and submission of Internal Assessments and Extended Essays), Examwizard (Edexcel ial and igcse past exam papers, mark schemes, examiner reports, and option to build papers by selecting past paper questions), Results Plus (Edexcel/Pearson. Used to access students' official examination scripts for ial and igcse. Also for accessing examiner respots and mark schemes), Cognita Connect (to email parents),
+>   SchoolCloud (parents' evenings), Question Bank (ibdp past exam papers, mark schemes).
 
 > ✍️ Corrections / additions:
 
@@ -159,20 +164,44 @@ student names).
 | | | | | | | |
 | | | | | | | |
 
+![timetable_26_27.png](../resoruces/school_admin/timetable_26_27.png)
+
+School day Timings:
+Period 1: 08:45-09:40
+Period 2: 09:40-10:35
+Break 1 (Form): 10:35-10:55
+Break 2: 10:55-11:15
+Period 3: 11:15-12:10
+Period 4: 12:10-13:05
+Lunch 1: 13:05-13:50
+Lunch 2: 13:50-14:35
+Period 5: 14:35-15:30
+Period 6: 15:30-16:25
+
 **2.3** Which dates break the rhythm in a typical year? (half terms, INSET
 days, mock weeks, trips, school events, exam leave…)
 
-> ✍️ Your answer:
+> ✍️ Your answer: [2026-27 Secondary Calendar ALL STAFF.xlsx](../resoruces/school_admin/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) ![calendar_tabs_1.png](../resoruces/school_admin/calendar_tabs_1.png)
+![calendar_tabs_2.png](../resoruces/school_admin/calendar_tabs_2.png) Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training".
+mock weeks, trips, school events, exam study leave - all of which will be updated as the school year continues in the "Secondary Calendar ALL STAFF" document. Consider that the ibdp ("IBDP calendars") can differ. 
+> Also consider the "Report Deadlines" and "Parents Evenings".
+> Additionally if I am absent from school the order of content delievery may have to be updated or resources edited so that they can be completed byu students independently. 
 
 **2.4** Does your department share a Scheme of Work, or do you each write
 your own? Who has the final say?
 
-> ✍️ Your answer:
+> ✍️ Your answer: 
+> igcse Business: I need to cover Y11 igcse content as I only have class with 11D and no Y10. We are three teachers in the department and the Head of Department decides on order of content and Units, and when assessments take place. We need to have three different versions of the assessment, one for each class, and then we try to change the order or certain questions for each assessment so that there are two final versions for each Y11 group to avoid copying.
+> ial Business: I am focusing only on Y13 content and specifically Unit 4 this year (but in the future will need planning for all four units). I am the sole teacher of this Unit and responsible for planning the creation and delivery of content and internal assessments during lessons. I also need to create the exam practice materials, and a mock exam to be sat in January/February according to the school calendar.
+> ibdp Business Management: This group is separated into Standard and Higher Level classes, where during Standard Level classes both Standard and Higher level students attend, and during HL classes only Higher level students attend. Due to this it is my responsibility to decide how to separate and plan the IB Business Management content so that I am covering all the Standard Level content with everyone.
 
 **2.5** 🤔 Which facts in this part would a teacher at a *different* school
 get wrong about yours? (Those are the ones that matter most in a prompt.)
 
-> ✍️ Your answer:
+> ✍️ Your answer: They would struggle with the fact that we reorder the content for igcse and ibdp instead of following the order in the specification/syllabus/guide.
+> igcse Business content order: In Y10 we cover Unit 1 followed by Unit 4. IN Y11 we cover Unit 3, then Unit 2 and finally Unit 5.
+> ibdp Business content order: In Y12 we cover Unit 1, followed by Unit 4, then part of Unit 3. In Y13 we finish Unit 3, work on the Internal Assessment and then do Unit 5.
+> ial Business content: All units are completed in linear order.
 
 ---
 
@@ -187,46 +216,54 @@ get wrong about yours? (Those are the ones that matter most in a prompt.)
 **3.1** 📝 **Draft: check and correct.** Your planning week as you
 described it:
 
-> 1. I open the **syllabus** and my **Scheme of Work / long-term plan**
+> 1. I open the **syllabus/specification/guide/syllabus** and my **Scheme of Work / long-term plan**
 >    and decide how many lessons each topic needs.
 > 2. I open my **timetable** and break the topics into lessons.
-> 3. I repeat the lessons across my three parallel groups, but because of
+> 3. I repeat the lessons across my three parallel groups for ial, but because of
 >    the two-week timetable and holidays, **keeping all three groups on
 >    the same content is tedious**.
-> 4. I need **class activities** and **independent tasks students can't
+> 4. I spend a lot of time figuring out what to teach in with the Higher Level only group ("IB H") as there is some content that I cannot cover until the basics are covered in the Standard Level ("IB S") class. Now I have covered the HL only topics in Unit 5, so need to figure out which topics I can combine. 
+> 5. I need **class activities** and **independent tasks students can't
 >    just hand to AI**, so I end up doing most **exam practice in class**
->    to keep it authentic.
-> 5. Keeping lessons **current** (real-world events, real businesses) means
+>    to keep it authentic. I like to have some exam practice/planning tasks that include the students having to do paragraphs with the PBLT (Point, Because, Leads to, Therefore) format.
+> 6. Keeping lessons **current** (real-world events, real businesses) means
 >    I keep reworking resources. What I want is **updates added to my
 >    existing resources**, like my chapter PowerPoints, not whole new
->    lessons.
-> 6. **Past papers are compromised**: students can find the answers, so I
->    rewrite questions and change details in case studies myself.
+>    lessons. Especially for ial Businesses in Unit 4 content, as one prerequisite is that the students include some real world examples in their answers to support their points and judgements.
+> 7. **Past papers are compromised**: students can find the answers, so I
+>    rewrite questions and change details in case studies myself. This is mostly when it comes to timed assessments as students can study from mark schemes or see the questions prior. This happens especially with ial and igcse.
+> 8. If there is a school holiday, for example if we are off on a Monday and Tuesday, I need to consider this in my planning to make sure I am still getting all the content covered.
+> This is especially important when the holiday means I miss a class with one of my three parallel classes in ial, or if I miss my igcse "11D" class and end up behind in comparison with my other two collegues as they do not have their classes on those days so do not miss their lessons.
 
 > ✍️ Corrections / additions:
 
 **3.2** `TODO:` Rank the pains 1 (worst) to 5, and estimate minutes lost per
 week. These numbers become the app's **success metrics**.
 
-| Pain | Rank | Minutes / week today | "Solved" would look like… |
-|---|---|---|---|
-| Keeping 3 groups in sync | | | |
-| AI-resistant independent tasks | | | |
-| Updating resources with current events | | | |
-| Fresh exam practice (leaked papers) | | | |
-| Mapping syllabus → timetable | | | |
-| Other: | | | |
+| Pain | Context | Rank | Minutes / week today | "Solved" would look like… |
+|---|---|---|---|---|
+| Syllabus → Scheme of Work → Timetable | Opening the syllabus and Scheme of Work, and the subject syllabus/guide/specification to decide how many lessons each topic needs, then breaking topics into individual lessons using my timetable. | 1 | 120 | If this could be automised in my planner tool based on my school calendar and timetable. |
+| Keeping three parallel IAL groups in sync | Repeating lessons across three groups with a two-week timetable and school holidays. Keeping all groups on the same content is tedious. | 3 | 60 | Again if this was automised and optimised so that considering my timetable schedule and the school calendar, especially considering school holidays in the school calendar. |
+| Planning IB Higher Level (IB H) lessons | Finding suitable content for the HL only group (IB H) when some topics depend on the IB Standard Level (IB S) foundations. Unit 5 HL-only content has now been covered, so I need to identify topics that can be combined or covered. | 2 | 90 | Create a list for of topic/chapter combinations in order based on the subject guide/specification to choose/ suggest topics to combine or complement. This should be added to my planner. |
+| AI-resistant activities and independent tasks | Creating meaningful class activities and independent tasks students cannot simply hand to AI. I do most exam practice in class to keep it authentic. I also want exam planning and paragraph-writing activities using PBLT (Point, Because, Leads to, Therefore). | 8 | 120 | A content creater that can take official exam questions with case studies and and edit them so they are not recognisable ot students.  |
+| Keeping existing teaching resources current | Updating existing chapter PowerPoints with real-world events and business examples rather than creating entirely new lessons. Particularly important for IAL Business Unit 4, where students need real-world examples to support their answers and judgements. | 6 | 40 | Suggestions of current events that are relevant and connect with content. This can be added to the planner as updates! |
+| Compromised past papers and exam practice | Students can find past-paper answers, mark schemes and questions in advance. I spend time rewriting questions and changing case-study details, particularly for timed IAL and IGCSE assessments. | 7 | 40 | Same as point 4 solution. |
+| Adjusting planning around school holidays | Accounting for holidays that interrupt the teaching sequence, such as Monday and Tuesday closures, to ensure all syllabus content is covered. | 5 | 45 | Consider the school calendar when planning. |
+| Keeping IAL and IGCSE classes aligned after missed lessons | When a holiday means I miss one of my three IAL parallel groups, or my IGCSE 11D class, other colleagues may continue teaching their classes and get ahead. I need to adjust my planning to catch up without losing syllabus coverage. | 4 | 70 | Again considering the school calendar. But also having the planner capable of updating and being flexible if there is an unexpected absence or if a certain topic takes longer with one class than another in my parallel groups. |
 
 **3.3** Walk me through the **last time** a group fell out of sync. What
 happened, how did you notice, and how did you fix it?
 
-> ✍️ Your answer:
+> ✍️ Your answer: I was absent for 3 days (Tuesday to Thursday). This meant that I missed 3/3 lessons for two of the ial groups, meaning they were behind on content. 
+> I ended up having to replan those lessons by leaving cover, which involved the students doing extra exam practice on the previous content that we covered together, and notetaking on the original chapter that was meant to be covered together.
+> Once we were back together in class the following week, these two groups missed out on some support with the content and also missed out on doing some exam practice and preparation tasks that was completed with the other ial group that I didn't miss classes with.
+> Therefore the two ial classes that I missed due to being absent will be at a disadvantage.
 
 **3.4** 🚫 **Anti-goals**: what would make this app a failure *even if it
 technically works*? (e.g. "If I have to spend longer checking the AI's
 work than doing it myself.")
 
-> ✍️ Your answer:
+> ✍️ Your answer: If I have to take too much time actually double checking the plan created in relation to the syllabus. Also that if you create some resources that are not adjusted to the appropriate level or are too general. Lastly if the suggestions given for lessons are too repetitive.
 
 ---
 
@@ -242,16 +279,11 @@ work than doing it myself.")
 **4.1** `TODO:` Fill in what *you* know first, before asking any AI. Your
 first-hand experience is worth more than its summary.
 
-| App | Used it? | What it's good at | What annoys you | Steal this idea? |
-|---|---|---|---|---|
-| Toddle (you use it for IB) | | | | |
-| ManageBac | | | | |
-| Chalk / Planboard | | | | |
-| PowerSchool | | | | |
-| TeacherKit | | | | |
-| Edmodo (closed 2022: why did it fail?) | | | | |
-| Trello / Notion (not school apps, but tile-style) | | | | |
-| Other: | | | | |
+Chalk: and PowerSchool I use this regularly to complete my weekly planning. It is annoying that I have to manually create my timetable instead of being able to upload it. Also it would be great to have a checklist of topics related to the syllabus/specification of content so I can keep track. I really like how visual app is and how I have the option of viewing in daily, weekly and monthly my plans. I would like to create something similiar.
+Managebac: This was great as I could have a class stream where I could add resources with the students, but also have an intergrated gradebook related to tasks set. Also the fact that attendance, class drive and reports were all in one place. Consider this for future reference.*
+PowerSchool: I like the Resource support section of this site. But I do not pay for it. 
+Teacherkit: I like that this has an option of creating a visual seating plan.
+
 
 **4.2** `TODO:` Write the prompt you'd give a **research agent** to fill the
 gaps. Use the ingredients from the table at the top. Starter (improve it!):
@@ -267,7 +299,14 @@ teacher with <my situation from Part 3>.
 Mark anything you could not verify as UNVERIFIED.
 ```
 
-> ✍️ Your improved research prompt:
+> ✍️ Your improved research prompt: You are a product analyst specialising in K-12 education software.
+Research these planning tools: Chalk, Managebac, PowerSchool and Teacherkit.
+For each, find: core features, pricing model, which curricula it supports
+(IB / IGCSE / IAL), how it handles parallel classes and rotating timetables,
+and common complaints from teachers (cite sources: reviews, forums).
+Output: one comparison table + a list of gaps none of them fill for a
+teacher with with my situation form Part 3.
+Mark anything you could not verify as UNVERIFIED.
 
 **4.3** Alberto suggested studying how successful apps work, "reverse
 engineering" (see https://github.com/morluto/rea). `TODO:` Open that link

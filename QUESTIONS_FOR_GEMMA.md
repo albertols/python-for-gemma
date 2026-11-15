@@ -21,7 +21,7 @@ No rush, no wrong answers, and "I don't know" is a completely fine answer too �
 
 **A3.** Tell me about your timetable: which classes do you teach, which year groups, and how many periods per week for each class?
 
-> ✍️ Your answer:![timetable.png](prototypes/resources/timetable.png) We use a two-week timetable. Over two weeks I teach one Y11 IGCSE Edexcel Business group ("11D") for five 55minute periods, one Y12 IBDP Business Management group that is split into Standard ("IB S") and Higher ("IB H") leveled groups where "IB S" is made up of students from both "IB S" and "IB H" and I have six 55minute periods, and the "IB H" group is only "IB H" students and I have 4 55minute periods, and I also teach three Y13 IAL Edexcel Business groups ("13 1", "13 3", and "13 5") for six 55minute periods each. "400" means I supervise a study hall. Blank cells mean I have preparation time. Grey cells mean I have break/lunch.
+> ✍️ Your answer:![timetable.png](prototypes/resources/timetable.png) We use a two-week timetable. Over two weeks I teach one igcse Edexcel Business group ("11D") for five 55minute periods, one ibdp Business Management group that is split into Standard ("IB S") and Higher ("IB H") leveled groups where "IB S" is made up of students from both "IB S" and "IB H" and I have six 55minute periods, and the "IB H" group is only "IB H" students and I have 4 55minute periods, and I also teach three ial Edexcel Business groups ("13 1", "13 3", and "13 5") for six 55minute periods each. "400" means I supervise a study hall. Blank cells mean I have preparation time. Grey cells mean I have break/lunch.
 
 **A4.** What are the term dates for 2026–27?
 
@@ -65,7 +65,7 @@ No rush, no wrong answers, and "I don't know" is a completely fine answer too �
 
 **C2.** Which question sizes matter most to you — 4, 8, 10, 12, or 20 marks?
 
-> ✍️ Your answer: For IAL Edexcel Business 8, 10, 12 and 20marks. For IGCSE Edexcel Business 9 and 12marks. For IBDP Business 10 and 17marks.
+> ✍️ Your answer: For ial Edexcel Business 8, 10, 12 and 20marks. For igcse Edexcel Business 9 and 12marks. For ibdp Business Management 10 and 17marks.
 
 **C3.** How long should a case study be?
 
