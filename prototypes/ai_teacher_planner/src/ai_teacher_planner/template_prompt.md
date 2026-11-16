@@ -119,12 +119,12 @@ you ticked.
 > ✍️ Your answer: You are a senior product architect who has built a planning tool
 for an international school teacher. You have a deep understanding of the Pearson Edexcel Business ial, Pearson Edexcel Business igcse (9-1)
 and ibdp Business Management curricula. You also understand the workings and complexities of UK-style two-week school timetables, and safeguarding
-rules for student data, including names, marks and any personal information (SEND, Mental Health status, exam arrangements). This platform should allow me to encapsulate my daily routines of planning lessons, creating resources, tracking students progress and ensuring I am able to cover all aspects of the curriculum set out by the subject syllabus and assessment objectives. 
+rules for student data, including names, marks and any personal information (SEND, Mental Health status, exam arrangements). This platform should allow me to encapsulate my daily routines of planning lessons, creating resources (ai content creator prototype), tracking students progress and ensuring I am able to cover all aspects of the curriculum set out by the subject syllabus and assessment objectives. 
 
 **1.3** 🤔 Think about it: what might go wrong if the AI were *only* a
 software architect, with no teacher in its role?
 
-> ✍️ Your answer: You would end up creating a generic planning tool that would simplify the day-to-day reality of a teacher, students and a school. It would simply be a calendar style tool that follows a basic routine and assumes that no flexibility would be needed. You would also end up providing generic resources and lesson ideas that are not based on a specific curriculum or syllabus. For instance, creating some generic worksheets to use with Business students, without considering the specific assessment objectives and required content, and how that differs between different exam boards. In addition you would not consider the importance of saving a teacher time of completing repetitive tasks, such as inputting data in a marksheet by hand and using this to inform of student progress etc. 
+> ✍️ Your answer: You would end up creating a generic planning tool that would simplify the day-to-day reality of a teacher, students and a school. It would simply be a calendar style tool that follows a basic routine and assumes that no flexibility would be needed. You would also end up providing generic resources (ai content creator prototype) and lesson ideas that are not based on a specific curriculum or syllabus. For instance, creating some generic worksheets to use with Business students, without considering the specific assessment objectives and required content, and how that differs between different exam boards. In addition, you would not consider the importance of saving a teacher time of completing repetitive tasks, such as inputting data in a marksheet by hand and using this to inform of student progress etc. 
 
 ---
 
@@ -145,6 +145,7 @@ software architect, with no teacher in its role?
 >   three, with minor changes depending on timings of timetables and ability level of student groups.
 > - The school runs a **two-week timetable** (Week 1 / Week 2), so the
 >   groups don't always get the same number of lessons when we have holidays, or school events happening (some planned some unforeseen).
+> - Consider that when there is an extended holiday, the week continue after - for example if we finish for Winter holidays on Week 1, the week we return in January will be week 2.
 > - ![timetable.png](../../../resources/timetable.png) "400" means I supervise a study hall. Blank cells mean I have preparation time. Grey coloured cells mean I have break/lunch, or Form that requires no planning.
 > - Over two weeks I teach one igcse Edexcel Business group ("11D") for five 55minute periods, one ibdp Business Management group in Y12 that is split into Standard Level ("IB S") and Higher Level ("IB H") leveled groups where "IB S lessons" is made up of students from both "IB S" and "IB H" and I have six 55minute periods, and the "IB H" group is only "IB H" students and I have four 55minute periods. I need to be able to cover the Higher Level only content that could be from Y12 or Y13 ibdp content with the IB H group when I have them alone, which can be difficult, especially at the beginning of the course as we have not covered some of the basics in IB S yet, such as Unit 1. 
 > - I also teach three ial Edexcel Y13 Business groups ("13 1", "13 3", and "13 5") for six 55minute periods each. 
@@ -176,10 +177,10 @@ days, mock weeks, trips, school events, exam leave…)
 
 > ✍️ Your answer: [Hastings School - Calendar 26-27 (Teaching) updated Oct26.pdf](../../../resources/Hastings%20School%20-%20Calendar%2026-27%20%28Teaching%29%20updated%20Oct26.pdf) 
 > [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) ![calendar_tabs_1.png](../../../resources/calendar_tabs_1.png) ![calendar_tabs_2.png](../../../resources/calendar_tabs_2.png)
-> Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training". Important to consider the dates correlated with Week 1 and Week 2 in the [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx). For instance our midterm holidays start at the end of a "Week 2" (12th February) and when we return (22nd Feb) we will commence on a "Week 1" timetable. This ensures we are not always missing the same weeks on extended holidays. This must be considered in the AI Planner scheduling.
+> Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training". Important to consider the dates correlated with Week 1 and Week 2 in the [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx). For instance our midterm holidays start at the end of a "Week 2" (12th February) and when we return (22nd Feb) we will commence on a "Week 1" timetable. This ensures we are not always missing the same weeks on extended holidays. This is important and must be considered in the AI Planner scheduling.
 mock weeks, trips, school events, exam study leave - all of which will be updated as the school year continues in the [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) document. Consider that the ibdp ("IBDP calendars") can differ. 
 > Also consider the "Report Deadlines" and "Parents Evenings".
-> Additionally if I am absent from school the order of content delivery may have to be updated or resources edited so that they can be completed byu students independently. 
+> Additionally if I am absent from school the order of content delivery may have to be updated or resources edited (by cai ontent creator prototype) so that they can be completed by students independently. 
 
 **2.4** Does your department share a Scheme of Work, or do you each write
 your own? Who has the final say?
@@ -190,11 +191,11 @@ your own? Who has the final say?
 > [Pearson Edexcel International GCSE (9-1) Business Student Book.pdf](../../../resources/igcse/igcse%20Textbook%20and%20Specification/Pearson%20Edexcel%20International%20GCSE%20%289-1%29%20Business%20Student%20Book.pdf)
 > [IGCSE Y11 Planning.xlsx](../../../resources/igcse/Planning/IGCSE%20Y11%20Planning.xlsx)
 > [Y11 IGCSE Assessment Schedule.docx](../../../resources/igcse/Planning/Y11%20IGCSE%20Assessment%20Schedule.docx)
-> ial Business: I am focusing only on Y13 content and specifically Unit 4 this year (but in the future will need planning for all four units). I am the sole teacher of this Unit and responsible for planning the creation and delivery of content and internal assessments during lessons. I also need to create the exam practice materials, and a mock exam to be sat in January/February according to the school calendar.
+> ial Business: I am focusing only on Y13 content and specifically Unit 4 this year (but in the future will need planning for all four units). I am the sole teacher of this Unit and responsible for planning the creation and delivery of content and internal assessments during lessons. I also need to create the exam practice materials (ai content creator prototype), and a mock exam to be sat in January/February according to the school calendar (ai examiner prototype).
 [IAL BUSINESS SPECIFICATION.pdf](../../../resources/ial/ial%20Specification%20%26%20Textbook/IAL%20BUSINESS%20SPECIFICATION.pdf) 
 [⁮IALBusiness Student Book 2 Edexcel.pdf](../../../resources/ial/ial%20Specification%20%26%20Textbook/%E2%81%AEIALBusiness%20Student%20Book%202%20Edexcel.pdf)
 [Y13 Unit 4 Planning.xlsx](../../../resources/ial/Planning/Y13%20Unit%204%20Planning.xlsx)
-> ibdp Business Management: This group is separated into Standard and Higher Level classes, where during Standard Level classes both Standard and Higher level students attend, and during HL classes only Higher level students attend. Due to this it is my responsibility to decide how to separate and plan the IB Business Management content so that I am covering all the Standard Level content with everyone. In Y12 we cover Unit 1, 4 and 3. In Y13 we cover a part of Unit 3, unit 2 and 5
+> ibdp Business Management: This group is separated into Standard and Higher Level classes, where during Standard Level classes both Standard and Higher level students attend, and during HL classes only Higher level students attend. Due to this it is my responsibility to decide how to separate and plan the IB Business Management content so that I am covering all the Standard Level content with everyone. In Y12 we cover Unit 1, 4 and 3. In Y13 we cover a part of Unit 3, unit 2 and 5. For example I have covered topic 2.5 during tody's lesson with "IB H".
 > [Business Management Guide.pdf](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide/Business%20Management%20Guide.pdf)
 > [Business Management Syllabus.pdf](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide/Business%20Management%20Syllabus.pdf)
 > [Business Management - Surridge, Gillespie and Mills - Hodder 2022.pdf](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide/Business%20Management%20-%20Surridge%2C%20Gillespie%20and%20Mills%20-%20Hodder%202022.pdf)
@@ -234,7 +235,7 @@ described it:
 > 6. Keeping lessons **current** (real-world events, real businesses) means
 >    I keep reworking resources. What I want is **updates added to my
 >    existing resources**, like my chapter PowerPoints, not whole new
->    lessons. Especially for ial Businesses in Unit 4 content, as one prerequisite is that the students include some real world examples in their answers to support their points and judgements.
+>    lessons. This should be part of the ai content creator prototype. Especially for ial Businesses in Unit 4 content, as one prerequisite is that the students include some real world examples in their answers to support their points and judgements.
 > 7. **Past papers are compromised**: students can find the answers, so I
 >    rewrite questions and change details in case studies myself. This is mostly when it comes to timed assessments as students can study from mark schemes or see the questions prior. This happens especially with ial and igcse.
 > 8. If there is a school holiday, for example if we are off on a Monday and Tuesday, I need to consider this in my planning to make sure I am still getting all the content covered.
@@ -245,15 +246,15 @@ described it:
 **3.2** `TODO:` Rank the pains 1 (worst) to 5, and estimate minutes lost per
 week. These numbers become the app's **success metrics**.
 
-| Pain | Context | Rank | Minutes / week today | "Solved" would look like… |
-|---|---|---|---|---|
-| Syllabus → Scheme of Work → Timetable | Opening the syllabus and Scheme of Work, and the subject syllabus/guide/specification to decide how many lessons each topic needs, then breaking topics into individual lessons using my timetable. | 1 | 120 | If this could be automised in my planner tool based on my school calendar and timetable. |
-| Keeping three parallel IAL groups in sync | Repeating lessons across three groups with a two-week timetable and school holidays. Keeping all groups on the same content is tedious. | 3 | 60 | Again if this was automised and optimised so that considering my timetable schedule and the school calendar, especially considering school holidays in the school calendar. |
-| Planning IB Higher Level (IB H) lessons | Finding suitable content for the HL only group (IB H) when some topics depend on the IB Standard Level (IB S) foundations. Unit 5 HL-only content has now been covered, so I need to identify topics that can be combined or covered. | 2 | 90 | Create a list for of topic/chapter combinations in order based on the subject guide/specification to choose/ suggest topics to combine or complement. This should be added to my planner. |
-| AI-resistant activities and independent tasks | Creating meaningful class activities and independent tasks students cannot simply hand to AI. I do most exam practice in class to keep it authentic. I also want exam planning and paragraph-writing activities using PBLT (Point, Because, Leads to, Therefore). | 8 | 120 | A content creater that can take official exam questions with case studies and and edit them so they are not recognisable ot students.  |
-| Keeping existing teaching resources current | Updating existing chapter PowerPoints with real-world events and business examples rather than creating entirely new lessons. Particularly important for IAL Business Unit 4, where students need real-world examples to support their answers and judgements. | 6 | 40 | Suggestions of current events that are relevant and connect with content. This can be added to the planner as updates! |
-| Compromised past papers and exam practice | Students can find past-paper answers, mark schemes and questions in advance. I spend time rewriting questions and changing case-study details, particularly for timed IAL and IGCSE assessments. | 7 | 40 | Same as point 4 solution. |
-| Adjusting planning around school holidays | Accounting for holidays that interrupt the teaching sequence, such as Monday and Tuesday closures, to ensure all syllabus content is covered. | 5 | 45 | Consider the school calendar when planning. |
+| Pain | Context | Rank | Minutes / week today | "Solved" would look like…                                                                                                                                                                                                         |
+|---|---|---|---|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Syllabus → Scheme of Work → Timetable | Opening the syllabus and Scheme of Work, and the subject syllabus/guide/specification to decide how many lessons each topic needs, then breaking topics into individual lessons using my timetable. | 1 | 120 | If this could be automised in my planner tool based on my school calendar and timetable.                                                                                                                                          |
+| Keeping three parallel IAL groups in sync | Repeating lessons across three groups with a two-week timetable and school holidays. Keeping all groups on the same content is tedious. | 3 | 60 | Again if this was automised and optimised so that considering my timetable schedule and the school calendar, especially considering school holidays in the school calendar.                                                       |
+| Planning IB Higher Level (IB H) lessons | Finding suitable content for the HL only group (IB H) when some topics depend on the IB Standard Level (IB S) foundations. Unit 5 HL-only content has now been covered, so I need to identify topics that can be combined or covered. | 2 | 90 | Create a list for of topic/chapter combinations in order based on the subject guide/specification to choose/ suggest topics to combine or complement. This should be added to my planner.                                         |
+| AI-resistant activities and independent tasks | Creating meaningful class activities and independent tasks students cannot simply hand to AI. I do most exam practice in class to keep it authentic. I also want exam planning and paragraph-writing activities using PBLT (Point, Because, Leads to, Therefore). | 8 | 120 | A content creater that can take official exam questions with case studies and and edit them so they are not recognisable to students.                                                                                             |
+| Keeping existing teaching resources current | Updating existing chapter PowerPoints with real-world events and business examples rather than creating entirely new lessons. Particularly important for IAL Business Unit 4, where students need real-world examples to support their answers and judgements. | 6 | 40 | Suggestions of current events that are relevant and connect with content. This can be added to the planner as updates!                                                                                                            |
+| Compromised past papers and exam practice | Students can find past-paper answers, mark schemes and questions in advance. I spend time rewriting questions and changing case-study details, particularly for timed IAL and IGCSE assessments. | 7 | 40 | Same as point 4 solution.                                                                                                                                                                                                         |
+| Adjusting planning around school holidays | Accounting for holidays that interrupt the teaching sequence, such as Monday and Tuesday closures, to ensure all syllabus content is covered. | 5 | 45 | Consider the school calendar when planning.                                                                                                                                                                                       |
 | Keeping IAL and IGCSE classes aligned after missed lessons | When a holiday means I miss one of my three IAL parallel groups, or my IGCSE 11D class, other colleagues may continue teaching their classes and get ahead. I need to adjust my planning to catch up without losing syllabus coverage. | 4 | 70 | Again considering the school calendar. But also having the planner capable of updating and being flexible if there is an unexpected absence or if a certain topic takes longer with one class than another in my parallel groups. |
 
 **3.3** Walk me through the **last time** a group fell out of sync. What
@@ -268,7 +269,7 @@ happened, how did you notice, and how did you fix it?
 technically works*? (e.g. "If I have to spend longer checking the AI's
 work than doing it myself.")
 
-> ✍️ Your answer: If I have to take too much time actually double checking the plan created in relation to the syllabus. Also that if you create some resources that are not adjusted to the appropriate level or are too general. Lastly if the suggestions given for lessons are too repetitive.
+> ✍️ Your answer: If I have to take too much time actually double-checking the plan created in relation to the syllabus. Also, the creation of resources (more in relation to the ai content creator prototype) that are not adjusted to the appropriate level or are too general. Lastly if the suggestions given for lessons are too repetitive.
 
 ---
 
@@ -353,7 +354,7 @@ What's one idea you'd *borrow* and one thing you'd deliberately do
 | Student data (grades, SEN/EAL flags) | | SIMS | | | 🔒 YES |
 | Other: | | | | | |
 
-All inputs you will need for now are in this folder and are not sensitive: [resources](../../../resources)
+All inputs you will need for now are in this folder and are not sensitive: [resources](../../../resources) Please structure files the same as One Drive in future - a downloaded version of the One Drive folder respository is here.
 
 Syllabus/specifications and textbooks are here and are not sensitive: 
 [ial Specification & Textbook](../../../resources/ial/ial%20Specification%20%26%20Textbook) 
@@ -391,7 +392,7 @@ Parents Evenings are in a tab here and not sensitive: (I can give more detailed 
 ![calendar_tabs_1.png](../../../resources/calendar_tabs_1.png)
 ![calendar_tabs_2.png](../../../resources/calendar_tabs_2.png)
 
-Chapter Powerpoints and content live in Onedrive and here:
+Chapter PowerPoints and content live in Onedrive and here:
 ial: [1. Content](../../../resources/ial/1.%20Content) and in particular for this year's timetable: [Unit 4 Global Business](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business)
 ibdp: [1. Content](../../../resources/ibdp/1.%20Content) and for Internal Assessment prep that needs to be happening from February onwards [IA Intro & Tasks](../../../resources/ibdp/IA/IA%20Intro%20%26%20Tasks)
 igcse: [1. Content](../../../resources/igcse/1.%20Content) and in particular for this year's timetable: [Y11 Content](../../../resources/igcse/1.%20Content/Y11%20Content)
@@ -413,6 +414,7 @@ per group? Who sets the dates: you, the department, or the school?
 > For ibdp and ial I need to come up with minimum two assessments - these are normally timed exam practice for ial, and for ibdp they stem mostly from timed exam practice, but also includes any projects. Prompt me for a breakdown example of weightings.
 > ial Y13: two in term 1, Mock and one other in term 2. Term 3 is official external exams.
 > igcse Y11: two in term 1, Mock and one other in term 2. Term 3 is official external exams.
+> ai examiner prototype will be very useful here for preparing and marking.
 
 **5.3** For the **report calendar**: what has to be ready for a report
 (grades, comments, effort scores…)? How far ahead do you need a reminder?
@@ -424,7 +426,7 @@ per group? Who sets the dates: you, the department, or the school?
 fields, and why? (Tip: the safest data is data the app never touches. See
 Part 9.)
 
-> ✍️ Your answer: It would be good for it to have an idea of average marks or if there was a certain exam practice question that many in the class underperformed to inform future planning. In the future I may consider combining the markbook with the planner.
+> ✍️ Your answer: It would be good for it to have an idea of average marks or if there was a certain exam practice question that many in the class underperformed to inform future planning. In the future I may consider combining the markbook with the planner. (ai examiner prototype will be also useful here)
 
 **5.5** 🤔 Which of these inputs could you give the app **on day one**, and
 which would need permission from IT or the department?
@@ -455,12 +457,12 @@ Strike out ~~ideas you hate~~. Add your own at the bottom.
 
 ### 6B. Resources and tasks
 | # | Feature | M/S/C/W | Question for you |
-|---|---|---|---|
-| 7 | Resource refresher: reads a chapter PowerPoint and suggests where to insert current-events slides (real companies, recent news), with sources. | M | Output as suggested slides to paste, or a list of 'after slide 12, add…'? Answer: Yes suggested slides to paste but also a suggested about where to include it to maintain flow. |
-| 8 | AI-resistant independent tasks, by year group (see 📝 draft below). | S |  |
-| 9 | Class activity ideas linked to a teaching-strategy library (retrieval practice, think-pair-share, debates…). |  | Which strategies do you already use and love? Answer: I do like the idea of retrieval practice suggestions and other active learning, as long as they are not too time consuming in ial or igcse classes, as I have more time and flexibility in ibdp lessons. |
-| 10 | Differentiation: stretch and challenge / support versions of a task. | C |  |
-| 11 | Fresh exam practice: new case studies and question variants in the board's style, so leaked answers don't help. | M | ⚠️ This overlaps with the AI Examiner and Homework Companion prototypes. Where should it live? Answer: This may be better to be in the AI Examiner prototype, so you can remind me then. |
+|---|---|---------|---|
+| 7 | Resource refresher: reads a chapter PowerPoint and suggests where to insert current-events slides (real companies, recent news), with sources. | M       | Output as suggested slides to paste, or a list of 'after slide 12, add…'? Answer: Yes suggested slides to paste but also a suggested about where to include it to maintain flow. |
+| 8 | AI-resistant independent tasks, by year group (see 📝 draft below). | S       |  |
+| 9 | Class activity ideas linked to a teaching-strategy library (retrieval practice, think-pair-share, debates…). |         | Which strategies do you already use and love? Answer: I do like the idea of retrieval practice suggestions and other active learning, as long as they are not too time consuming in ial or igcse classes, as I have more time and flexibility in ibdp lessons. |
+| 10 | Differentiation: stretch and challenge / support versions of a task. | C       |  |
+| 11 | Fresh exam practice: new case studies and question variants in the board's style, so leaked answers don't help. | W       | ⚠️ This overlaps with the AI Examiner and Homework Companion prototypes. Where should it live? Answer: This may be better to be in the AI Examiner prototype, so you can remind me then. |
 
 📝 **Draft for feature 8: check and correct.**
 
@@ -473,6 +475,7 @@ Strike out ~~ideas you hate~~. Add your own at the bottom.
 > - In general: tasks should be hard to hand to an AI. That points towards 
 > - judgement, local or recent global examples, and students' own
 >   questions, not plain fact recall. They also should involve the student practicing the PBLT structure of paragraphs.
+> - Consider the creation of resources in the ai content creator prototype.
 
 > ✍️ Corrections / additions:
 
@@ -500,11 +503,6 @@ Strike out ~~ideas you hate~~. Add your own at the bottom.
 
 ### 6E. Your own ideas
 
-| # | Feature | M/S/C/W | Why |
-|---|---|---|---|
-| 20 | | | |
-| 21 | | | |
-
 **6.2** If version one could do **only one** feature brilliantly, which
 one, and why?
 
@@ -524,16 +522,16 @@ one, and why?
 
 | Feature / data | 🧑‍🏫 Teacher | 🎓 Student | 👪 Parent | 🛠️ Admin | 👩‍💼 Head of Dept? |
 |---|---|---|---|---|---|
-| Scheme of Work | E | | | | |
-| Lesson plans and cards | E | | | | |
-| Chapter PowerPoints | E | | | | |
-| Pre-lesson / independent tasks | E | | | | |
-| Assessment calendar | | | | | |
-| Report calendar | | | | | |
-| Exam practice (questions) | | | | | |
-| Exam practice (**mark schemes**) | | ⚠️ | ⚠️ | | |
-| Parity / coverage tracker | | | | | |
-| User accounts and roles | | | | E | |
+| Scheme of Work | E |  |  |  | E |
+| Lesson plans and cards | E |  |  |  | V |
+| Chapter PowerPoints | E |  |  |  |  |
+| Pre-lesson / independent tasks | E | V |  |  |  |
+| Assessment calendar | E |  |  |  | E |
+| Report calendar | E |  |  |  | V |
+| Exam practice (questions) | E |  |  |  |  |
+| Exam practice (mark schemes) | E | ⚠️ | ⚠️ |  |  |
+| Parity / coverage tracker | E |  |  |  |  |
+| User accounts and roles | E |  |  | E |  |
 
 **7.2** Who is "Admin" in real life: school IT, the Head of Department, or
 you? Do we need a separate **Head of Department** role?
@@ -612,7 +610,7 @@ a Monday morning?
 >   resource, task or question **before students see it**.
 > - ⚖️ **Copyright.** Past papers and mark schemes belong to the exam
 >   boards. The app may use them as or as actual resources for tasks or as **style references * for new questions,
->   but must not republish them as its' own.
+>   but must not republish them as its own. Consider this for the ai content creator prototype.
 > - 🧱 **Tech stack (Alberto's decision).** TypeScript + React web app,
 >   modular, so it can later join a wider "360 platform" for teachers,
 >   students and parents. This replaces the earlier Python plan
@@ -683,7 +681,7 @@ from Part 6.
 > ✍️ Test for story 1:
 > Given I have uploaded my subject syllabus, Scheme of Work, planning documents, school calendar and personal timetable, 
 > When I select a class, subject and preferred teaching order, 
-> Then the platform should automatically generate a visual teaching schedule showing when each syllabus topic should be taught, how many lessons are allocated to it and how the content fits around school holidays, assessment dates and my two-week timetable.
+> Then the platform should automatically generate a visual teaching schedule showing when each syllabus topic should be taught, how many lessons are allocated to it and how the content fits around school holidays, assessment dates and my two-week timetable. This should be part of the ai content creator prototype also.
 >
 > ✍️ Test for story 2:
 > Given I teach three parallel Y13 Business classes with different lesson schedules, 
@@ -693,7 +691,7 @@ from Part 6.
 > ✍️ Test for story 3:
 > Given I have uploaded an existing chapter PowerPoint covering a specific syllabus topic, 
 > When I request a resource update, or if there is a current even that is relevant to a topic I could be notified
-> Then the platform should identify relevant recent business news and real-world examples, suggest where they could be incorporated into my existing presentation and provide reliable sources, without automatically replacing my original teaching materials.
+> Then the platform should identify relevant recent business news and real-world examples, suggest where they could be incorporated into my existing presentation and provide reliable sources, without automatically replacing my original teaching materials.Again this task is related to the ai content creator prototype.
 
 **10.3** **Non-functional specs** are about *how well* it works, not *what*
 it does. Fill in what matters to you:
@@ -907,10 +905,15 @@ Then open Claude Code in this repo and paste your Part 12 prompt. 💛
 // TODO: pre wrapup before prompt and /plan
 Tech. Lead
 1. Claude harness set up for the project: CLAUDE.md, relevant .mds, etc. Develop SKILS when repeated actions are done more than twice from the teacher prespective part resorting to AI frontier models (when needed)
-2. frontend + GUI must represent which parts have been generated automatically (by the pure backend logic) and which parts have been resorted to GenAI (in this case Claude Code, in the future could be others, local LLMs, MCPs, Gemini or ChatGPT): we need to show the user in the GUI (icons) which part is IA generated.
-2. same resources/ structure as One Drive
-  - school year split in resources
+2. frontend + GUI must represent which parts have been generated automatically (by the pure backend logic) and which parts have been resorted to GenAI (in this case Claude Code, in the future could be others, local LLMs, MCPs, Gemini or ChatGPT): we need to show the user in the GUI (icons) which part is IA generated. But we need heavily resort to the Claude Harness to lean on when needed, we just need to represent the icon in the GUI when it is worth noting the user
 3. implement all of this in this branch
 4. install the needed libraries in this laptop: pnpm, npm, node, etc
 5. use docs/ and docs/design folder that represent the arhitecture visually of the technical stack, software modules, frontend, backend, middleware, components, communciation with Frontier models, etc
-6. 
+6. delete tables for inputs and wrap up inverse engineering
+7. .gitignore local files and private repo (for me)
+8. link input table (and others) M S C W, content creator for .md (s for future features and modules, not now)
+  - references to the examiner
+ADDED/FIXED
+  - ai content creator prototype
+  - ai examiner prototype
+  - tables deleted where appropriate
