@@ -145,7 +145,7 @@ software architect, with no teacher in its role?
 >   three, with minor changes depending on timings of timetables and ability level of student groups.
 > - The school runs a **two-week timetable** (Week 1 / Week 2), so the
 >   groups don't always get the same number of lessons when we have holidays, or school events happening (some planned some unforeseen).
-> - ![timetable_26_27.png](../resoruces/school_admin/timetable_26_27.png) "400" means I supervise a study hall. Blank cells mean I have preparation time. Grey coloured cells mean I have break/lunch, or Form that requires no planning.
+> - ![timetable.png](../../../resources/timetable.png) "400" means I supervise a study hall. Blank cells mean I have preparation time. Grey coloured cells mean I have break/lunch, or Form that requires no planning.
 > - Over two weeks I teach one igcse Edexcel Business group ("11D") for five 55minute periods, one ibdp Business Management group in Y12 that is split into Standard Level ("IB S") and Higher Level ("IB H") leveled groups where "IB S lessons" is made up of students from both "IB S" and "IB H" and I have six 55minute periods, and the "IB H" group is only "IB H" students and I have four 55minute periods. I need to be able to cover the Higher Level only content that could be from Y12 or Y13 ibdp content with the IB H group when I have them alone, which can be difficult, especially at the beginning of the course as we have not covered some of the basics in IB S yet, such as Unit 1. 
 > - I also teach three ial Edexcel Y13 Business groups ("13 1", "13 3", and "13 5") for six 55minute periods each. 
 > - School systems: MS Teams (Classes for igcse and ial for communication, assignments, adding marks etc, and also as a general communication tool for staff in school as Teams) + OneDrive/SharePoint (main source of where my teaching and planning resources live), SIMS Next Gen (previous legacy SIMS was in a Virtual Machine) features seating plans, markbooks, behavior dashboards, attendance tracking, and pupil profiles.,
@@ -157,14 +157,7 @@ software architect, with no teacher in its role?
 **2.2** `TODO:` Fill in your teaching load (anonymised; groups only, no
 student names).
 
-| Group label | Curriculum | Subject | Year | Lessons in Week A | Lessons in Week B | Lesson length (min) |
-|---|---|---|---|---|---|---|
-| e.g. 12A | IAL | Business | Y12 | 3 | 2 | 60 |
-| | | | | | | |
-| | | | | | | |
-| | | | | | | |
-
-![timetable_26_27.png](../resoruces/school_admin/timetable_26_27.png)
+![timetable.png](../../../resources/timetable.png)
 
 School day Timings:
 Period 1: 08:45-09:40
@@ -181,19 +174,31 @@ Period 6: 15:30-16:25
 **2.3** Which dates break the rhythm in a typical year? (half terms, INSET
 days, mock weeks, trips, school events, exam leave…)
 
-> ✍️ Your answer: [2026-27 Secondary Calendar ALL STAFF.xlsx](../resoruces/school_admin/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) ![calendar_tabs_1.png](../resoruces/school_admin/calendar_tabs_1.png)
-![calendar_tabs_2.png](../resoruces/school_admin/calendar_tabs_2.png) Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training".
-mock weeks, trips, school events, exam study leave - all of which will be updated as the school year continues in the "Secondary Calendar ALL STAFF" document. Consider that the ibdp ("IBDP calendars") can differ. 
+> ✍️ Your answer: [Hastings School - Calendar 26-27 (Teaching) updated Oct26.pdf](../../../resources/Hastings%20School%20-%20Calendar%2026-27%20%28Teaching%29%20updated%20Oct26.pdf) 
+> [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) ![calendar_tabs_1.png](../../../resources/calendar_tabs_1.png) ![calendar_tabs_2.png](../../../resources/calendar_tabs_2.png)
+> Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training".
+mock weeks, trips, school events, exam study leave - all of which will be updated as the school year continues in the "2026-27 Secondary Calendar ALL STAFF" document. Consider that the ibdp ("IBDP calendars") can differ. 
 > Also consider the "Report Deadlines" and "Parents Evenings".
-> Additionally if I am absent from school the order of content delievery may have to be updated or resources edited so that they can be completed byu students independently. 
+> Additionally if I am absent from school the order of content delivery may have to be updated or resources edited so that they can be completed byu students independently. 
 
 **2.4** Does your department share a Scheme of Work, or do you each write
 your own? Who has the final say?
 
 > ✍️ Your answer: 
-> igcse Business: I need to cover Y11 igcse content as I only have class with 11D and no Y10. We are three teachers in the department and the Head of Department decides on order of content and Units, and when assessments take place. We need to have three different versions of the assessment, one for each class, and then we try to change the order or certain questions for each assessment so that there are two final versions for each Y11 group to avoid copying.
+> igcse Business: I need to cover Y11 igcse content as I only have class with 11D and no Y10. We will cover Unit 3, 2 and 5. We are three teachers in the department and the Head of Department decides on order of content and Units, and when assessments take place. We need to have three different versions of the assessment, one for each class, and then we try to change the order or certain questions for each assessment so that there are two final versions for each Y11 group to avoid copying.
+> [IGCSE spec.pdf](../../../resources/igcse/igcse%20Textbook%20and%20Specification/IGCSE%20spec.pdf)
+> [Pearson Edexcel International GCSE (9-1) Business Student Book.pdf](../../../resources/igcse/igcse%20Textbook%20and%20Specification/Pearson%20Edexcel%20International%20GCSE%20%289-1%29%20Business%20Student%20Book.pdf)
+> [IGCSE Y11 Planning.xlsx](../../../resources/igcse/Planning/IGCSE%20Y11%20Planning.xlsx)
+> [Y11 IGCSE Assessment Schedule.docx](../../../resources/igcse/Planning/Y11%20IGCSE%20Assessment%20Schedule.docx)
 > ial Business: I am focusing only on Y13 content and specifically Unit 4 this year (but in the future will need planning for all four units). I am the sole teacher of this Unit and responsible for planning the creation and delivery of content and internal assessments during lessons. I also need to create the exam practice materials, and a mock exam to be sat in January/February according to the school calendar.
-> ibdp Business Management: This group is separated into Standard and Higher Level classes, where during Standard Level classes both Standard and Higher level students attend, and during HL classes only Higher level students attend. Due to this it is my responsibility to decide how to separate and plan the IB Business Management content so that I am covering all the Standard Level content with everyone.
+[IAL BUSINESS SPECIFICATION.pdf](../../../resources/ial/ial%20Specification%20%26%20Textbook/IAL%20BUSINESS%20SPECIFICATION.pdf) 
+[⁮IALBusiness Student Book 2 Edexcel.pdf](../../../resources/ial/ial%20Specification%20%26%20Textbook/%E2%81%AEIALBusiness%20Student%20Book%202%20Edexcel.pdf)
+[Y13 Unit 4 Planning.xlsx](../../../resources/ial/Planning/Y13%20Unit%204%20Planning.xlsx)
+> ibdp Business Management: This group is separated into Standard and Higher Level classes, where during Standard Level classes both Standard and Higher level students attend, and during HL classes only Higher level students attend. Due to this it is my responsibility to decide how to separate and plan the IB Business Management content so that I am covering all the Standard Level content with everyone. In Y12 we cover Unit 1, 4 and 3. In Y13 we cover a part of Unit 3, unit 2 and 5
+> [Business Management Guide.pdf](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide/Business%20Management%20Guide.pdf)
+> [Business Management Syllabus.pdf](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide/Business%20Management%20Syllabus.pdf)
+> [Business Management - Surridge, Gillespie and Mills - Hodder 2022.pdf](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide/Business%20Management%20-%20Surridge%2C%20Gillespie%20and%20Mills%20-%20Hodder%202022.pdf)
+> [IBDP Hastings_Course Outline_Business Management_SL&HL 2026-27.docx](../../../resources/ibdp/Planning/IBDP%20Hastings_Course%20Outline_Business%20Management_SL%26HL%202026-27.docx)
 
 **2.5** 🤔 Which facts in this part would a teacher at a *different* school
 get wrong about yours? (Those are the ones that matter most in a prompt.)
@@ -292,7 +297,7 @@ gaps. Use the ingredients from the table at the top. Starter (improve it!):
 You are a product analyst specialising in K-12 education software.
 Research these planning tools: <list>.
 For each, find: core features, pricing model, which curricula it supports
-(IB / IGCSE / IAL), how it handles parallel classes and rotating timetables,
+(ibdp / igcse Edexcel / ial Edexcel), how it handles parallel classes and rotating timetables,
 and common complaints from teachers (cite sources: reviews, forums).
 Output: one comparison table + a list of gaps none of them fill for a
 teacher with <my situation from Part 3>.
@@ -302,10 +307,10 @@ Mark anything you could not verify as UNVERIFIED.
 > ✍️ Your improved research prompt: You are a product analyst specialising in K-12 education software.
 Research these planning tools: Chalk, Managebac, PowerSchool and Teacherkit.
 For each, find: core features, pricing model, which curricula it supports
-(IB / IGCSE / IAL), how it handles parallel classes and rotating timetables,
+(ibdp / igcse Edexcel / ial Edexcel), how it handles parallel classes and rotating timetables,
 and common complaints from teachers (cite sources: reviews, forums).
 Output: one comparison table + a list of gaps none of them fill for a
-teacher with with my situation form Part 3.
+teacher with my situation form Part 3.
 Mark anything you could not verify as UNVERIFIED.
 
 **4.3** Alberto suggested studying how successful apps work, "reverse
@@ -313,14 +318,14 @@ engineering" (see https://github.com/morluto/rea). `TODO:` Open that link
 **yourself** and write one sentence on what it does. Don't trust a summary,
 human or AI, that you haven't checked.
 
-> ✍️ Your answer:
+> ✍️ Your answer: An open-source tool that uses AI to analyse existing websites and apps, understand how they work, and help recreate them without needing their original code.
 
 **4.4** ⚖️ Where's the line? Studying a product's **public features, design
 and reviews** is normal practice. Copying its code, data or branding isn't.
 What's one idea you'd *borrow* and one thing you'd deliberately do
 *differently*?
 
-> ✍️ Your answer:
+> ✍️ Your answer: I would borrow the visual aspects of Chalk, but not the part of their Standards option to add to lessons as I feel this lacks any use and is too general.
 
 ---
 
@@ -348,28 +353,83 @@ What's one idea you'd *borrow* and one thing you'd deliberately do
 | Student data (grades, SEN/EAL flags) | | SIMS | | | 🔒 YES |
 | Other: | | | | | |
 
+All inputs you will need for now are in this folder and are not sensitive: [resources](../../../resources)
+
+Syllabus/specifications and textbooks are here and are not sensitive: 
+[ial Specification & Textbook](../../../resources/ial/ial%20Specification%20%26%20Textbook) 
+[ibdp Textbook & Guide](../../../resources/ibdp/ibdp%20Textbook%20%26%20Guide)
+[igcse Textbook and Specification](../../../resources/igcse/igcse%20Textbook%20and%20Specification)
+
+Schemes of work and Long term plans are here and are not sensitive:
+[Planning](../../../resources/igcse/Planning)
+[Planning](../../../resources/ibdp/Planning)
+[Planning](../../../resources/ial/Planning)
+
+Timetable is here and is not sensitive: ![timetable.png](../../../resources/timetable.png)
+
+School Calendar is here and is not sensitive:
+[Hastings School - Calendar 26-27 (Teaching) updated Oct26.pdf](../../../resources/Hastings%20School%20-%20Calendar%2026-27%20%28Teaching%29%20updated%20Oct26.pdf)
+[2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx)
+![calendar_tabs_1.png](../../../resources/calendar_tabs_1.png)
+![calendar_tabs_2.png](../../../resources/calendar_tabs_2.png)
+
+Assessment Calendars are here and are not sensitive:
+[Hastings School - Calendar 26-27 (Teaching) updated Oct26.pdf](../../../resources/Hastings%20School%20-%20Calendar%2026-27%20%28Teaching%29%20updated%20Oct26.pdf) See the tab "Report deadlines" for report calendar and assessment dates like Mocks or Official Exams.
+ibdp assessments: 
+[Assessments](../../../resources/ibdp/Assessments)
+[IBDP Hastings_Course Outline_Business Management_SL&HL 2026-27.docx](../../../resources/ibdp/Planning/IBDP%20Hastings_Course%20Outline_Business%20Management_SL%26HL%202026-27.docx)
+ial assessments:
+[Unit 4 Assessments](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business/Unit%204%20Assessments)
+[Y13 Unit 4 Planning.xlsx](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business/PLANNING/Y13%20Unit%204%20Planning.xlsx)
+igcse assessments:
+[Assessments](../../../resources/igcse/Assessments)
+[Y11 IGCSE Assessment Schedule.docx](../../../resources/igcse/Planning/Y11%20IGCSE%20Assessment%20Schedule.docx)
+[Y11 Long Term Planning.xlsx](../../../resources/igcse/Planning/Y11%20Long%20Term%20Planning.xlsx)
+
+Parents Evenings are in a tab here and not sensitive: (I can give more detailed info later when parents schedule on SchoolCloud)
+[2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx)
+![calendar_tabs_1.png](../../../resources/calendar_tabs_1.png)
+![calendar_tabs_2.png](../../../resources/calendar_tabs_2.png)
+
+Chapter Powerpoints and content live in Onedrive and here:
+ial: [1. Content](../../../resources/ial/1.%20Content) and in particular for this year's timetable: [Unit 4 Global Business](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business)
+ibdp: [1. Content](../../../resources/ibdp/1.%20Content) and for Internal Assessment prep that needs to be happening from February onwards [IA Intro & Tasks](../../../resources/ibdp/IA/IA%20Intro%20%26%20Tasks)
+igcse: [1. Content](../../../resources/igcse/1.%20Content) and in particular for this year's timetable: [Y11 Content](../../../resources/igcse/1.%20Content/Y11%20Content)
+
+Some Past Papers and Mark Schemes live here and are not sensitive but do have copyright (rest are in Exam Wizard for igcse and ial and Question Bank for ibdp):
+ial unit 4: [Past Papers](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business/U4%20Exam%20Preparation/Past%20Papers)
+Extra exam preparation ial:
+[Pre Exam Practice - Per Topic](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business/U4%20Exam%20Preparation/Pre%20Exam%20Practice%20-%20Per%20Topic) 
+[Unit 4 Command Terms General Qs](../../../resources/ial/1.%20Content/Y13%20Content/Unit%204%20Global%20Business/U4%20Exam%20Preparation/Unit%204%20Command%20Terms%20General%20Qs)
+igcse: [Past Papers](../../../resources/igcse/igcse%20Exam%20Preparation/Past%20Papers)
+Extra exam preparation igcse: [Topic Exam Practice](../../../resources/igcse/igcse%20Exam%20Preparation/Topic%20Exam%20Practice)
+
+
+
 **5.2** For the **assessment calendar**: how many formal assessments per term
 per group? Who sets the dates: you, the department, or the school?
 
 > ✍️ Your answer: For each group minimum we need two assessments per term. For igcse the assessments are decided by out head of department for now, but I can also do 2 non-formal versions so could be still worth planning. 
 > For ibdp and ial I need to come up with minimum two assessments - these are normally timed exam practice for ial, and for ibdp they stem mostly from timed exam practice, but also includes any projects. Prompt me for a breakdown example of weightings.
+> ial Y13: two in term 1, Mock and one other in term 2. Term 3 is official external exams.
+> igcse Y11: two in term 1, Mock and one other in term 2. Term 3 is official external exams.
 
 **5.3** For the **report calendar**: what has to be ready for a report
 (grades, comments, effort scores…)? How far ahead do you need a reminder?
 
-> ✍️ Your answer: See the Calanedar All staff for report deadlines.
+> ✍️ Your answer: See "Report deadlines" in [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx)
 > Reports are made up of Current Attainment Grade (CAG not sent home), Projected Attainment Grade (PAG sent home) and then Behaviour, Attitude to Learning and Independent Study are rated out of 4, 1 being great, 4 needing attention.
 
 **5.4** Should the planner ever see **student data**? If yes, which
 fields, and why? (Tip: the safest data is data the app never touches. See
 Part 9.)
 
-> ✍️ Your answer: It would be good for it to have an idea of average marks or if there was a certain exam practice question that many in the class underperformed to inform future planning.
+> ✍️ Your answer: It would be good for it to have an idea of average marks or if there was a certain exam practice question that many in the class underperformed to inform future planning. In the future I may consider combining the markbook with the planner.
 
 **5.5** 🤔 Which of these inputs could you give the app **on day one**, and
 which would need permission from IT or the department?
 
-> ✍️ Your answer:
+> ✍️ Your answer: All on day one.
 
 ---
 
@@ -448,7 +508,7 @@ Strike out ~~ideas you hate~~. Add your own at the bottom.
 **6.2** If version one could do **only one** feature brilliantly, which
 one, and why?
 
-> ✍️ Your answer:
+> ✍️ Your answer: Lesson sequencing in relation to my timetable and the exam boards I teach.
 
 ---
 
@@ -478,17 +538,17 @@ one, and why?
 **7.2** Who is "Admin" in real life: school IT, the Head of Department, or
 you? Do we need a separate **Head of Department** role?
 
-> ✍️ Your answer: Yes a Head of department role could be interesting. And also a Head of Curriculum.
+> ✍️ Your answer: Yes a Head of department role view option could be interesting in the future. And also a Head of Curriculum.
 
 **7.3** Should a student see **only their own group's** tasks, or all three
 parallel groups'? Why might that matter?
 
-> ✍️ Your answer: Only their own group - comparing causes more parent emails etc.
+> ✍️ Your answer: Only their own group - comparing causes more problems and parent emails etc.
 
 **7.4** 🤔 Name one thing that would cause a **real problem** if the wrong
 role could see it.
 
-> ✍️ Your answer: Seeing a planned cover lesson before being notified of the absence. 
+> ✍️ Your answer: A head of department seeing a planned cover lesson before being notified of the absence. Or a parent seeing what their child has missed out on due to missed lesons (holidays etc) 
 
 ---
 
@@ -502,12 +562,15 @@ role could see it.
 **8.1** Name **3 apps whose look you love** and the specific thing you love
 about each. (Trello's cards? Notion's calm pages? Canva's templates?)
 
-> ✍️ Your answer:
+> ✍️ Your answer: 
+> Chalk: visual and simplicity.
+> Trello: scheduling feature.
+> Notion: workspaces and seeing visual progress.
 
 **8.2** Name **1 app whose look you hate**, and why. (It might be one you use
 at school…)
 
-> ✍️ Your answer:
+> ✍️ Your answer: SIMs next generation - very difficult to use.
 
 **8.3** `TODO:` Save 2–5 screenshots of designs you like into
 `prototypes/ai_teacher_planner/docs/design_inspiration/`. 🔒 Make sure no
@@ -517,7 +580,7 @@ student names or data are visible.
 
 - Device you'll plan on most: **laptop**
 - dark mode
-- Colour-code by: **group / topic / year / curriculum**
+- Colour-code by: **group, topic, year, and curriculum** Maybe follow the colours in my ![timetable.png](../../../resources/timetable.png) for groups and subjects.
 - Density: **calm and spacious**
 
 > ✍️ Your answer:
@@ -560,7 +623,8 @@ a Monday morning?
 **9.2** What would your **school** (IT, safeguarding lead, leadership) need
 to approve before you could use this with real classes?
 
-> ✍️ Your answer: They may need to gove me access natively to Microsoft 365 on my Mac.
+> ✍️ Your answer: They may need to give me access natively to Microsoft 365 on my Mac. 
+> Right now I have downloaded my folders and added them here: [resources](../../../resources) but in the future it would be great to have them automatically updated and synced.
 
 **9.3** Budget: is any paid service OK (AI API costs, hosting), or must it
 be free?
@@ -570,7 +634,7 @@ be free?
 **9.4** 🤔 Which rule in 9.1 do you think an AI is **most likely** to break
 if you don't spell it out? Why?
 
-> ✍️ Your answer: Maybe the copyright with resources found.
+> ✍️ Your answer: Maybe the copyright with resources found - include references when needed.
 
 ---
 
@@ -600,34 +664,52 @@ if you don't spell it out? Why?
 from Part 6.
 
 > ✍️ Story 1:
+> As a Business teacher, I want to upload my subject syllabus, Scheme of Work, planning documents, school calendar and personal timetable so that the 
+> platform can automatically create a visual teaching schedule, allocating the appropriate number of lessons to each syllabus 
+> topic while accounting for holidays, two-week timetables and my preferred teaching order.
 >
 > ✍️ Story 2:
+> As a Business teacher, I want the platform to track which syllabus topics and assessment objectives (AOs) have been taught and 
+> assessed so that I can identify gaps in curriculum coverage, ensure appropriate depth of teaching and make sure students are 
+> adequately prepared for their examinations.
 >
 > ✍️ Story 3:
+> As a Business teacher, I want the platform to analyse my existing chapter PowerPoints and suggest relevant updates using current 
+> business news, real companies and examples so that my teaching resources remain relevant and engaging without having to create 
+> entirely new lessons.
 
 **10.2** `TODO:` Write **one Given/When/Then acceptance test** for each story.
 
 > ✍️ Test for story 1:
+> Given I have uploaded my subject syllabus, Scheme of Work, planning documents, school calendar and personal timetable, 
+> When I select a class, subject and preferred teaching order, 
+> Then the platform should automatically generate a visual teaching schedule showing when each syllabus topic should be taught, how many lessons are allocated to it and how the content fits around school holidays, assessment dates and my two-week timetable.
 >
 > ✍️ Test for story 2:
+> Given I teach three parallel Y13 Business classes with different lesson schedules, 
+> When one class misses a lesson because of a school holiday or teacher absence, 
+> Then the platform should identify the difference in progress, highlight which topics are affected and suggest practical ways to bring the group back into alignment without requiring me to manually reorganise the entire teaching schedule.
 >
 > ✍️ Test for story 3:
+> Given I have uploaded an existing chapter PowerPoint covering a specific syllabus topic, 
+> When I request a resource update, or if there is a current even that is relevant to a topic I could be notified
+> Then the platform should identify relevant recent business news and real-world examples, suggest where they could be incorporated into my existing presentation and provide reliable sources, without automatically replacing my original teaching materials.
 
 **10.3** **Non-functional specs** are about *how well* it works, not *what*
 it does. Fill in what matters to you:
 
-| Quality | Your requirement (e.g. "loads in under 2 seconds") |
+| Quality | Your requirement |
 |---|---|
-| Speed | |
-| Works offline? | |
-| Accessibility (font size, colour-blind friendly) | |
-| Privacy (see Part 9) | |
-| Time to learn it (minutes before you're comfortable) | |
+| Speed | Everyday functions should feel almost instantaneous; AI tasks can take longer but should show progress. |
+| Works offline? | At minimum, previously downloaded lesson plans, timetables and teaching resources should remain accessible. |
+| Accessibility | Yes to all. Simple navigation, readable fonts and a consistent visual layout. |
+| Privacy | Yes when necessary |
+| Time to learn it | About 5-10minutes more or less. They should not need extensive training. |
 
 **10.4** 🤔 Look at your Story 1. Could two different developers read it
 and build two *different* things? If yes, what detail is missing?
 
-> ✍️ Your answer:
+> ✍️ Your answer: They may not do it for the appropriate exam board - therefore it will end up being too generic for the user.
 
 ---
 
