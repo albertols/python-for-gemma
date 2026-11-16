@@ -176,8 +176,8 @@ days, mock weeks, trips, school events, exam leave…)
 
 > ✍️ Your answer: [Hastings School - Calendar 26-27 (Teaching) updated Oct26.pdf](../../../resources/Hastings%20School%20-%20Calendar%2026-27%20%28Teaching%29%20updated%20Oct26.pdf) 
 > [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) ![calendar_tabs_1.png](../../../resources/calendar_tabs_1.png) ![calendar_tabs_2.png](../../../resources/calendar_tabs_2.png)
-> Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training".
-mock weeks, trips, school events, exam study leave - all of which will be updated as the school year continues in the "2026-27 Secondary Calendar ALL STAFF" document. Consider that the ibdp ("IBDP calendars") can differ. 
+> Yes, consider "Half Term", "School Holidays", "Official Holidays", "School closed to pupils for staff training". Important to consider the dates correlated with Week 1 and Week 2 in the [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx). For instance our midterm holidays start at the end of a "Week 2" (12th February) and when we return (22nd Feb) we will commence on a "Week 1" timetable. This ensures we are not always missing the same weeks on extended holidays. This must be considered in the AI Planner scheduling.
+mock weeks, trips, school events, exam study leave - all of which will be updated as the school year continues in the [2026-27 Secondary Calendar ALL STAFF.xlsx](../../../resources/2026-27%20Secondary%20Calendar%20ALL%20STAFF.xlsx) document. Consider that the ibdp ("IBDP calendars") can differ. 
 > Also consider the "Report Deadlines" and "Parents Evenings".
 > Additionally if I am absent from school the order of content delivery may have to be updated or resources edited so that they can be completed byu students independently. 
 
@@ -903,3 +903,14 @@ anything). Rewrite it using the ingredients table at the top. What changed?
 
 Finished? Save, commit and push, just like with `QUESTIONS_FOR_GEMMA.md`.
 Then open Claude Code in this repo and paste your Part 12 prompt. 💛
+
+// TODO: pre wrapup before prompt and /plan
+Tech. Lead
+1. Claude harness set up for the project: CLAUDE.md, relevant .mds, etc. Develop SKILS when repeated actions are done more than twice from the teacher prespective part resorting to AI frontier models (when needed)
+2. frontend + GUI must represent which parts have been generated automatically (by the pure backend logic) and which parts have been resorted to GenAI (in this case Claude Code, in the future could be others, local LLMs, MCPs, Gemini or ChatGPT): we need to show the user in the GUI (icons) which part is IA generated.
+2. same resources/ structure as One Drive
+  - school year split in resources
+3. implement all of this in this branch
+4. install the needed libraries in this laptop: pnpm, npm, node, etc
+5. use docs/ and docs/design folder that represent the arhitecture visually of the technical stack, software modules, frontend, backend, middleware, components, communciation with Frontier models, etc
+6. 
