@@ -8,6 +8,18 @@ vision models — just the same "open a file, walk its rows, build
 objects" habit from python_course module 06, wearing module 07's
 classes.
 
+> 🚀 **Update, November 2026.** You answered the questions and filled in the
+> planner template, so the real planner is now designed. It will be a web
+> app (TypeScript + React) living in this same folder, **beside** the Python
+> scaffold below, which stays exactly as it is.
+>
+> - 🖼️ Start with the pictures: [`docs/design/ai-teacher-planner/`](../../docs/design/ai-teacher-planner/README.md)
+> - 📐 Then the design: [`docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`](../../docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md)
+> - ❓ Section 22 of that design has ten questions only you can answer.
+> - ✍️ ADR-005 and Part 11 of your template are still yours to write.
+>
+> Everything below describes the original Python scaffold from the course.
+
 ## 🎯 What this will do for you
 
 Once it's fully built, this prototype will read your real school staff
