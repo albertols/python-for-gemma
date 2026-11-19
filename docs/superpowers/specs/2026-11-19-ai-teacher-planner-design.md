@@ -188,7 +188,7 @@ A pnpm workspace under `prototypes/ai_teacher_planner/`. The existing Python pac
 | `apps/api` | HTTP routes, use cases, SQLite repositories, job queue, `ResourceGateway`; serves the built web app |
 | `apps/web` | React app |
 | `features/` | Gherkin scenarios |
-| `fixtures/` | Synthetic calendar, timetable and curriculum; the deny-rule canary |
+| `fixtures/` | Synthetic calendar and curriculum; her timetable grid as the seed (appendix A); the deny-rule canary |
 | `e2e/` | Browser tests |
 | `data/` | Git-ignored: database, backups, curriculum packs, uploads |
 
@@ -212,6 +212,7 @@ A pnpm workspace under `prototypes/ai_teacher_planner/`. The existing Python pac
 | Data | SQLite through better-sqlite3 and Drizzle 0.45 (spike) |
 | Tests | Vitest 5, `@amiceli/vitest-cucumber`, fast-check (spike); Playwright on the installed Chrome, playwright-bdd, axe |
 | Office files | exceljs, mammoth, fflate + fast-xml-parser, `docx`, pptxgenjs. The npm `xlsx` package is excluded: two unpatched high advisories |
+| PDF text | pdfjs-dist, used only by the pack-building command to pull text and page numbers out of a specification (section 10.12) |
 | Diagrams | D2 0.9 through mise (proven) |
 
 ## 10. The engine
@@ -242,14 +243,24 @@ Year-group events in the calendar (mocks, trips, study leave) are free text. Fix
 
 - A **scheme-of-work item** is a chapter or topic with a number of lessons, or an assessment, revision or buffer item.
 - A **lesson** is "item 4, lesson 2 of 6". Parallel groups share lesson identities; that is what makes parity measurable.
-- A **placement** puts one lesson in one slot with a state: `planned`, `declared`, `taught`, `cover`, `homework`, `skipped`.
+- A **placement** puts one lesson in one slot. Its state is one of:
+  - `planned`: in the future.
+  - `assumed`: its date has passed and she has not said otherwise. Counted as delivered, shown differently.
+  - `taught`, `cover`, `homework`, `skipped`: confirmed by her.
+  - `declared`: before go-live, at topic level (section 10.9).
 - Two lessons may be **merged** into one slot. A group may have a per-item override ("13 3 does chapter 26 in five lessons").
 
 ### 10.4 What is stored
 
-Her **decisions** are rows: scheme of work, pins, overrides, disruptions, confirmed events, positions. **Placements are derived** from them by the engine.
+Three layers, kept apart:
 
-Each accepted plan is saved as an **immutable revision**: a snapshot of placements with a pointer to its parent. Preview, diff, undo and audit all come from this. A year is about 1,200 placements, so snapshots are cheap. (ADR-010.)
+- **Facts** are things that happened or will happen whatever she plans: imported calendar rows, disruptions (a closure, an absence), and the **lesson log** (what the weekly check-in records: this lesson was taught, was cover, was skipped). Facts are saved as soon as she records them.
+- **Decisions** are her choices: scheme of work, lesson counts, pins, per-group overrides, confirmed event meanings, positions.
+- **Revisions** are accepted plans. The engine derives placements from facts and decisions; each plan she accepts is saved as an immutable snapshot of those placements with a pointer to its parent. Placements are never edited in place.
+
+A **plan** covers one course and the groups that follow it: IAL Unit 4 with 13 1, 13 3 and 13 5; IB with IB S and IB H; IGCSE with 11D. Each plan has its own chain of revisions and its own undo.
+
+Preview, diff, undo and audit all come from the revision chain. A year is about 1,200 placements, so snapshots are cheap. (ADR-010.)
 
 ### 10.5 Sequencing
 
@@ -265,9 +276,21 @@ An anchor that cannot be honoured is a **conflict** shown to her, never a silent
 
 The same inputs always give the same plan.
 
+**Lessons are packed early.** Content fills the first free slots, with no gaps left on purpose. The engine never invents a content lesson. Slots left over are handled in section 10.6.
+
+**Buffers are hers.** A buffer or revision item exists only if it is in her scheme of work, such as the "Exam Practice & Revision" row in her IGCSE sheet.
+
+**Dated assessments.** Her schedules give a date with no year and the three IAL groups do not all teach on the same days. So for each group an assessment anchors to that group's first available slot **on or after** the date, and is a conflict if none falls within seven days. The year is inferred from the term the date falls in. An assessment takes one whole slot. ASSUMPTION (open question 13): her "Number of Classes" counts teaching lessons only, so assessment lessons are extra and totals are shown as "65 teaching + N assessment".
+
 ### 10.6 Parallel groups: the pace line
 
-A **checkpoint** is a dated assessment, a unit end or a half-term. Between two checkpoints, shared content is planned to the slot count of the group with the fewest lessons. Other groups' spare slots become explicit **flex lessons** (exam practice, PBLT paragraphs). Parity is then built in instead of repaired, and each group's totals for the year are known in September.
+A **checkpoint** is a point every group should reach together. Dated checkpoints are dated assessments, half-terms and term ends. Unit ends are checkpoints for reporting only.
+
+Between two dated checkpoints, each group has some number of slots. Shared content for that window is planned to the count of the group with the fewest. Every group places those lessons in its earliest slots. A group's remaining slots in the window become **flex lessons**, placed at the end of the window, just before the checkpoint. A flex lesson is a labelled placeholder ("Flex: exam practice or PBLT") that she can retitle or move. ASSUMPTION (open question 11): end of the window is where she wants them.
+
+Flex lessons are also that group's cushion. If a group with a flex lesson loses a slot, the flex lesson is what disappears and its content is untouched. A group with none comes up short at the checkpoint, and that is what the parity tracker flags.
+
+Parity is then built in instead of repaired, and each group's totals for the year are known in September.
 
 For 11D, her two colleagues' classes act as a virtual group defined by the department's assessment dates.
 
@@ -281,11 +304,29 @@ Groups overtake each other inside any fortnight, so a raw daily gap is noise. Th
 
 **Catch-up options** are computed, each as a candidate revision with before-and-after numbers: use a buffer; hold the leading groups on consolidation; merge two lessons; set one as flipped work or homework; or wait, with the date the timetable closes the gap by itself. A model only writes the content for an option she has already chosen.
 
+**What a cover lesson does to the plan.** When she is absent and the class has cover, she chooses one of three, each shown as a diff:
+
+1. **Keep the planned lesson as cover work** (default). The lesson stays in its slot, delivered as independent work, and the group's position moves on. "Teacher-led lessons missed" goes up by one. This is what she did in template 3.3.
+2. **Swap in a lesson that suits independent work**, and teach the planned one when she is back.
+3. **Treat the slot as lost.** Cover does revision; the planned lesson and everything after it move on.
+
+ASSUMPTION (open question 12): option 1 is the right default.
+
 ### 10.8 Reflow
 
-A change (a disruption, a pin, a new count, a re-import) produces a **proposal**: candidate revision, diff, metrics before and after, conflicts. Accepting swaps the head revision if nobody changed it in the meantime. Rejecting discards it. Undo returns to the parent.
+A change produces a **proposal**: a candidate revision, a diff, metrics before and after, and conflicts. A change that touches several plans, such as a whole-school closure, produces one proposal per plan, shown together and accepted together or one at a time. A change scoped to one course never alters another course's plan.
 
-Never in a diff: taught or declared history, the freeze horizon, pinned slots, dated assessments, other courses. A back-dated absence shows as a correction to history, clearly labelled.
+**Facts and plans are separate.** A disruption is a fact; how to re-plan around it is a choice. When she enters one she sees the preview and picks:
+
+- **Record and apply an option:** the fact is saved and the chosen candidate becomes the head revision.
+- **Record, decide later:** the fact is saved. Lessons now sitting on cancelled slots are marked **stranded**, and the plan is flagged out of date until she chooses.
+- **Cancel:** nothing is saved. This is also how she explores a "what if".
+
+Accepting swaps the head revision only if it has not changed in the meantime. **Undo** returns the plan to the parent revision. It does not delete the fact, so the affected lessons show as stranded again. Deleting a fact entered by mistake is its own change, with its own preview.
+
+**The freeze horizon** is today and the next teaching day. Sequencing never moves a lesson into or out of it on its own, so tomorrow's lesson cannot change because of an edit elsewhere. The one exception is a lesson whose own slot has just been hit by a disruption she recorded; those are listed first in the diff.
+
+Never in a diff: confirmed, assumed or declared history; pinned slots; dated assessments. When she later says a past lesson did not happen, that is a new fact: the lesson re-enters the stream and the change is labelled a correction to history.
 
 ### 10.9 The past, and keeping it true
 
@@ -294,7 +335,9 @@ No file records what she has taught since September. Inventing dates for each pa
 - Per group she gives a **position** (the next lesson) and a **done-list** for anything taught out of order, such as the HL topics already covered.
 - Sat assessments from her schedules are dated facts.
 - The past is drawn as topic bands marked **declared**, visibly different from lessons she later logs.
-- A **weekly check-in** on the Today screen asks "did these happen as planned?" with one click per group, and a quick way to say what changed.
+- A **weekly check-in** on the Today screen asks "did these happen as planned?" with one click per group, and a quick way to say what changed. Each answer is written to the lesson log.
+- A planned lesson whose date passes without an answer becomes `assumed`. It counts as delivered, so the plan keeps moving, but it is drawn differently and coverage says "assumed" until she confirms.
+- Forward planning always starts at the first lesson that is neither confirmed, assumed nor declared.
 
 Without the check-in, parity and coverage drift from reality.
 
@@ -310,9 +353,11 @@ One course, two tracks, two slot streams: IB S (everyone, common content) and IB
 
 The prerequisite map is curated content, not code: a skill proposes it with reasons, she reviews it once, and it is locked.
 
+**Where the IB scheme comes from.** Her IAL and IGCSE sheets give a class count per chapter. Her IB outline gives only hours per unit, in prose. So for IB: the pack supplies the sub-topics; she sets the teaching order; unit totals come from her outline; and `planner-suggest-lesson-counts` proposes the split across sub-topics within each unit's total, marked as AI, for her to edit. This is the one place AI proposes whole counts, and it is what she asked for in template 6A #1.
+
 ### 10.11 Coverage
 
-Spec points link to scheme-of-work items, many to many; each link is reviewed once.
+The links from textbook chapters to spec points live inside the locked pack (section 10.12), many to many, reviewed once. A scheme-of-work teaching item points at one or more of the pack's chapters or topics. She can reorder items and change counts freely; she cannot change what a chapter covers without a new pack version. A teaching item that points at nothing in the pack is shown as "not linked to the specification".
 
 - **Taught:** none, partial (m of n linked items), or taught. The basis is shown: declared, logged, or cover.
 - **Assessed:** a sat assessment that names a linked chapter, labelled "chapter-level", because one 20-mark question does not assess a chapter.
@@ -322,7 +367,12 @@ Spec points link to scheme-of-work items, many to many; each link is reviewed on
 
 ### 10.12 Curriculum packs
 
-One JSON file per course: units, topics, spec points, HL-only flags, chapter links, page references. Built once with AI help, reviewed by Gemma, validated against a schema, hashed and locked. No general PDF parser is built; only the calendar gets a repeatable importer, because only the calendar changes during the year. Packs live in `data/` and are not committed (ADR-016).
+One JSON file per course: units, topics, spec points, HL-only flags, textbook chapters, chapter-to-spec links, page references. Validated against a schema, hashed and locked. No general PDF parser is built; only the calendar gets a repeatable importer, because only the calendar changes during the year. Packs live in `data/` and are not committed (ADR-016).
+
+Building a pack is two steps, and only the second is a screen:
+
+1. **Draft, as an assisted command.** A command in `packages/importers` pulls the text and page numbers out of the allowlisted specification PDF. The `planner-build-curriculum-pack` skill turns that text into a draft pack. This happens three times in v1 (once per course), so it gets a command, not a wizard.
+2. **Review and lock, in the app.** A screen shows the draft as a tree with the page reference beside every point. She confirms or corrects each unit, then locks it. This screen is where her trust in the mapping is earned, so it is built properly in M2 and reused in M4 and M6.
 
 ### 10.13 Re-import
 
@@ -345,7 +395,7 @@ Imported rows are stored by date with a hash. Her confirmations and disruptions 
 
 Diagram: [AI flow](../../design/ai-teacher-planner/07-ai-flow.svg).
 
-**Provider port.** `run(task)` takes a skill id, a JSON input, extracted text, a Zod schema and a tool list. It returns validated data and metadata: provider, model, duration, sources.
+**Provider port.** `run(task)` takes a skill id, a JSON input, extracted text, optional image attachments, a Zod schema and a tool list. It returns validated data and metadata: provider, model, duration, sources. Attachments may only come from `data/uploads/`, where a file lands when she uploads it herself; the timetable image is the only v1 use.
 
 **Claude adapter.** Proven by spike on 19 Nov 2026 with Claude Code 2.1.326:
 
@@ -477,8 +527,8 @@ flowchart LR
 Diagram: [data and privacy](../../design/ai-teacher-planner/08-data-and-privacy.svg). Decision: ADR-011.
 
 - **`prototypes/resources/` never enters git.** It is 5 GB and 2,661 files, and it includes student work in folders named after students, scanned exams and reports. The ignore rule is fixed and the four files that had been pushed are no longer tracked.
-- **App allowlist.** `ResourceGateway` reads only: the `Planning` folders; the three specification PDFs; `1. Content/**/PP`; the per-topic exam-practice folders. A test proves a path outside the list cannot be read.
-- **Models receive extracted text only**, never a folder path and never a whole textbook.
+- **App allowlist.** `ResourceGateway` reads only: the calendar workbook and `timetable.png` at the folder root; the `Planning` folders; the three specification PDFs; `1. Content/**/PP`; the per-topic exam-practice folders. A test proves a path outside the list cannot be read.
+- **Models receive extracted text**, never a folder path and never a whole textbook. The one exception is an image she uploads herself for the timetable import.
 - **Deny rules** in `.claude/settings.json` stop interactive Claude sessions opening the student-work folders. Tested on 19 Nov 2026: a canary path with spaces and an ampersand was refused, as were probes into three of the real folders. A deny rule stops Claude's file tools, not a script, which is why the allowlist is the real guard.
 - **No student data in v1.** An assessment stores a status and an optional class-level note such as "evaluation weak on the 20-marker".
 - **Copyright.** Curriculum packs are built locally from her own copies and stay in `data/`. Tests use a synthetic curriculum. Exports cite sources.
@@ -517,9 +567,9 @@ These become Gherkin files in `features/`. Scenarios 5, 7 and 12 are Gemma's own
 2. **A two-day week.** Given 21 and 22 Dec 2026 are labelled Week 2, then only the Monday and Tuesday Week 2 lessons exist that week.
 3. **A one-day week.** Given Friday 8 Jan 2027 alone is labelled Week 1, then 13 1 has one lesson that week, in period 6, and no other group has any.
 4. **Staff days.** Given 1 Sep 2026 is labelled Week 1 and marked staff training, then no group has a lesson that day.
-5. **Story 1: a schedule from my documents.** Given the calendar, my timetable and the IAL Unit 4 scheme with my class counts, when I choose 13 1, 13 3 and 13 5 and my teaching order, then I see a dated schedule per group in which every lesson sits on a real lesson of that group, no lesson falls on a holiday, chapter order is kept, each chapter shows its spec reference, and the totals match my sheet.
-6. **The worked example.** Given the three groups are planned to finish a topic before a dated assessment, and 13 3 loses a lesson to a closure, when I open the parity tracker, then 13 3 shows as one lesson short before that assessment and I am offered at least one catch-up option.
-7. **Story 2: absence.** Given I was absent Tuesday to Thursday and two groups had cover, when I record the absence, then I see a preview of what moves, which topics are affected, how many teacher-led lessons each group has lost, and options to realign, and nothing changes until I accept.
+5. **Story 1: a schedule from my documents.** Given the calendar, my timetable and the IAL Unit 4 scheme with my class counts, when I choose 13 1, 13 3 and 13 5 and my teaching order, then I see a dated schedule per group in which every lesson sits on a real lesson of that group, no lesson falls on a holiday, chapter order is kept, each chapter shows its spec reference, the teaching-lesson total matches my sheet (65), and spare lessons appear as flex lessons before each assessment.
+6. **The worked example.** Given the three groups are planned to finish a topic before a dated assessment, and 13 3 has no flex lesson in that window, and 13 3 loses a lesson to a closure, when I open the parity tracker, then 13 3 shows as one lesson short before that assessment and I am offered at least one catch-up option. (With a flex lesson in the window, the flex lesson is lost instead and nothing is short.)
+7. **Story 2: absence.** Given I was absent Tuesday to Thursday and two groups had cover, when I enter the absence, then I see a preview with the three cover choices, which topics are affected, how many teacher-led lessons each group loses, and options to realign; and I can record the absence and decide later, in which case the affected lessons are marked stranded and nothing else moves.
 8. **Undo.** Given I accepted a reflow, when I undo it, then the plan is exactly as before.
 9. **Pins survive.** Given I moved a lesson to a chosen slot, when a later closure triggers a reflow, then that lesson stays where I put it.
 10. **HL prerequisites.** Given an HL-only topic needs a core topic that finishes on 9 Dec, when it is placed in an IB H slot on 2 Dec, then it is flagged and I am shown what is teachable instead.
@@ -610,6 +660,10 @@ Diagram: [roadmap](../../design/ai-teacher-planner/10-roadmap.svg). One course e
 | 8 | Is "AI content creator" a fifth prototype? | Yes, later, lifted from `packages/content-creator` |
 | 9 | Are the success measures in section 2 the right ones? | As proposed |
 | 10 | Template Parts 11.1 to 11.4, 12.3 and 13 are still yours | Definition of done as in section 18 |
+| 11 | When a group has spare lessons before an assessment, where do you want them: just before the assessment, or spread through the topic? | Just before the assessment, as flex lessons you can move |
+| 12 | When you are absent, is "the class does the planned lesson as independent work" the right starting point? | Yes; the other two choices are one click away |
+| 13 | Does "Number of Classes" in your planning sheets include the lessons used for assessments? | No: assessments are extra lessons |
+| 14 | Is the timetable grid in the appendix exactly right? It was read from your image | Yes; the fortnight totals match what you wrote |
 
 **For Alberto**
 
@@ -623,7 +677,54 @@ Diagram: [roadmap](../../design/ai-teacher-planner/10-roadmap.svg). One course e
 
 Table and column names; the exact API routes; component breakdown and visual detail within section 12; the router; the group colour values after contrast adjustment; file layout inside each package; how the timetable image is passed to the adapter; backup retention; the wording of the first-run tour. Each of these should follow the rules in sections 4, 9 and 10 and be recorded where a later reader would look for it.
 
-## Appendix: what the Phase A spikes proved (19 Nov 2026)
+## Appendix A: the timetable grid
+
+Read from `timetable.png` on 19 Nov 2026; awaiting Gemma's confirmation (open question 14). This grid, with group codes and rooms only, becomes the committed seed `fixtures/timetable.2026-27.json` in M1. It is the one fixture that is hers; the calendar and curriculum fixtures are synthetic. Blank means free. `400` is study-hall duty. Form (`13 F`, room 306) sits between P2 and P3 every day and needs no plan.
+
+**Week 1**
+
+| | Mon | Tue | Wed | Thu | Fri |
+|---|---|---|---|---|---|
+| P1 | IB H (605) | 13 5 (504) | | IB S (605) | 400 |
+| P2 | IB H (605) | 400 | 13 1 (206) | IB S (605) | 400 |
+| P3 | 11D (207) | 11D (207) | 400 | 13 3 (202) | 400 |
+| P4 | 400 | 11D (207) | 400 | 13 3 (202) | 400 |
+| P5 | 13 1 (206) | 13 3 (202) | IB S (605) | | |
+| P6 | 13 5 (504) | 400 | | 13 5 (504) | 13 1 (206) |
+
+**Week 2**
+
+| | Mon | Tue | Wed | Thu | Fri |
+|---|---|---|---|---|---|
+| P1 | IB H (605) | 400 | | IB S (605) | 400 |
+| P2 | IB H (605) | 13 5 (504) | 13 1 (206) | IB S (605) | 400 |
+| P3 | | 11D (207) | 400 | 13 3 (202) | 400 |
+| P4 | | 11D (207) | 400 | 13 3 (202) | 13 5 (504) |
+| P5 | 13 1 (206) | 13 3 (202) | IB S (605) | | |
+| P6 | | 400 | | 13 5 (504) | 13 1 (206) |
+
+Lunch-time duties (`MM8 Patio`, `Y13 (601)`, `DEP`) are not lessons and are left out.
+
+## Appendix B: calls made after the builder review
+
+A second engineer read this spec cold and asked what they would still have to guess. These are the answers added in response, so a reviewer can check them in one place.
+
+| Topic | Call | Section |
+|---|---|---|
+| Spare slots | Lessons pack early; leftover slots become flex lessons at the end of each window; the engine never invents content; buffers exist only if she writes them | 10.5, 10.6 |
+| Cover lessons | By default the planned lesson is delivered as cover work and the position moves on; two other choices are offered | 10.7 |
+| Facts and plans | A disruption is saved as a fact; re-planning is a separate choice; undo restores the plan and leaves the fact | 10.4, 10.8 |
+| One plan per course | Each course and its groups has its own revision chain; a school-wide change gives one proposal per plan | 10.4, 10.8 |
+| What happened | The weekly check-in writes a lesson log; unanswered past lessons are `assumed` | 10.3, 10.9 |
+| Assessment anchors | Each group's first slot on or after the date; one slot each; outside her class counts | 10.5 |
+| IB scheme | Unit totals from her outline; AI proposes the split across sub-topics | 10.10 |
+| Pack building | Drafted by an assisted command; reviewed and locked in an app screen | 10.12 |
+| Spec links | Chapter-to-spec links live in the locked pack; scheme items point at chapters | 10.11 |
+| Freeze horizon | Protects near-term lessons from knock-on moves; a disruption on the slot itself is the exception | 10.8 |
+| Allowlist | Now includes the calendar workbook and the timetable image | 14 |
+| Images | The provider port accepts an uploaded image for the timetable import only | 11, 14 |
+
+## Appendix C: what the Phase A spikes proved (19 Nov 2026)
 
 | Spike | Result |
 |---|---|

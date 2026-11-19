@@ -9,13 +9,17 @@ A teaching plan changes all the time: an absence, a moved lesson, a re-imported 
 
 ## Decision
 
-Option (c). Her decisions are stored as rows: the scheme of work, pins, per-group overrides, disruptions, and each group's position. *Placements* (which lesson sits in which slot) are calculated from those by the engine. Each accepted plan is saved as an immutable *revision*, a snapshot that is never edited, with a pointer to the revision it came from. A change produces a candidate revision and a *diff* (the list of what would move). Accepting makes the candidate the current plan, as long as the plan has not changed in the meantime. Undo goes back to the parent.
+Option (c), in three layers. *Facts* are things that happened or will happen whatever she plans: imported calendar rows, disruptions such as a closure or an absence, and the lesson log written by her weekly check-in. *Decisions* are her choices: the scheme of work, lesson counts, pins, per-group overrides and each group's position. *Placements* (which lesson sits in which slot) are calculated from facts and decisions by the engine. Each plan she accepts is saved as an immutable *revision*, a snapshot that is never edited, with a pointer to the revision it came from. A change produces a candidate revision and a *diff* (the list of what would move). Accepting makes the candidate the current plan, as long as the plan has not changed in the meantime. Undo goes back to the parent.
+
+A *plan* covers one course and the groups that follow it (IAL Unit 4 with its three groups; IB with IB S and IB H; IGCSE with 11D), and each plan has its own chain of revisions.
 
 ## Consequences
 
 - Preview, diff, undo and history all come from this one mechanism.
 - The same decisions always give the same plan, which makes the engine easy to test.
-- Never moved by a reflow: taught and declared history, today and the next teaching day, pinned lessons, dated assessments, and other courses. A pin or assessment that can no longer be honoured is reported as a conflict for her to decide.
+- Never moved by a reflow: confirmed, assumed and declared history, pinned lessons and dated assessments. Today and the next teaching day are protected from knock-on moves; only a lesson whose own slot was just hit by a disruption may move. A pin or assessment that can no longer be honoured is reported as a conflict for her to decide.
+- Recording a fact and re-planning around it are separate steps. She can save an absence and decide later; the lessons on the lost slots are then marked *stranded*. Undo restores the previous plan but keeps the fact, because the absence still happened.
+- A whole-school closure touches several plans, so it produces one proposal per plan. A change to one course never alters another course's plan.
 - Moving a card creates a pin and re-sequences the rest, so her edits survive the next reflow.
 - Option (a) was rejected because a preview needs a second copy of the table anyway, hand edits get overwritten by re-sequencing, and a log drifts away from the table it describes.
 - Option (b) was rejected because a year is only about 1,200 placements. Replay machinery is far more than that needs, and far harder to read.
