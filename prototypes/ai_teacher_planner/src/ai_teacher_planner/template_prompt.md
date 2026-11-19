@@ -901,19 +901,3 @@ anything). Rewrite it using the ingredients table at the top. What changed?
 
 Finished? Save, commit and push, just like with `QUESTIONS_FOR_GEMMA.md`.
 Then open Claude Code in this repo and paste your Part 12 prompt. 💛
-
-// TODO: pre wrapup before prompt and /plan
-Tech. Lead
-1. Claude harness set up for the project: CLAUDE.md, relevant .mds, etc. Develop SKILS when repeated actions are done more than twice from the teacher prespective part resorting to AI frontier models (when needed)
-2. frontend + GUI must represent which parts have been generated automatically (by the pure backend logic) and which parts have been resorted to GenAI (in this case Claude Code, in the future could be others, local LLMs, MCPs, Gemini or ChatGPT): we need to show the user in the GUI (icons) which part is IA generated. But we need heavily resort to the Claude Harness to lean on when needed, we just need to represent the icon in the GUI when it is worth noting the user
-3. implement all of this in this branch
-4. install the needed libraries in this laptop: pnpm, npm, node, etc
-5. use docs/ and docs/design folder that represent the arhitecture visually of the technical stack, software modules, frontend, backend, middleware, components, communciation with Frontier models, etc
-6. delete tables for inputs and wrap up inverse engineering
-7. .gitignore local files and private repo (for me)
-8. link input table (and others) M S C W, content creator for .md (s for future features and modules, not now)
-  - references to the examiner
-ADDED/FIXED
-  - ai content creator prototype
-  - ai examiner prototype
-  - tables deleted where appropriate
