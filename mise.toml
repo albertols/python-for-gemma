@@ -1,0 +1,7 @@
+# Tool versions for this repo, installed by mise (https://mise.jdx.dev).
+# Python tooling stays with uv; this covers the AI Teacher Planner web app
+# and the architecture diagrams. Run `mise install` once after cloning.
+[tools]
+node = "26"
+pnpm = "12"
+d2 = "0.9"
