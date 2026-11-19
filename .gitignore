@@ -25,3 +25,22 @@ prototypes/*/real_data/
 # Local session notes
 .remember/
 .superpowers/
+
+# ── PRIVACY + COPYRIGHT: Gemma's teaching resources NEVER enter git ──
+# A local copy of her OneDrive folder: school calendar, textbooks, past
+# papers and folders of student work. See docs/security.md.
+prototypes/resources/
+
+# Node / TypeScript (AI Teacher Planner web app)
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+.vite/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# AI Teacher Planner local data: database, backups, curriculum packs
+# built from copyrighted specs, uploads, AI run cache
+prototypes/ai_teacher_planner/data/
