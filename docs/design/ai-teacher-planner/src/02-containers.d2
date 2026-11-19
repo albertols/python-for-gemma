@@ -1,0 +1,52 @@
+...@_style
+...@_legend
+
+title: |md
+  # Containers: what runs, and where
+  Everything inside the dashed box runs on Gemma's Mac.
+| {near: top-center}
+
+mac: "Gemma's Mac (localhost only)" {
+  class: group
+  style.stroke-dash: 4
+
+  web: "Web app\nReact + Vite\nfortnight board, Today, audit" {class: concept}
+  api: "Local API\nNode + Hono\nuse cases, jobs, exports" {class: concept}
+  domain: "Engine\npure TypeScript, no IO\nslots, sequencing, parity, reflow" {class: concept}
+  db: "SQLite file\ndecisions + plan revisions" {
+    class: win
+    shape: cylinder
+  }
+  gateway: "ResourceGateway\nallowlist only" {class: warn}
+  resources: "Teaching resources\nOneDrive copy, git-ignored" {
+    class: win
+    shape: cylinder
+  }
+  provider: "AiProvider port" {class: ai}
+  cli: "Claude Code CLI\nclaude -p, her own sign-in" {class: ai}
+  fake: "Fake provider\ntests and CI" {class: later}
+  skills: "Skill prompts\n.claude/skills/" {
+    class: ai
+    shape: page
+  }
+
+  web -> api: "REST + progress events" {class: flow}
+  web -> domain: "imports for instant previews" {class: flow}
+  api -> domain: "calls" {class: flow}
+  api -> db: "reads, writes" {class: flow}
+  api -> gateway: "asks for a file" {class: flow}
+  gateway -> resources: "reads allowlisted paths" {class: flow}
+  api -> provider: "text in, JSON out" {class: aiflow}
+  provider -> cli: {class: aiflow}
+  provider -> fake: {class: aiflow}
+  skills -> cli: "prompt inlined" {class: aiflow}
+}
+
+anthropic: "Claude model\n(Anthropic)" {class: ai}
+future: "Later: API key,\nOllama, Gemini" {class: later}
+
+mac.cli -> anthropic: "extracted text only" {class: aiflow}
+mac.provider -> future: {
+  class: aiflow
+  style.stroke-dash: 4
+}

@@ -1,0 +1,75 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+}
+
+title: |md
+  # Domain model: what is stored and what is derived
+  Her decisions are stored rows. Slots, lessons and placements are worked out from them. An accepted plan is saved as a revision.
+| {near: top-center}
+
+setup: "Calendar and timetable" {
+  class: group
+
+  day: "CalendarDay\ndate, week label, pupil day" {class: win}
+  timetable: "TimetableVersion\nweek, weekday, period, group" {class: win}
+  grp: "Group\ncode, year, track, parallel set" {class: win}
+  report: "ReportWindow\nfeeds reminders" {class: win}
+}
+
+pack: "Course pack (locked)" {
+  class: group
+
+  course: "Course\nboard, subject, units" {class: win}
+  spec: "SpecPoint\ncode, level, in scope" {class: win}
+  speclink: "ItemSpecLink\nitem, spec point, reviewed" {class: win}
+}
+
+decisions: "Her decisions and recorded facts (stored rows)" {
+  class: group
+
+  item: "SowItem\norder, kind, lessons, prereqs" {class: win}
+  assessment: "Assessment\ndate, type, status" {class: win}
+  pin: "Pin\nlesson, slot or not-after" {class: win}
+  disruption: "Disruption\nscope, dates, effect, reason" {class: win}
+}
+
+derived: "Derived by the engine" {
+  class: group
+
+  slot: "Slot\ngroup, date, period, status" {class: concept}
+  lesson: "Lesson\nitem + number, shared by groups" {class: concept}
+  placement: "Placement\nlesson, slot, state" {class: concept}
+}
+
+revision: "PlanRevision\nimmutable snapshot,\npoints to its parent" {
+  class: win
+  shape: cylinder
+}
+provenance: "Provenance\norigin, AI details, review state" {class: ai}
+
+setup.day -> derived.slot: "label and date" {class: flow}
+setup.timetable -> derived.slot: "periods" {class: flow}
+setup.grp -> pack.course: "follows" {class: flow}
+decisions.disruption -> derived.slot: "cancels or covers" {class: flow}
+pack.course -> decisions.item: "ordered items" {class: flow}
+decisions.item -> derived.lesson: "one per lesson" {class: flow}
+decisions.item -> pack.speclink: {class: flow}
+pack.speclink -> pack.spec: {class: flow}
+decisions.assessment -> decisions.item: "assesses" {class: flow}
+decisions.pin -> derived.placement: "fixes" {class: flow}
+derived.lesson -> derived.placement: {class: flow}
+derived.slot -> derived.placement: {class: flow}
+derived.placement -> revision: "saved on accept" {class: flow}
+provenance -> decisions: "on every stored item" {class: aiflow}
+
+vars: {
+  d2-legend: {
+    l1: "Derived by the engine;\nkept only in revision snapshots" {class: concept}
+    l2: "Stored on the Mac" {class: win}
+    l4: "Records AI involvement" {class: ai}
+  }
+}

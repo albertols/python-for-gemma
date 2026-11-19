@@ -1,0 +1,60 @@
+...@_style
+...@_legend
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+}
+
+title: |md
+  # Backend components: ports and adapters
+  Use cases sit in the middle. Everything that touches disk, the network or a model is an adapter behind a port.
+| {near: top-center}
+
+direction: down
+
+http: "HTTP routes\nHono + OpenAPI" {class: concept}
+
+core: "Core of apps/api" {
+  class: group
+
+  usecases: "Use cases\nimport, sequence, propose,\naccept, undo, export" {class: concept}
+  jobs: "Job queue\none AI job at a time,\nprogress events" {class: concept}
+
+  usecases -> jobs: "AI work" {class: flow}
+}
+
+engine: "Engine: packages/domain\npure TypeScript, no IO" {class: concept}
+
+adapters: "Driven adapters, each behind a port" {
+  class: group
+
+  repo: "Repository ports\n+ SQLite adapter (Drizzle)" {class: concept}
+  importers: "packages/importers\ncalendar xlsx, planning xlsx,\nassessment docx, resource index" {class: concept}
+  exporters: "packages/exporters\nxlsx, docx, pptx, Teams text" {class: concept}
+  content: "packages/content-creator\nrefresher, cover lesson,\nindependent task" {class: ai}
+  port: "packages/ai\nAiProvider port" {class: ai}
+
+  content -> port: {class: aiflow}
+}
+
+db: "SQLite file\ndata/, git-ignored" {
+  class: win
+  shape: cylinder
+}
+gateway: "ResourceGateway\nallowlist only" {class: warn}
+cli: "ClaudeCodeCliProvider\nclaude -p" {class: ai}
+fake: "FakeAiProvider\ntests and CI" {class: later}
+
+http -> core.usecases: {class: flow}
+core.usecases -> engine: "calls" {class: flow}
+core.usecases -> adapters.repo: {class: flow}
+core.usecases -> adapters.importers: {class: flow}
+core.usecases -> adapters.exporters: {class: flow}
+core.jobs -> adapters.content: {class: aiflow}
+core.jobs -> adapters.port: "text in,\nJSON out" {class: aiflow}
+adapters.repo -> db: {class: flow}
+adapters.importers -> gateway: "every file read" {class: flow}
+adapters.port -> cli: {class: aiflow}
+adapters.port -> fake: {class: aiflow}

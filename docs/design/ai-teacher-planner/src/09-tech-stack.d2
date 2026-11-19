@@ -1,0 +1,58 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+  d2-legend: {
+    l1: "Our code and tools" {class: concept}
+    l2: "Data that stays on the Mac" {class: win}
+    l4: "AI involved" {class: ai}
+  }
+}
+
+title: |md
+  # Tech stack: layers and versions
+  Versions as checked on 19 Nov 2026 and proven together in a throwaway spike. Exact pins live in the lockfile.
+| {near: top-center}
+
+grid-rows: 3
+grid-columns: 3
+grid-gap: 20
+
+runtime: "Runtime" {
+  class: group
+  box: "Node 26 LTS (via mise)\npnpm 12" {class: concept}
+}
+language: "Language and lint" {
+  class: group
+  box: "TypeScript 7.0, strict\nBiome 2.6" {class: concept}
+}
+web: "Web" {
+  class: group
+  box: "React 19.3, Vite 8.3\nTailwind 4, shadcn/ui" {class: concept}
+}
+api: "API" {
+  class: group
+  box: "Hono 4.13 + zod-openapi\nZod 4" {class: concept}
+}
+data: "Data" {
+  class: group
+  box: "Drizzle 0.45\nbetter-sqlite3 13" {class: win}
+}
+tests: "Tests" {
+  class: group
+  box: "Vitest 5, Gherkin, fast-check\nPlaywright + installed Chrome" {class: concept}
+}
+office: "Office files" {
+  class: group
+  box: "exceljs, mammoth\ndocx, pptxgenjs" {class: concept}
+}
+diagrams: "Diagrams" {
+  class: group
+  box: "D2 0.9 (via mise)\nMermaid for inline flows" {class: concept}
+}
+ai: "AI" {
+  class: group
+  box: "Claude Code CLI\nbehind the AiProvider port" {class: ai}
+}

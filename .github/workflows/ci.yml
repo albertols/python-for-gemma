@@ -14,3 +14,14 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -v
+
+  # Architecture diagrams are code (docs/design/*/src/*.d2). This fails the
+  # build when a committed SVG no longer matches its source.
+  diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: d2
+      - run: sh docs/design/render.sh --check

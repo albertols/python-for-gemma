@@ -1,0 +1,46 @@
+...@_style
+
+title: |md
+  # AI flow: from a button to a reviewed suggestion
+  The model receives text and returns JSON. It reads no files and writes nothing. Gemma reviews before anything is used.
+| {near: top-center}
+
+flow: "" {
+  shape: sequence_diagram
+
+  teacher: "Gemma" {class: concept}
+  web: "Web app" {class: concept}
+  api: "API job" {class: concept}
+  gateway: "ResourceGateway" {class: warn}
+  provider: "AiProvider" {class: ai}
+  cli: "Claude Code CLI" {class: ai}
+  model: "Claude model" {class: ai}
+
+  ask: "1. Ask" {
+    teacher -> web: "clicks an AI action"
+    web -> api: "start job"
+    api -> gateway: "file for this chapter"
+    gateway -> api: "extracted text"
+  }
+
+  run: "2. Run" {
+    api -> provider: "skill id, text, schema"
+    provider -> cli: "claude -p, no file tools"
+    cli -> model: "extracted text only"
+    model -> cli: "JSON"
+    cli -> provider: "structured output"
+    provider -> api: "schema-valid data"
+    api -> web: "progress events"
+  }
+
+  store: "3. Store" {
+    api -> api: "saved as 'suggested'"
+    api -> web: "result"
+    web -> teacher: "sparkle badge, sources"
+  }
+
+  review: "4. Review" {
+    teacher -> web: "accept, edit or reject"
+    web -> api: "review state saved"
+  }
+}

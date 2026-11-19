@@ -1,0 +1,49 @@
+# Shared look for every diagram in this folder. Import with `...@_style`.
+# Colours are the repo house palette (see .claude/skills/visual-docs-creator):
+#   concept = blue, win = green, warn = amber, ai = purple.
+# In these diagrams: blue = our code, green = data that stays on the Mac,
+# amber = a boundary or risk, purple = anything where a model is involved.
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 28
+    center: true
+  }
+}
+
+style.fill: "#FFFFFF"
+
+classes: {
+  concept: {
+    style: {fill: "#4F86C6"; stroke: "#2B4C7E"; font-color: "#FFFFFF"; border-radius: 8; stroke-width: 2}
+  }
+  win: {
+    style: {fill: "#59A96A"; stroke: "#2E5E3A"; font-color: "#FFFFFF"; border-radius: 8; stroke-width: 2}
+  }
+  warn: {
+    style: {fill: "#F4A259"; stroke: "#B87333"; font-color: "#333333"; border-radius: 8; stroke-width: 2}
+  }
+  ai: {
+    style: {fill: "#8E6BAF"; stroke: "#5D3F7A"; font-color: "#FFFFFF"; border-radius: 8; stroke-width: 2}
+  }
+  later: {
+    style: {fill: "#F2F4F7"; stroke: "#9AA5B1"; font-color: "#4A5568"; border-radius: 8; stroke-dash: 4}
+  }
+  group: {
+    style: {fill: "#F7F9FC"; stroke: "#9AA5B1"; font-color: "#2D3748"; border-radius: 12; stroke-width: 1}
+  }
+  denied: {
+    style: {fill: "#FDECEC"; stroke: "#C0392B"; font-color: "#7B241C"; border-radius: 8; stroke-dash: 4; stroke-width: 2}
+  }
+  flow: {
+    style: {stroke: "#4A5568"; stroke-width: 2; font-color: "#2D3748"}
+  }
+  aiflow: {
+    style: {stroke: "#5D3F7A"; stroke-width: 2; font-color: "#5D3F7A"}
+  }
+  blocked: {
+    style: {stroke: "#C0392B"; stroke-width: 2; stroke-dash: 4; font-color: "#C0392B"}
+  }
+}

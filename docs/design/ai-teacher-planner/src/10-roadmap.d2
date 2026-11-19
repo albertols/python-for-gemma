@@ -1,0 +1,54 @@
+...@_style
+
+vars: {
+  d2-legend: {
+    l1: "v1, this pull request" {class: concept}
+    l4: "v1, AI features" {class: ai}
+    l5: "Later" {class: later}
+  }
+}
+
+title: |md
+  # Roadmap: v1, v2, then the 360 platform
+  v1 is eight milestones, one course end to end at a time. Each ends with green scenarios and a Chrome screenshot.
+| {near: top-center}
+
+v1: "v1: local planner for one teacher" {
+  class: group
+  grid-rows: 2
+  grid-columns: 3
+  grid-gap: 18
+
+  foundation: "Foundation · M1\ncalendar, timetable, slots,\nToday, read-only board" {class: concept}
+  ial: "IAL Unit 4 · M2, M3\nsequencing, revisions,\nparity, reflow" {class: concept}
+  ib: "IB · M4, then M5\ntwo tracks, HL helper,\nthen board editing" {class: concept}
+  igcse: "IGCSE · M6\nchapter links, coverage,\nassessment calendar" {class: concept}
+  content: "Content · M7\nrefresher, cover lesson,\nindependent task" {class: ai}
+  release: "Release · M8\nexports, accessibility,\nfirst-run tour" {class: concept}
+}
+
+v2: "v2: more people, more systems" {
+  class: group
+  style.stroke-dash: 4
+  grid-columns: 4
+  grid-gap: 18
+
+  views: "Student and Head of\nDepartment views" {class: later}
+  library: "Shared resource\nlibrary" {class: later}
+  m365: "Microsoft 365\nsync" {class: later}
+  providers: "More AI providers\nAPI key, Ollama, Gemini" {class: later}
+}
+
+platform: "360 platform: the prototypes joined up" {
+  class: group
+  style.stroke-dash: 4
+  grid-columns: 3
+  grid-gap: 18
+
+  creator: "AI content creator\nlifted from the v1 package" {class: later}
+  examiner: "AI Examiner" {class: later}
+  companion: "Homework companion" {class: later}
+}
+
+v1 -> v2: "needs logins\nand hosting" {class: flow}
+v2 -> platform: {class: flow}

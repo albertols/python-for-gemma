@@ -1,0 +1,59 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+  d2-legend: {
+    l1: "Engine step" {class: concept}
+    l2: "Stored data" {class: win}
+    l3: "Check or teacher gate" {class: warn}
+  }
+}
+
+title: |md
+  # Scheduling pipeline: from the calendar to an accepted plan
+  Fixed rules all the way. Nothing reaches the head revision until Gemma accepts the diff.
+| {near: top-center}
+
+direction: right
+
+workbook: "Calendar\nworkbook" {
+  class: win
+  shape: page
+}
+report: "Import report\nodd rows listed,\nnever guessed" {class: warn}
+days: "Calendar days\nweek label,\npupil day" {class: concept}
+timetable: "Timetable\nWeek 1 | Week 2" {class: win}
+disruptions: "Disruptions\nabsence, closure,\ntrip" {class: win}
+slots: "Slots\nper group,\ndate, period" {class: concept}
+sow: "Scheme of work\norder, counts,\nanchors, pins" {class: win}
+sequencing: "Sequencing\nfreeze, anchors,\nfill, buffers" {class: concept}
+candidate: "Candidate\nrevision" {class: concept}
+diff: "Diff + accept\nor reject" {class: warn}
+head: "Head revision\nundo = parent" {
+  class: win
+  shape: cylinder
+}
+
+reads: "Read from the head revision" {
+  class: group
+  grid-columns: 1
+  grid-gap: 12
+
+  parity: "Parity" {class: concept}
+  coverage: "Coverage" {class: concept}
+  reminders: "Reminders" {class: concept}
+}
+
+workbook -> days: "import" {class: flow}
+workbook -> report: {class: flow}
+days -> slots: {class: flow}
+timetable -> slots: {class: flow}
+disruptions -> slots: "folded in" {class: flow}
+slots -> sequencing: {class: flow}
+sow -> sequencing: {class: flow}
+sequencing -> candidate: {class: flow}
+candidate -> diff: {class: flow}
+diff -> head: "accepted" {class: flow}
+head -> reads: {class: flow}

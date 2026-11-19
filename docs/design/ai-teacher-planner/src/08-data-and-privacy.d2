@@ -1,0 +1,69 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+  d2-legend: {
+    l2: "Data that stays on the Mac" {class: win}
+    l3: "Guard" {class: warn}
+    l4: "Reaches the model" {class: ai}
+    l6: "Denied" {class: denied}
+  }
+}
+
+title: |md
+  # Data and privacy: what stays, what leaves, what is denied
+  Only extracted text of allowlisted files and what Gemma types can reach the model. v1 stores no student data.
+| {near: top-center}
+
+direction: right
+
+stays: "Stays on the Mac" {
+  class: group
+
+  resources: "Resources folder\ngit-ignored" {
+    class: win
+    shape: cylinder
+  }
+  db: "SQLite file\nplans, decisions, AI log" {
+    class: win
+    shape: cylinder
+  }
+  packs: "Curriculum packs\nbuilt locally,\nnot committed" {
+    class: win
+    shape: cylinder
+  }
+}
+
+denied: "Denied" {
+  class: group
+
+  student: "Student-work folders\nessays, IAs, scanned\nexams, reports" {class: denied}
+  textbooks: "Whole textbooks" {class: denied}
+  creds: "Credentials\nand tokens" {class: denied}
+}
+
+gateway: "ResourceGateway\nallowlist" {class: warn}
+denyrules: "Claude deny rules" {class: warn}
+gitignore: ".gitignore" {class: warn}
+
+leaves: "Reaches the model" {
+  class: group
+
+  text: "Extracted text of\nallowlisted files" {class: ai}
+  typed: "What she types\ninto a request" {class: ai}
+}
+
+model: "Claude model\n(Anthropic)" {class: ai}
+github: "GitHub repo" {class: later}
+
+stays.resources -> gateway: "planning sheets,\nspecs, chapter slides" {class: flow}
+gateway -> leaves.text: {class: aiflow}
+leaves.text -> model: {class: aiflow}
+leaves.typed -> model: {class: aiflow}
+denied.student -> gateway: "refused" {class: blocked}
+denied.textbooks -> gateway: "refused" {class: blocked}
+denied.creds -> denyrules: "never read" {class: blocked}
+stays -> gitignore: {class: flow}
+gitignore -> github: "never committed" {class: blocked}

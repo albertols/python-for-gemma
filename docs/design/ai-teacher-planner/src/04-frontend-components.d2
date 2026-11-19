@@ -1,0 +1,60 @@
+...@_style
+
+vars: {
+  d2-legend: {
+    l1: "Our code" {class: concept}
+    l4: "AI involved" {class: ai}
+  }
+}
+
+title: |md
+  # Frontend components: screens and shared pieces
+  Ten screens share five pieces. Previews run in the browser because the engine is imported directly.
+| {near: top-center}
+
+grid-columns: 1
+grid-gap: 70
+
+screens: "Screens" {
+  class: group
+  grid-rows: 2
+  grid-columns: 5
+  grid-gap: 16
+
+  today: "Today\nlessons, reminders,\nweekly check-in" {class: concept}
+  board: "Fortnight board\nWeek 1 | Week 2,\nday to unit views" {class: concept}
+  sow: "Scheme of work\ntopics in her order,\nlesson counts" {class: concept}
+  parity: "Parity\nslack, gaps,\ncatch-up options" {class: concept}
+  audit: "Slot audit\nlost lessons\nand why" {class: concept}
+  hl: "IB HL helper\nteachable now,\nunlocks on" {class: concept}
+  coverage: "Coverage\ntaught, assessed\nper spec point" {class: concept}
+  assess: "Assessments\nand reports\nclashes, deadlines" {class: concept}
+  resources: "Resources\nrefresher, cover,\nindependent task" {class: ai}
+  setup: "Setup\ncalendar, timetable,\ncourse packs" {class: concept}
+}
+
+shared: "Shared pieces" {
+  class: group
+  grid-rows: 1
+  grid-columns: 5
+  grid-gap: 16
+
+  badge: "Provenance badge\nsparkle = AI,\nwhy-is-this-here" {class: ai}
+  diff: "Proposal diff\npreview, accept,\nreject, undo" {class: concept}
+  drawer: "Activity drawer\nevery AI run,\nsources" {class: ai}
+  client: "API client\ntyped from\nOpenAPI" {class: concept}
+  engineimport: "Engine import\ninstant previews" {class: concept}
+}
+
+outside: "What the web app talks to" {
+  class: group
+  grid-rows: 1
+  grid-columns: 2
+  grid-gap: 16
+
+  api: "Local API\nREST + progress events" {class: concept}
+  engine: "Engine: packages/domain\npure TypeScript, runs in the browser" {class: concept}
+}
+
+screens -> shared: "every screen uses" {class: flow}
+shared -> outside: "API client calls the API;\nengine import runs the engine" {class: flow}
