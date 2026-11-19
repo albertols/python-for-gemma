@@ -79,6 +79,8 @@ Look for the order inside v1: one course end to end at a time, before any logins
 
 ## How to update
 
+If you are Claude, follow the `architecture-visual-docs` skill (`.claude/skills/architecture-visual-docs/SKILL.md`): it says which diagrams a given change touches and what to report. In short:
+
 1. Edit the `.d2` file in `src/`. Shared colours and edge styles live in `src/_style.d2`; the full colour legend is `src/_legend.d2`.
 2. Run `sh docs/design/render.sh` from the repo root. D2 comes from `mise.toml` (`mise install` once).
 3. Open the SVG and look at it. Check for overlapping labels and text too small to read.

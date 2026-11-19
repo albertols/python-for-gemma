@@ -42,7 +42,7 @@ Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/
 - Tests use `FakeAiProvider`. CI has no access to Claude or to `prototypes/resources/`.
 - Tests on Gemma's real files are local-only and skip when the folder is absent.
 - Run axe and the browser tests from the first screen onward; keyboard "Move to…" before pointer drag.
-- A change to modules, ports, routes, the data model, the AI flow or the stack updates its diagram in the same commit.
+- A change to modules, ports, routes, the data model, the AI flow or the stack updates its diagram in the same commit. Use the `architecture-visual-docs` skill for that; it lists which diagrams each kind of change touches.
 - When a teacher-side AI action has been done by hand more than twice, promote it to a skill in `.claude/skills/` with an output schema, and register it in `packages/ai`.
 
 ## Definition of done

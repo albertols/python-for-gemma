@@ -10,7 +10,7 @@ Gemma's Agentic AI Masters course — a Python + Claude Code curriculum built fo
 - `prototypes/ai_teacher_planner/` — the first real build: a TypeScript web app beside the Python scaffold. It has its own `CLAUDE.md`; read it before working there
 - `prototypes/resources/` — Gemma's local teaching files. Git-ignored, never committed (see Security)
 - `docs/` — specs, plans, ADRs, security model
-- `docs/design/` — architecture diagrams as code (D2 → SVG), one folder per app
+- `docs/design/` — architecture diagrams as code (D2 → SVG), one folder per app; kept current with the `architecture-visual-docs` skill
 - `.claude/` — skills, agents, permission deny rules
 
 ## Commands
