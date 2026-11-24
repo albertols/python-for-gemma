@@ -9,25 +9,39 @@ import path from "node:path";
 import { loadConfig } from "../apps/api/src/config.ts";
 
 const APP_ROOT = path.resolve(import.meta.dirname, "..");
-const WEB_DIR = path.join(APP_ROOT, "apps/web");
 
-function newestMtime(dir: string): number {
+function newestMtime(target: string): number {
+  if (!fs.existsSync(target)) return 0;
+  const stat = fs.statSync(target);
+  if (!stat.isDirectory()) return stat.mtimeMs;
   let newest = 0;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    const t = entry.isDirectory()
-      ? newestMtime(full)
-      : fs.statSync(full).mtimeMs;
-    if (t > newest) newest = t;
+  for (const entry of fs.readdirSync(target)) {
+    newest = Math.max(newest, newestMtime(path.join(target, entry)));
   }
   return newest;
 }
 
-/** True when dist/index.html is missing or older than any file under src/. */
-export function needsBuild(webDir: string): boolean {
-  const built = path.join(webDir, "dist", "index.html");
+/** Everything the web build reads: its own files and each shared package's source. */
+function buildInputs(appRoot: string): string[] {
+  const web = path.join(appRoot, "apps/web");
+  const packagesDir = path.join(appRoot, "packages");
+  const packages = fs.existsSync(packagesDir)
+    ? fs.readdirSync(packagesDir).map((p) => path.join(packagesDir, p, "src"))
+    : [];
+  return [
+    path.join(web, "src"),
+    path.join(web, "index.html"),
+    path.join(web, "vite.config.ts"),
+    ...packages,
+  ];
+}
+
+/** True when the web build is missing or older than any of its inputs. */
+export function needsBuild(appRoot: string): boolean {
+  const built = path.join(appRoot, "apps/web/dist/index.html");
   if (!fs.existsSync(built)) return true;
-  return newestMtime(path.join(webDir, "src")) > fs.statSync(built).mtimeMs;
+  const builtAt = fs.statSync(built).mtimeMs;
+  return buildInputs(appRoot).some((input) => newestMtime(input) > builtAt);
 }
 
 type PortState = "free" | "planner" | "other";
@@ -73,7 +87,7 @@ async function waitForPlanner(
   child: ChildProcess,
 ): Promise<boolean> {
   for (let i = 0; i < 60; i++) {
-    if (child.exitCode !== null) return false;
+    if (child.exitCode !== null || child.signalCode !== null) return false;
     if (await isPlanner(port)) return true;
     await new Promise((r) => setTimeout(r, 250));
   }
@@ -97,12 +111,18 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  if (needsBuild(WEB_DIR)) {
+  if (needsBuild(APP_ROOT)) {
     console.log("Building the web app...");
     const build = spawnSync("pnpm", ["--filter", "@planner/web", "build"], {
       cwd: APP_ROOT,
       stdio: "inherit",
     });
+    if (build.error) {
+      console.error(
+        `Could not run the web build: ${build.error.message}. If pnpm is "not found", start with: ~/.local/bin/mise exec -- pnpm start`,
+      );
+      return 1;
+    }
     if (build.status !== 0) {
       console.error("The web app did not build. See the messages above.");
       return 1;
@@ -114,7 +134,12 @@ async function main(): Promise<number> {
     [path.join(APP_ROOT, "apps/api/src/main.ts")],
     { cwd: APP_ROOT, stdio: "inherit", env: process.env },
   );
-  const stop = () => api.kill("SIGTERM");
+  let stopping = false;
+  const stop = () => {
+    if (stopping) process.exit(1); // a second Ctrl+C ends us for certain
+    stopping = true;
+    api.kill("SIGTERM");
+  };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
   const exited = new Promise<number>((resolve) =>
@@ -122,7 +147,11 @@ async function main(): Promise<number> {
   );
 
   if (!(await waitForPlanner(config.port, api))) {
-    stop();
+    if (stopping) {
+      console.log("Stopped.");
+      return 0;
+    }
+    api.kill("SIGTERM");
     console.error("The planner did not start. See the messages above.");
     return 1;
   }
