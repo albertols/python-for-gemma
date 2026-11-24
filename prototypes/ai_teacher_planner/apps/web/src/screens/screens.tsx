@@ -31,11 +31,6 @@ function Placeholder({ title, children }: { title: string; children: string }) {
   );
 }
 
-export const BoardScreen = () => (
-  <Placeholder title="Board">
-    The fortnight board is built in a later task.
-  </Placeholder>
-);
 export const AuditScreen = () => (
   <Placeholder title="Slot audit">
     The slot audit is built in a later task.

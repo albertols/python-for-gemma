@@ -1,0 +1,167 @@
+import {
+  addDays,
+  type CalendarDay,
+  type DayKind,
+  type Fortnight,
+  type IsoDate,
+  type Period,
+  type Slot,
+  type TimetableVersion,
+  versionOn,
+  type Weekday,
+  type WeekLabel,
+} from "@planner/domain";
+
+export interface BoardCell {
+  period: Period;
+  date: IsoDate;
+  kind: "lesson" | "duty" | "empty" | "no-school";
+  slot: Slot | null;
+  /** The group of a lesson, or the label of a duty. */
+  label: string | null;
+  /** The first half of a double: it is drawn joined to the next period. */
+  joinsNext: boolean;
+}
+export interface BoardDay {
+  date: IsoDate;
+  dayKind: DayKind;
+  /** Why a day is not a pupil day, or what the calendar says about it. */
+  text: string | null;
+  cells: BoardCell[];
+}
+export interface BoardWeek {
+  monday: IsoDate | null;
+  /** The label the fortnight gives the week (the first pupil day's). */
+  label: WeekLabel;
+  /** The distinct labels of the pupil days, in date order. */
+  labels: WeekLabel[];
+  days: BoardDay[];
+  shortWeek: boolean;
+  /** Its pupil days carry different labels (Monday Week 2, Wednesday Week 1). */
+  mixed: boolean;
+}
+
+const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];
+
+function dayOf(
+  date: IsoDate,
+  weekday: Weekday,
+  day: CalendarDay | undefined,
+  slotsOnDate: readonly Slot[],
+  timetables: readonly TimetableVersion[],
+): BoardDay {
+  const dayKind: DayKind = day?.kind ?? "outside-term";
+  const text = day?.text ?? null;
+  if (!day?.pupilDay || day.weekLabel === null)
+    return {
+      date,
+      dayKind,
+      text,
+      cells: PERIODS.map((period) => ({
+        period,
+        date,
+        kind: "no-school",
+        slot: null,
+        label: null,
+        joinsNext: false,
+      })),
+    };
+  const duties = versionOn(timetables, date)?.duties ?? [];
+  return {
+    date,
+    dayKind,
+    text,
+    cells: PERIODS.map((period): BoardCell => {
+      const slot = slotsOnDate.find((s) => s.period === period);
+      if (slot)
+        return {
+          period,
+          date,
+          kind: "lesson",
+          slot,
+          label: slot.groupId,
+          joinsNext: slot.doubleWith !== null && period % 2 === 1,
+        };
+      const duty = duties.find(
+        (d) =>
+          d.week === day.weekLabel &&
+          d.weekday === weekday &&
+          d.period === period,
+      );
+      return {
+        period,
+        date,
+        kind: duty ? "duty" : "empty",
+        slot: null,
+        label: duty?.label ?? null,
+        joinsNext: false,
+      };
+    }),
+  };
+}
+
+function weekOf(
+  monday: IsoDate | null,
+  label: WeekLabel,
+  days: readonly CalendarDay[],
+  slots: readonly Slot[],
+  timetables: readonly TimetableVersion[],
+): BoardWeek | null {
+  if (monday === null) return null;
+  const boardDays = ([1, 2, 3, 4, 5] as const).map((weekday) => {
+    const date = addDays(monday, weekday - 1);
+    return dayOf(
+      date,
+      weekday,
+      days.find((d) => d.date === date),
+      slots.filter((s) => s.date === date),
+      timetables,
+    );
+  });
+  const labels: WeekLabel[] = [];
+  let pupilDays = 0;
+  for (const b of boardDays) {
+    const day = days.find((d) => d.date === b.date);
+    if (!day?.pupilDay || day.weekLabel === null) continue;
+    pupilDays += 1;
+    if (!labels.includes(day.weekLabel)) labels.push(day.weekLabel);
+  }
+  return {
+    monday,
+    label,
+    labels,
+    days: boardDays,
+    shortWeek: pupilDays >= 1 && pupilDays <= 2,
+    mixed: labels.length > 1,
+  };
+}
+
+/**
+ * Both weeks of a fortnight laid out like her timetable. Lessons come from
+ * the slots; duties come from the timetable version in force on each date.
+ */
+export function boardFor(
+  fortnight: Fortnight,
+  days: readonly CalendarDay[],
+  slots: readonly Slot[],
+  timetables: readonly TimetableVersion[],
+): { w1: BoardWeek | null; w2: BoardWeek | null } {
+  return {
+    w1: weekOf(fortnight.w1, "W1", days, slots, timetables),
+    w2: weekOf(fortnight.w2, "W2", days, slots, timetables),
+  };
+}
+
+/** The fortnight holding the date, else the next one after it, else null. */
+export function fortnightContaining(
+  fortnights: readonly Fortnight[],
+  date: IsoDate,
+): Fortnight | null {
+  const startOf = (f: Fortnight) => f.w1 ?? f.w2 ?? "";
+  const endOf = (f: Fortnight) => addDays(f.w2 ?? f.w1 ?? "", 6);
+  return (
+    fortnights.find((f) => startOf(f) <= date && date <= endOf(f)) ??
+    fortnights.find((f) => startOf(f) > date) ??
+    null
+  );
+}

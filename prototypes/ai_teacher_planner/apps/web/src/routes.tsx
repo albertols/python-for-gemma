@@ -1,8 +1,8 @@
 import { Route, Routes } from "react-router";
 import { AppShell } from "./components/AppShell.tsx";
+import { BoardScreen } from "./screens/board/BoardScreen.tsx";
 import {
   AuditScreen,
-  BoardScreen,
   NotFoundScreen,
   TodayScreen,
 } from "./screens/screens.tsx";

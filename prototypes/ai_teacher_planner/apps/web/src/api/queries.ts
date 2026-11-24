@@ -21,6 +21,12 @@ export function useConfig() {
   });
 }
 
+/** What the board shows is built from these, so anything that changes the calendar or timetable refreshes them. */
+function invalidateBoard(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["fortnights"] });
+  void qc.invalidateQueries({ queryKey: ["board"] });
+}
+
 export type ImportSummary = NonNullable<
   InferResponseType<(typeof api.api.calendar.import)["$get"], 200>
 >;
@@ -48,6 +54,7 @@ export function useRunImport() {
     onSuccess: (summary) => {
       qc.setQueryData(["calendar-import"], summary);
       void qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateBoard(qc);
     },
   });
 }
@@ -88,7 +95,10 @@ export function useSaveTerms() {
   return useMutation({
     mutationFn: (terms: Term[]) =>
       call<Term[]>(() => api.api.terms.$put({ json: terms })),
-    onSuccess: (terms) => qc.setQueryData(["terms"], terms),
+    onSuccess: (terms) => {
+      qc.setQueryData(["terms"], terms);
+      invalidateBoard(qc);
+    },
   });
 }
 
@@ -118,6 +128,7 @@ export function useSaveTimetable() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["timetable"] });
       void qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateBoard(qc);
     },
   });
 }
@@ -132,6 +143,46 @@ export function useCreateTimetableVersion() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["timetable"] });
       void qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateBoard(qc);
     },
+  });
+}
+
+export type Fortnights = InferResponseType<typeof api.api.fortnights.$get, 200>;
+export type BoardDays = InferResponseType<
+  typeof api.api.calendar.days.$get,
+  200
+>;
+export type BoardSlots = InferResponseType<typeof api.api.slots.$get, 200>;
+
+export function useFortnights() {
+  return useQuery({
+    queryKey: ["fortnights"],
+    queryFn: () => call<Fortnights>(() => api.api.fortnights.$get()),
+  });
+}
+
+/** Only the dates of the fortnight on screen, not the whole year. */
+export function useBoardDays(from: string | null, to: string | null) {
+  return useQuery({
+    queryKey: ["board", "days", from, to],
+    enabled: from !== null && to !== null,
+    queryFn: () =>
+      call<BoardDays>(() =>
+        api.api.calendar.days.$get({
+          query: { from: from ?? "", to: to ?? "" },
+        }),
+      ),
+  });
+}
+
+export function useBoardSlots(from: string | null, to: string | null) {
+  return useQuery({
+    queryKey: ["board", "slots", from, to],
+    enabled: from !== null && to !== null,
+    queryFn: () =>
+      call<BoardSlots>(() =>
+        api.api.slots.$get({ query: { from: from ?? "", to: to ?? "" } }),
+      ),
   });
 }
