@@ -68,6 +68,21 @@ await browser.close();
 
 Pictures go in the scratchpad. Only at a milestone gate do they go in `docs/design/ai-teacher-planner/screens/mN-<screen>.png`, from synthetic data only.
 
+## Click through it in Chrome (Claude in Chrome)
+
+Alberto's standing rule: end-to-end work is validated with the Claude in Chrome extension (`mcp__claude-in-chrome__*` tools), in the real Chrome, not only with Playwright. Do it for every task that changes a screen, and at every milestone gate for each of the milestone's scenarios.
+
+1. Load the tools in one ToolSearch call: `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__find,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__read_console_messages,mcp__claude-in-chrome__browser_batch,mcp__claude-in-chrome__gif_creator,mcp__claude-in-chrome__tabs_close_mcp`.
+2. Start the throwaway instance above. Chrome runs outside the command sandbox and cannot reach a server the sandbox started, so start `pnpm start` with the sandbox disabled for that one command. Everything else about the instance stays the same: temp data, empty resources folder, port 4321.
+3. Call `tabs_context_mcp`, then work in a new tab of your own (`tabs_create_mcp`). Never touch Gemma's other tabs, and never open port 4319.
+4. Walk each scenario the way she would: click, type, use the keyboard path ("Move to…", Tab, Enter). Prefer `browser_batch` for runs of actions. Check what the screen says against the Gherkin's `Then` lines.
+5. `read_console_messages` with `onlyErrors: true` and the pattern `.` after each screen: any error fails the check.
+6. At a milestone gate, record the main journey with `gif_creator` (a frame before and after each action) and name it `mN-<journey>.gif`.
+7. Never trigger a browser `alert`, `confirm` or `prompt`: it freezes the extension. The planner must not use them; use an in-page dialog.
+8. Close your tab with `tabs_close_mcp`, then stop the server.
+
+If the extension is not connected, or the tab shows Chrome's error page for a server that `curl` reaches, stop after two tries. Say so plainly, and fall back to the headless pictures above. Never report a Chrome click-through that did not happen.
+
 ## Stop it
 
 Stop what you started: the task-stop tool for a background task, Ctrl+C in its terminal, or `kill <pid>` with the pid from `lsof -ti :4321`. Never kill a process on 4319 you did not start: it may be Gemma's own planner. `pkill` may be refused by the permission rules; do not work around a refusal. Then confirm the port is free: `lsof -i :4321`.
@@ -80,6 +95,7 @@ Only when a task asks for one. Use a temp `PLANNER_DATA_DIR`, the default resour
 
 - [ ] typecheck, lint, test, and e2e when web or e2e changed
 - [ ] looked at every touched screen as an image
+- [ ] clicked through every touched screen in Chrome with Claude in Chrome, with no console errors (or said plainly why it could not be done)
 - [ ] `sh docs/design/render.sh --check` from the repo root when modules, routes, the data model or the stack changed
 - [ ] every server you started is stopped
 - [ ] `git status` shows nothing under `data/` or `prototypes/resources/`

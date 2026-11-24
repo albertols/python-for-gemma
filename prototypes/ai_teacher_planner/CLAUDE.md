@@ -50,9 +50,10 @@ Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/
 - A change to modules, ports, routes, the data model, the AI flow or the stack updates its diagram in the same commit. Use the `architecture-visual-docs` skill for that; it lists which diagrams each kind of change touches.
 - When a teacher-side AI action has been done by hand more than twice, promote it to a skill in `.claude/skills/` with an output schema, and register it in `packages/ai`.
 - Before saying a change works, follow the `planner-run-and-verify` skill: throwaway synthetic data, look at every touched screen as an image, stop what you started.
+- Validate end to end in the real Chrome with the Claude in Chrome extension (`mcp__claude-in-chrome__*`): click through every touched screen and each milestone scenario. The steps and the sandbox caveat are in `planner-run-and-verify`.
 
 ## Definition of done
-Scenario written and passing; tests written first; type-check and lint clean; no real names or student data; AI output has provenance and a review step; diagrams updated; validated in Chrome and looked at as an image (screenshots are committed to `docs/design/ai-teacher-planner/screens/` at each milestone gate); Gemma has clicked through it.
+Scenario written and passing; tests written first; type-check and lint clean; no real names or student data; AI output has provenance and a review step; diagrams updated; clicked through in Chrome with Claude in Chrome and looked at as an image (screenshots are committed to `docs/design/ai-teacher-planner/screens/` at each milestone gate); Gemma has clicked through it.
 
 ## Headless Claude, as proven on 19 Nov 2026
 `claude -p "<prompt>" --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` unset. Never `--bare`: it ignores the subscription sign-in. See ADR-007.

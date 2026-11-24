@@ -800,3 +800,73 @@ Alberto approved the spec on 24 Nov 2026 and passed on Gemma's answers. These ar
 | 17 | You said 21 and 22 Dec will be lighter lessons. Should the planner mark the last days before a holiday? | The board marks a week of one or two teaching days as a "short week"; nothing is rescheduled |
 | 18 | Your calendar switches from Week 2 to Week 1 on Wednesday 5 May 2027, mid-week. Is that intended? | Yes; each day follows its own label and the board marks the week "Mixed week" |
 | 19 | The slot audit's totals count lessons that take place (including cover) and show cancelled ones as "lost". Is that the number you would check against your timetable? | Yes |
+
+Questions 15 to 19 were answered on 24 Nov 2026; see appendix E.
+
+## Appendix E: Gemma's answers and click-through after M1 (24 Nov 2026)
+
+Her words are in `prototypes/ai_teacher_planner/answers_after_M1.md`. Dates were checked against the real calendar (dates and labels only) and against Pearson's summer 2027 timetables.
+
+**Answers to questions 15 to 19**
+
+| # | Answer | What changes | Section |
+|---|---|---|---|
+| 15 | 4 Sep 2026 is the first day of lessons | Nothing: Term 1 already starts on 4 Sep | 9 |
+| 16 | It depends on the assessment. A 20-mark question took 30 minutes (37 with 25% extra time); a finance exam took 55 minutes (1 h 8 with extra time) | No fixed 30-minute line. Each assessment has a length and a "takes the whole lesson" choice, defaulted to yes when its length with 25% extra time is over half a 55-minute lesson. The planner warns when the length with extra time is longer than the lesson | 10.5 |
+| 17 | No short-week marker. The last day before a long holiday (half-term, winter, Easter) is usually slower and may be a half day; 22 Dec may be a half day | The board's "Short week" marker goes. The last teaching day before a break of a week or more is marked "Last day before the holiday". A calendar cell that says "half day" is flagged for her to confirm which periods are lost | 12, 10.1 |
+| 18 | The week of 3 May 2027 is Week 1. 3 May has no lessons, 4 May is a normal teaching day, 4 to 7 May is Week 1, the week of 10 May is Week 2 | She can correct a day's week label in Setup; her correction is kept across re-imports. The calendar labels 4 May Week 2, so she corrects it. With that, the week is no longer mixed. A week is "mixed" only when its teaching days disagree | 8, 10.1 |
+| 19 | Yes | None | 12 |
+
+**Other corrections to the calendar, from her Setup click-through**
+
+| Date | Her answer | Effect |
+|---|---|---|
+| 2027-03-19 (labelled W2, uncertain holiday text) | No lessons (staff training, or now an official holiday) | A whole-school "no lessons" day she confirms; its lessons show as lost with her reason |
+| 2027-05-03 | Holiday, no lessons | Already a labelled holiday |
+| 2027-05-04 | Normal teaching day, Week 1 | Her confirmation clears the "possible day off" warning; label corrected to Week 1 |
+| 2027-06-29 | Half day; no lessons | A whole-school "no lessons" day she confirms |
+| 2026-10-31 | A Saturday; its stray label means nothing | Not a warning |
+| July and August, and anything outside the school year | Not needed | Findings dated outside every term, or on a weekend, are folded into one collapsed "Outside the school year" line with a count |
+
+**Lessons that do not run** (she confirms each once in Setup; nothing cancels a lesson unconfirmed)
+
+| What | For | Dates |
+|---|---|---|
+| Study leave, Year 13 | 13 1, 13 3, 13 5 | Last lesson Fri 7 May 2027; study leave from Tue 11 May; they do not come back for lessons |
+| Study leave, Year 11 | 11D | Study leave from Wed 5 May 2027; last lesson 4 May (or 30 April; she confirms). They come back on 16 June but not to normal lessons |
+| Internal mocks | Year 11, Year 13 and Year 12 IB | January 2027, the dates the calendar gives; normal lessons resume after |
+| Extended Essay days | Year 12 IB | The dates the calendar gives |
+| Something the calendar does not have | Any group, any periods | Entered by her, for example school photos on 24 Nov 2026 that took 11D's period 3 |
+
+The last two teaching weeks before a group's study leave are "more or less" revision and exam practice. The sequencer keeps a revision block before the last lesson, two weeks by default and changeable per plan, and new content must fit before it.
+
+**Official exams** (public; from Pearson's final summer 2027 timetables)
+
+| Paper | Date | Groups |
+|---|---|---|
+| WBS14 01, IAL Business Unit 4: Global Business, morning, 2 h | Tue 1 Jun 2027 | 13 1, 13 3, 13 5 |
+| 4BS1 01, International GCSE Business Paper 1, afternoon, 1 h 30 | Wed 12 May 2027 | 11D |
+| 4BS1 02, International GCSE Business Paper 2, afternoon, 1 h 30 | Fri 21 May 2027 | 11D |
+
+Her note said "2st May" for Paper 2; the timetable says Friday 21 May.
+
+**IB Internal Assessment.** The IB groups spend lesson time on their Internal Assessment in Terms 2 and 3, following the task schedule in her `ibdp/IA` folder and the hours in the Business Management guide. This joins the IB plan (M4) as project items. The planner never opens the denied IA subfolders, which hold student work; she names the schedule file, or enters its milestones by hand, and the guide's hours come from the reviewed IB pack.
+
+**From her click-through**
+
+| Screen | She said | Where it goes |
+|---|---|---|
+| Today | "Coming up" is great. She wants room to plan each of the day's lessons and to attach documents and materials so they are ready, plus a to-do list beside the daily or weekly view, like sticky notes | To-do notes: M1b. Lesson notes and materials attach to the lesson, so they follow it when the plan changes: M2, once lessons exist |
+| Board | Likes the timetable colours. Wants to filter by class and to see one week at a time | Both in M1b |
+| Slot audit | Show the mocks, study leave and exam periods, and let her add other cancelled lessons | M1b brings forward from M3 the stored disruptions, the calendar events she confirms (without the AI suggestions) and a simple "Lessons were cancelled" form. M3 adds the plan preview on top |
+| Setup | The corrections above | M1b |
+
+**Calls made after her answers (for Alberto to check)**
+
+| Call | Why |
+|---|---|
+| A new milestone, M1b, comes before M2 | Sequencing in M2 would otherwise plan IAL lessons into study leave and the mocks. Disruptions were already in the slot engine; only storing and confirming them was left for M3 |
+| A confirmed calendar event can run "until" a date, and one wording can be confirmed differently on different dates | "Study leave starts" is written on one day but lasts to the end of the year, and the same wording may appear for two year groups |
+| Extended Essay wording is pre-sorted as "cancels" for Year 12; "half day" is pre-sorted as "not sure" and needs her to pick periods | Her answers say Year 12 IB are out of lessons on EE days, and that a half day's lost periods vary |
+| Uploaded lesson materials are stored in `data/`, never sent to a model, and limited to Office, PDF and image files | Teaching materials can hold student names; keeping them local and out of AI input keeps rule 5 |
+| Each to-do note's text stays local and is never sent to a model; the box says "No student names" | Rule 8 |
