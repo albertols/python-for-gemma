@@ -31,8 +31,6 @@ export interface BoardDay {
 }
 export interface BoardWeek {
   monday: IsoDate | null;
-  /** The label the fortnight gives the week (the first pupil day's). */
-  label: WeekLabel;
   /** The distinct labels of the pupil days, in date order. */
   labels: WeekLabel[];
   days: BoardDay[];
@@ -102,7 +100,6 @@ function dayOf(
 
 function weekOf(
   monday: IsoDate | null,
-  label: WeekLabel,
   days: readonly CalendarDay[],
   slots: readonly Slot[],
   timetables: readonly TimetableVersion[],
@@ -128,7 +125,6 @@ function weekOf(
   }
   return {
     monday,
-    label,
     labels,
     days: boardDays,
     shortWeek: pupilDays >= 1 && pupilDays <= 2,
@@ -147,8 +143,8 @@ export function boardFor(
   timetables: readonly TimetableVersion[],
 ): { w1: BoardWeek | null; w2: BoardWeek | null } {
   return {
-    w1: weekOf(fortnight.w1, "W1", days, slots, timetables),
-    w2: weekOf(fortnight.w2, "W2", days, slots, timetables),
+    w1: weekOf(fortnight.w1, days, slots, timetables),
+    w2: weekOf(fortnight.w2, days, slots, timetables),
   };
 }
 

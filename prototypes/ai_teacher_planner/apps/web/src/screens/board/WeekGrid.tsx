@@ -52,7 +52,8 @@ export function WeekGrid({
       </thead>
       <tbody>
         {PERIODS.map((period) => (
-          <tr key={period}>
+          // A fixed height keeps every row, and so both weeks, level; a double spans two.
+          <tr key={period} className="h-16">
             <th
               scope="row"
               className="border border-border bg-card px-1 text-left text-xs font-normal"
@@ -68,6 +69,8 @@ export function WeekGrid({
               if (above?.joinsNext) return null;
               const cell = day.cells[period - 1];
               if (!cell) return null;
+              // A day without pupils is one cell spanning P1 to P6.
+              if (cell.kind === "no-school" && period > 1) return null;
               return (
                 <SlotCell
                   key={day.date}

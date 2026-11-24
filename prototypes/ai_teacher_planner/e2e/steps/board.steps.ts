@@ -123,3 +123,29 @@ Then("each group has its Week 1 lessons", async ({ page, request }) => {
         .reduce((n, [, span]) => n + Number(span), 0),
     ).toBe(count);
 });
+
+Then("both week tables cover five days in every row", async ({ page }) => {
+  for (const n of [1, 2] as const) {
+    // For each body row: cells starting there plus cells reaching down from above.
+    const rows = await week(page, n)
+      .locator("tbody tr")
+      .evaluateAll((trs) => {
+        const reach: number[] = [];
+        return trs.map((tr, r) => {
+          let covered = reach[r] ?? 0;
+          for (const td of Array.from(tr.querySelectorAll("td"))) {
+            covered += 1;
+            const span = (td as HTMLTableCellElement).rowSpan;
+            for (let k = 1; k < span; k++)
+              reach[r + k] = (reach[r + k] ?? 0) + 1;
+          }
+          return covered;
+        });
+      });
+    expect(rows).toEqual([5, 5, 5, 5, 5, 5]);
+  }
+});
+
+Then("there is a cell named {string}", async ({ page }, name: string) => {
+  await expect(page.getByRole("cell", { name, exact: true })).toBeVisible();
+});
