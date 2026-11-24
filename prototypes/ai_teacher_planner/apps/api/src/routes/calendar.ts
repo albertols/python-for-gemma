@@ -104,47 +104,45 @@ export function calendarRoutes(deps: {
   now: () => Date;
 }) {
   const { repos, gateway, now } = deps;
-  const app = createRouter();
-
-  app.openapi(postImport, async (c) =>
-    c.json(await importCalendar({ gateway, repos, now }), 200),
-  );
-  app.openapi(getImport, (c) => c.json(importSummary(repos), 200));
-  app.openapi(getDays, (c) => {
-    const { from, to } = c.req.valid("query");
-    const days = loadPlanning(repos).days.filter(
-      (d) =>
-        (from === undefined || d.date >= from) &&
-        (to === undefined || d.date <= to),
-    );
-    return c.json(days, 200);
-  });
-  app.openapi(getTerms, (c) => c.json(repos.settings.terms(), 200));
-  app.openapi(putTerms, (c) => {
-    const terms = [...c.req.valid("json")].sort(byFirstDay);
-    const problems: string[] = [];
-    const ids = new Set(terms.map((t) => t.id));
-    if (terms.length !== 3 || ids.size !== 3)
-      problems.push("There must be exactly three terms: T1, T2 and T3.");
-    for (const t of terms)
-      if (t.firstPupilDay > t.lastPupilDay)
-        problems.push(
-          `${t.id} starts on ${t.firstPupilDay}, after it ends on ${t.lastPupilDay}.`,
-        );
-    terms.forEach((t, i) => {
-      const next = terms[i + 1];
-      if (next && t.lastPupilDay >= next.firstPupilDay)
-        problems.push(`${t.id} and ${next.id} overlap.`);
-    });
-    if (problems.length > 0)
-      throw new ApiError(
-        422,
-        "invalid-terms",
-        "These terms cannot be saved. Nothing was changed.",
-        problems.sort(),
+  return createRouter()
+    .openapi(postImport, async (c) =>
+      c.json(await importCalendar({ gateway, repos, now }), 200),
+    )
+    .openapi(getImport, (c) => c.json(importSummary(repos), 200))
+    .openapi(getDays, (c) => {
+      const { from, to } = c.req.valid("query");
+      const days = loadPlanning(repos).days.filter(
+        (d) =>
+          (from === undefined || d.date >= from) &&
+          (to === undefined || d.date <= to),
       );
-    repos.settings.saveTerms(terms);
-    return c.json(repos.settings.terms(), 200);
-  });
-  return app;
+      return c.json(days, 200);
+    })
+    .openapi(getTerms, (c) => c.json(repos.settings.terms(), 200))
+    .openapi(putTerms, (c) => {
+      const terms = [...c.req.valid("json")].sort(byFirstDay);
+      const problems: string[] = [];
+      const ids = new Set(terms.map((t) => t.id));
+      if (terms.length !== 3 || ids.size !== 3)
+        problems.push("There must be exactly three terms: T1, T2 and T3.");
+      for (const t of terms)
+        if (t.firstPupilDay > t.lastPupilDay)
+          problems.push(
+            `${t.id} starts on ${t.firstPupilDay}, after it ends on ${t.lastPupilDay}.`,
+          );
+      terms.forEach((t, i) => {
+        const next = terms[i + 1];
+        if (next && t.lastPupilDay >= next.firstPupilDay)
+          problems.push(`${t.id} and ${next.id} overlap.`);
+      });
+      if (problems.length > 0)
+        throw new ApiError(
+          422,
+          "invalid-terms",
+          "These terms cannot be saved. Nothing was changed.",
+          problems.sort(),
+        );
+      repos.settings.saveTerms(terms);
+      return c.json(repos.settings.terms(), 200);
+    });
 }

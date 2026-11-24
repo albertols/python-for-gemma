@@ -41,9 +41,7 @@ export function todayRoutes(deps: {
   repos: Repos;
   now: () => Date;
 }) {
-  const app = createRouter();
-  app.openapi(getToday, (c) =>
+  return createRouter().openapi(getToday, (c) =>
     c.json(todayView(deps.repos, todayOf(deps.config, deps.now())), 200),
   );
-  return app;
 }

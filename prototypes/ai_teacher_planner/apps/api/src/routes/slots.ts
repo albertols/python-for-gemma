@@ -75,33 +75,31 @@ const getAudit = createRoute({
 
 export function slotRoutes(deps: { repos: Repos }) {
   const { repos } = deps;
-  const app = createRouter();
-
-  app.openapi(getSlots, (c) => {
-    const { from, to, groupId } = c.req.valid("query");
-    const slots = loadPlanning(repos).slots.filter(
-      (s) =>
-        (from === undefined || s.date >= from) &&
-        (to === undefined || s.date <= to) &&
-        (groupId === undefined || s.groupId === groupId),
-    );
-    return c.json(slots, 200);
-  });
-  app.openapi(getFortnights, (c) =>
-    c.json(fortnights(loadPlanning(repos).days), 200),
-  );
-  app.openapi(getAudit, (c) => {
-    const { days, terms, slots, timetables, groups } = loadPlanning(repos);
-    return c.json(
-      auditSlots({
-        slots,
-        days,
-        blocks: teachingBlocks(days, terms),
-        timetables,
-        groups,
-      }),
-      200,
-    );
-  });
-  return app;
+  return createRouter()
+    .openapi(getSlots, (c) => {
+      const { from, to, groupId } = c.req.valid("query");
+      const slots = loadPlanning(repos).slots.filter(
+        (s) =>
+          (from === undefined || s.date >= from) &&
+          (to === undefined || s.date <= to) &&
+          (groupId === undefined || s.groupId === groupId),
+      );
+      return c.json(slots, 200);
+    })
+    .openapi(getFortnights, (c) =>
+      c.json(fortnights(loadPlanning(repos).days), 200),
+    )
+    .openapi(getAudit, (c) => {
+      const { days, terms, slots, timetables, groups } = loadPlanning(repos);
+      return c.json(
+        auditSlots({
+          slots,
+          days,
+          blocks: teachingBlocks(days, terms),
+          timetables,
+          groups,
+        }),
+        200,
+      );
+    });
 }

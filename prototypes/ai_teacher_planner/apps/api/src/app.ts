@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import type { Config } from "./config.ts";
@@ -8,6 +11,7 @@ import { createRepos } from "./repos/sqlite/index.ts";
 import { calendarRoutes } from "./routes/calendar.ts";
 import { createRouter } from "./routes/router.ts";
 import { slotRoutes } from "./routes/slots.ts";
+import { testRoutes } from "./routes/test-reset.ts";
 import { timetableRoutes } from "./routes/timetable.ts";
 import { todayRoutes } from "./routes/today.ts";
 import { todayOf } from "./today.ts";
@@ -18,6 +22,8 @@ export interface AppDeps {
   db: Database;
   now: () => Date;
   gateway: ResourceGateway;
+  /** The built web app. When set, it is served, with index.html for any page address. */
+  webDir?: string;
 }
 
 const health = createRoute({
@@ -58,38 +64,52 @@ const configRoute = createRoute({
 });
 
 export function createApp(deps: AppDeps) {
-  const { config, now, db, gateway } = deps;
+  const { config, now, db, gateway, webDir } = deps;
   const repos = createRepos(db);
   firstRun(repos);
-  const app = createRouter();
-
-  app.openapi(health, (c) => c.json({ ok: true as const }, 200));
-
-  app.openapi(configRoute, (c) =>
-    c.json(
-      {
-        today: todayOf(config, now()),
-        timeZone: config.timeZone,
-        // Until Task 2.9 the AI is not built, unless it is switched off on purpose.
-        ai: {
-          mode: config.ai,
-          available: false,
-          reason: config.ai === "off" ? null : "not built yet",
+  const app = createRouter()
+    .openapi(health, (c) => c.json({ ok: true as const }, 200))
+    .openapi(configRoute, (c) =>
+      c.json(
+        {
+          today: todayOf(config, now()),
+          timeZone: config.timeZone,
+          // Until Task 2.9 the AI is not built, unless it is switched off on purpose.
+          ai: {
+            mode: config.ai,
+            available: false,
+            reason: config.ai === "off" ? null : "not built yet",
+          },
         },
-      },
-      200,
-    ),
-  );
+        200,
+      ),
+    )
+    .route("/", calendarRoutes({ config, repos, gateway, now }))
+    .route("/", timetableRoutes({ repos }))
+    .route("/", slotRoutes({ repos }))
+    .route("/", todayRoutes({ config, repos, now }));
 
-  app.route("/", calendarRoutes({ config, repos, gateway, now }));
-  app.route("/", timetableRoutes({ repos }));
-  app.route("/", slotRoutes({ repos }));
-  app.route("/", todayRoutes({ config, repos, now }));
+  if (config.testRoutes) app.route("/", testRoutes({ db, repos, now }));
 
   app.doc("/openapi.json", {
     openapi: "3.1.0",
     info: { title: "AI Teacher Planner", version: "0.0.0" },
   });
+
+  if (webDir) {
+    const indexHtml = path.join(webDir, "index.html");
+    const files = serveStatic({ root: webDir });
+    app.use("*", async (c, next) => {
+      // /api/* never falls through to the web page: its 404s stay JSON.
+      if (c.req.path.startsWith("/api/")) return next();
+      return files(c, next);
+    });
+    app.get("*", async (c, next) => {
+      if (c.req.path.startsWith("/api/") || !fs.existsSync(indexHtml))
+        return next();
+      return c.html(fs.readFileSync(indexHtml, "utf8"));
+    });
+  }
 
   app.notFound((c) =>
     c.json(

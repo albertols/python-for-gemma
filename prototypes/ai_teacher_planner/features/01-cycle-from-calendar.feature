@@ -1,7 +1,7 @@
 @engine
 Feature: The cycle comes from the calendar
 
-  @e2e
+  @e2e @e2e-later
   Scenario: The cycle comes from the calendar
     Given 12 Feb 2027 is labelled Week 2 and 15 to 19 Feb are school holidays
     When I open the week of 22 Feb

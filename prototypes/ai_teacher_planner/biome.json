@@ -8,6 +8,10 @@
       "!**/*.md",
       "!**/coverage",
       "!data",
+      "!**/dist",
+      "!**/.features-gen",
+      "!**/test-results",
+      "!**/playwright-report",
       "!src",
       "!tests",
       "!mock_data"
@@ -15,6 +19,7 @@
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },
   "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "css": { "parser": { "tailwindDirectives": true } },
   "javascript": { "formatter": { "quoteStyle": "double" } },
   "assist": {
     "enabled": true,

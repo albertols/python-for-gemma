@@ -9,6 +9,8 @@ export interface Config {
   ai: "claude" | "fake" | "off";
   fixedToday: IsoDate | null;
   timeZone: string;
+  /** Adds POST /api/test/reset. Only the browser tests set it. */
+  testRoutes: boolean;
 }
 
 const APP_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -45,6 +47,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     host: "127.0.0.1",
     ai: ai as Config["ai"],
     fixedToday: fixed ?? null,
+    testRoutes: env.PLANNER_TEST_ROUTES === "1",
     timeZone: checkedTimeZone(
       env.PLANNER_TIME_ZONE ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     ),

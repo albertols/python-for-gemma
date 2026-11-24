@@ -70,61 +70,59 @@ const postVersion = createRoute({
 
 export function timetableRoutes(deps: { repos: Repos }) {
   const { repos } = deps;
-  const app = createRouter();
-
-  app.openapi(getTimetable, (c) =>
-    c.json(
-      {
-        versions: repos.timetable.versions(),
-        groups: repos.timetable.groups(),
-      },
-      200,
-    ),
+  return (
+    createRouter()
+      .openapi(getTimetable, (c) =>
+        c.json(
+          {
+            versions: repos.timetable.versions(),
+            groups: repos.timetable.groups(),
+          },
+          200,
+        ),
+      )
+      // POST and PUT never share a path, so the order of these two does not matter.
+      .openapi(postVersion, (c) => {
+        const { validFrom, copyOf } = c.req.valid("json");
+        const versions = repos.timetable.versions();
+        const source = versions.find((v) => v.id === copyOf);
+        if (!source)
+          throw new ApiError(
+            404,
+            "no-such-version",
+            `There is no timetable version "${copyOf}" to copy.`,
+          );
+        if (versions.some((v) => v.validFrom === validFrom))
+          throw new ApiError(
+            422,
+            "version-date-taken",
+            `A timetable version already starts on ${validFrom}. Choose another date.`,
+          );
+        const created = { ...source, id: `from-${validFrom}`, validFrom };
+        repos.timetable.saveVersion(created);
+        return c.json(created, 201);
+      })
+      .openapi(putVersion, (c) => {
+        const { id } = c.req.valid("param");
+        const body = c.req.valid("json");
+        const current = repos.timetable.versions().find((v) => v.id === id);
+        if (!current)
+          throw new ApiError(
+            404,
+            "no-such-version",
+            `There is no timetable version "${id}".`,
+          );
+        const next = { ...current, entries: body.entries, duties: body.duties };
+        const problems = validateTimetable(next, repos.timetable.groups());
+        if (problems.length > 0)
+          throw new ApiError(
+            422,
+            "invalid-timetable",
+            "This timetable has problems. Nothing was saved.",
+            problems,
+          );
+        repos.timetable.saveVersion(next);
+        return c.json(next, 200);
+      })
   );
-
-  // POST and PUT never share a path, so the order of these two does not matter.
-  app.openapi(postVersion, (c) => {
-    const { validFrom, copyOf } = c.req.valid("json");
-    const versions = repos.timetable.versions();
-    const source = versions.find((v) => v.id === copyOf);
-    if (!source)
-      throw new ApiError(
-        404,
-        "no-such-version",
-        `There is no timetable version "${copyOf}" to copy.`,
-      );
-    if (versions.some((v) => v.validFrom === validFrom))
-      throw new ApiError(
-        422,
-        "version-date-taken",
-        `A timetable version already starts on ${validFrom}. Choose another date.`,
-      );
-    const created = { ...source, id: `from-${validFrom}`, validFrom };
-    repos.timetable.saveVersion(created);
-    return c.json(created, 201);
-  });
-
-  app.openapi(putVersion, (c) => {
-    const { id } = c.req.valid("param");
-    const body = c.req.valid("json");
-    const current = repos.timetable.versions().find((v) => v.id === id);
-    if (!current)
-      throw new ApiError(
-        404,
-        "no-such-version",
-        `There is no timetable version "${id}".`,
-      );
-    const next = { ...current, entries: body.entries, duties: body.duties };
-    const problems = validateTimetable(next, repos.timetable.groups());
-    if (problems.length > 0)
-      throw new ApiError(
-        422,
-        "invalid-timetable",
-        "This timetable has problems. Nothing was saved.",
-        problems,
-      );
-    repos.timetable.saveVersion(next);
-    return c.json(next, 200);
-  });
-  return app;
 }

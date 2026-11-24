@@ -51,6 +51,7 @@ try {
         db,
         now,
         gateway: createResourceGateway(config.resourcesDir),
+        webDir: path.resolve(import.meta.dirname, "../../web/dist"),
       }).fetch,
       port: config.port,
       hostname: config.host,

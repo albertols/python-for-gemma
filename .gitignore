@@ -44,3 +44,7 @@ blob-report/
 # AI Teacher Planner local data: database, backups, curriculum packs
 # built from copyrighted specs, uploads, AI run cache
 prototypes/ai_teacher_planner/data/
+
+# Browser tests
+e2e/.features-gen/
+test-results/
