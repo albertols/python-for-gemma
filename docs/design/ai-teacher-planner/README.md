@@ -31,21 +31,21 @@ Look for the two things that import the engine (the web app and the API) and the
 
 ## 3. Backend components
 
-Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge.
+Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) all live in the same routes, use cases and repository box.
 
-![Backend components: HTTP routes, use cases, job queue, engine, driven adapters, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
+![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos), use cases, job queue, engine, driven adapters with migrations 0001-0007, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
 
 ## 4. Frontend components
 
 Look for the five shared pieces every screen reuses; the purple ones are where AI shows up in the GUI.
 
-![Frontend components: ten screens, five shared pieces, and the API and engine they talk to](04-frontend-components.svg)
+![Frontend components: ten screens (board with class filter and week view, audit with official exams, Setup with events and exams), five shared pieces, and the API and engine they talk to](04-frontend-components.svg)
 
 ## 5. Domain model
 
-Look for the colour split: green is stored, blue is worked out by the engine each time and never stored.
+Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import.
 
-![Domain model: calendar and timetable, course pack, her decisions, derived slots, lessons and placements, plan revisions, provenance](05-domain-model.svg)
+![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), derived slots, lessons and placements, plan revisions, provenance](05-domain-model.svg)
 
 ## 6. Scheduling pipeline
 
@@ -102,3 +102,12 @@ Milestone M1 (calendar, timetable, slots, Setup, board, Today, slot audit):
 | Board: one fortnight, Week 1 beside Week 2 | ![Board](screens/m1-board.png) |
 | Today: the day's lessons and what is coming up | ![Today](screens/m1-today.png) |
 | Slot audit: lessons per teaching block and group, days off | ![Slot audit](screens/m1-audit.png) |
+
+Milestone M1b (her corrections, cancelled lessons, calendar events, exams, board filter and week view, to-do notes):
+
+| Screen | Screenshot |
+|---|---|
+| Setup: calendar events she confirms, with possible-disruption markers | ![Setup events](screens/m1b-setup.png) |
+| Slot audit: lessons that will not run, last lessons and official exams | ![Audit](screens/m1b-audit.png) |
+| Board: one week, with the class filter | ![Board week](screens/m1b-board-week.png) |
+| Today in the dark theme, with to-do notes | ![Today](screens/m1b-today.png) |

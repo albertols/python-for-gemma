@@ -379,6 +379,17 @@ The engine functions added in M3 to M6 are defined in the task that introduces e
 | 15 | Report reminder | `15-report-reminder` | Task 1.5 | Task 1.12 |
 | 16 | Re-import | `16-reimport` | Task 3.6 | Task 3.8 |
 
+M1b feature files (`features/m1b-*.feature`, each also run in the browser by `pnpm e2e`, with axe checks in both themes):
+
+| Feature file | What it proves |
+|---|---|
+| `m1b-cancelled` | "Lessons were cancelled": photo day takes one lesson, removing it puts the lesson back, an empty range is refused, typed text is shown as text |
+| `m1b-corrections` | Her corrections: day off confirmed from the import report, undo, week label corrected, notes outside the year folded away |
+| `m1b-events` | Calendar events: nothing is cancelled until she confirms, the Year 13 mock week, study leave lasting to the end of the year, undo |
+| `m1b-exams-audit` | The audit groups lost lessons by reason, lists last lessons and official exams, study leave moves the last lesson; Setup lists, adds and removes exams |
+| `m1b-board` | Board class filter, one-week view, the last day before the holiday marked on the board and on Today |
+| `m1b-todos` | To-do notes on Today: for today or the week, undone notes carry over, removal, typed text never run |
+
 Write each feature file with the wording of spec section 17, in the task that first needs it.
 
 ## Go-live data

@@ -2,7 +2,7 @@
 
 A local web app that turns Gemma's syllabus, scheme of work, school calendar and two-week timetable into a dated lesson plan for each group. Fixed rules do the dates; Claude helps with judgement calls and is labelled wherever it does.
 
-**Status:** M1 built (calendar, timetable, slots, Setup, board, Today, slot audit); M2 next.
+**Status:** M1 built (calendar, timetable, slots, Setup, board, Today, slot audit). M1b built (her corrections: day labels, import report, cancelled lessons, calendar events she confirms, official exams, board class filter and week view, to-do notes); M2 next.
 
 ## Read first
 - Spec: `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md` (appendix D lists what changed after approval)

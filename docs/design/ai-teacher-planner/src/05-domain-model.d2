@@ -34,6 +34,8 @@ decisions: "Her decisions and recorded facts (stored rows)" {
   item: "SowItem\norder, kind, lessons, prereqs" {class: win}
   assessment: "Assessment\ndate, type, status" {class: win}
   pin: "Pin\nlesson, slot or not-after" {class: win}
+  labelfix: "LabelCorrection and\nFindingResolution\nher day label, her import decision" {class: win}
+  exam: "ExternalExam\ncode, date, session, groups" {class: win}
   disruption: "Disruption\nscope, dates, effect, reason" {class: win}
   eventconfirm: "EventClassification\nwording, year, dates, groups,\nperiods, until" {class: win}
   todo: "TodoNote\ntext, day or week, date, done" {class: win}
@@ -54,6 +56,7 @@ revision: "PlanRevision\nimmutable snapshot,\npoints to its parent" {
 provenance: "Provenance\norigin, AI details, review state" {class: ai}
 
 setup.day -> derived.slot: "label and date" {class: flow}
+decisions.labelfix -> setup.day: "overrides the label,\nnever lost on re-import" {class: flow}
 setup.timetable -> derived.slot: "periods" {class: flow}
 setup.grp -> pack.course: "follows" {class: flow}
 decisions.disruption -> derived.slot: "cancels or covers" {class: flow}
