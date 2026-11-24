@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { serve } from "@hono/node-server";
+import { TEACHER_PRINCIPAL } from "@planner/domain";
 import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import {
@@ -50,6 +51,7 @@ try {
         config,
         db,
         now,
+        principal: TEACHER_PRINCIPAL,
         gateway: createResourceGateway(config.resourcesDir),
         webDir: path.resolve(import.meta.dirname, "../../web/dist"),
       }).fetch,

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { TEACHER_PRINCIPAL } from "@planner/domain";
 import { afterAll, expect, test } from "vitest";
 import { createApp } from "./app.ts";
 import { E2E_MARKER, loadConfig } from "./config.ts";
@@ -27,6 +28,7 @@ const build = (over: Parameters<typeof loadConfig>[0] = {}, web?: string) =>
     db: migratedDb(),
     now: () => new Date("2026-11-24T10:00:00Z"),
     gateway: fakeGateway({}),
+    principal: TEACHER_PRINCIPAL,
     ...(web ? { webDir: web } : {}),
   });
 

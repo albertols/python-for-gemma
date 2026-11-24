@@ -2,6 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { validateTimetable } from "@planner/domain";
 import { ApiError } from "../errors.ts";
 import type { Repos } from "../repos/ports.ts";
+import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
 import {
   dutyEntry,
@@ -34,6 +35,7 @@ const getTimetable = createRoute({
 const putVersion = createRoute({
   method: "put",
   path: "/api/timetable/{id}",
+  ...guard("lesson-plans", "edit"),
   request: {
     params: z.object({ id: z.string() }),
     body: {
@@ -55,6 +57,7 @@ const putVersion = createRoute({
 const postVersion = createRoute({
   method: "post",
   path: "/api/timetable/versions",
+  ...guard("lesson-plans", "edit"),
   request: {
     body: {
       content: json(z.object({ validFrom: isoDate, copyOf: z.string() })),

@@ -5,6 +5,7 @@ import type { ResourceGateway } from "../gateway/resource-gateway.ts";
 import type { Repos } from "../repos/ports.ts";
 import { importCalendar, importSummary } from "../usecases/import-calendar.ts";
 import { loadPlanning } from "../usecases/planning.ts";
+import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
 import {
   calendarDay,
@@ -43,6 +44,7 @@ const json = <T extends z.ZodType>(schema: T) => ({
 const postImport = createRoute({
   method: "post",
   path: "/api/calendar/import",
+  ...guard("report-calendar", "edit"),
   responses: {
     200: { description: "What the import found", content: json(summary) },
     422: errorResponse("No workbook, or more than one"),
@@ -79,6 +81,7 @@ const getTerms = createRoute({
 const putTerms = createRoute({
   method: "put",
   path: "/api/terms",
+  ...guard("lesson-plans", "edit"),
   request: {
     body: { content: json(z.array(term)), required: true },
   },
@@ -91,6 +94,7 @@ const putTerms = createRoute({
 const putWindowDate = createRoute({
   method: "put",
   path: "/api/reports/windows/{id}/date",
+  ...guard("report-calendar", "edit"),
   request: {
     params: z.object({ id: z.string() }),
     body: {
@@ -112,6 +116,7 @@ const putWindowDate = createRoute({
 const putEveningDate = createRoute({
   method: "put",
   path: "/api/reports/evenings/{id}/date",
+  ...guard("report-calendar", "edit"),
   request: {
     params: z.object({ id: z.string() }),
     body: { content: json(z.object({ date: isoDate })), required: true },

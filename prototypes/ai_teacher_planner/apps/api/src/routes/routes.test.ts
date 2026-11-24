@@ -1,3 +1,4 @@
+import { TEACHER_PRINCIPAL } from "@planner/domain";
 import { buildSyntheticWorkbook } from "@planner/fixtures";
 import { expect, test } from "vitest";
 import { createApp } from "../app.ts";
@@ -70,6 +71,7 @@ test("importing again replaces the calendar, report windows and parents' evening
     db,
     now: () => new Date("2026-11-24T10:00:00Z"),
     gateway: fakeGateway(files),
+    principal: TEACHER_PRINCIPAL,
   });
   const count = (table: string) =>
     (db.prepare(`select count(*) as n from ${table}`).get() as { n: number }).n;

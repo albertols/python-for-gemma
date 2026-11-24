@@ -1,3 +1,4 @@
+import { TEACHER_PRINCIPAL } from "@planner/domain";
 import { expect, test } from "vitest";
 import { createApp } from "./app.ts";
 import type { Config } from "./config.ts";
@@ -9,6 +10,7 @@ const build = (over: Partial<Config> = {}, now = "2026-11-24T10:00:00Z") =>
     db: migratedDb(),
     now: () => new Date(now),
     gateway: fakeGateway({}),
+    principal: TEACHER_PRINCIPAL,
   });
 
 test("health", async () =>

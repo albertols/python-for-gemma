@@ -9,6 +9,7 @@ import { ApiError } from "./errors.ts";
 import type { ResourceGateway } from "./gateway/resource-gateway.ts";
 import { createRepos } from "./repos/sqlite/index.ts";
 import { calendarRoutes } from "./routes/calendar.ts";
+import type { Principal } from "./routes/require-access.ts";
 import { createRouter } from "./routes/router.ts";
 import { slotRoutes } from "./routes/slots.ts";
 import { testRoutes } from "./routes/test-reset.ts";
@@ -22,6 +23,8 @@ export interface AppDeps {
   db: Database;
   now: () => Date;
   gateway: ResourceGateway;
+  /** Who is asking. v1 always passes TEACHER_PRINCIPAL. */
+  principal: Principal;
   /** The built web app. When set, it is served, with index.html for any page address. */
   webDir?: string;
 }
@@ -67,7 +70,13 @@ export function createApp(deps: AppDeps) {
   const { config, now, db, gateway, webDir } = deps;
   const repos = createRepos(db);
   firstRun(repos);
-  const app = createRouter()
+  const base = createRouter();
+  // Hono runs middleware in registration order, so this goes before every route.
+  base.use("*", async (c, next) => {
+    c.set("principal" as never, deps.principal as never);
+    await next();
+  });
+  const app = base
     .openapi(health, (c) => c.json({ ok: true as const }, 200))
     .openapi(configRoute, (c) =>
       c.json(

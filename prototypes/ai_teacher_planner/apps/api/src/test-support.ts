@@ -1,4 +1,5 @@
 import path from "node:path";
+import { TEACHER_PRINCIPAL } from "@planner/domain";
 import { buildSyntheticWorkbook } from "@planner/fixtures";
 import { createApp } from "./app.ts";
 import type { Config } from "./config.ts";
@@ -9,6 +10,7 @@ import {
   ResourceDenied,
   type ResourceGateway,
 } from "./gateway/resource-gateway.ts";
+import type { Principal } from "./routes/require-access.ts";
 
 export const testConfig: Config = loadConfig({
   PLANNER_DATA_DIR: "/unused",
@@ -60,11 +62,13 @@ export async function buildTestApp(
   over: Partial<Config> = {},
   gateway?: ResourceGateway,
   now = "2026-11-24T10:00:00Z",
+  principal: Principal = TEACHER_PRINCIPAL,
 ) {
   return createApp({
     config: { ...testConfig, ...over },
     db: migratedDb(),
     now: () => new Date(now),
     gateway: gateway ?? (await syntheticGateway()),
+    principal,
   });
 }
