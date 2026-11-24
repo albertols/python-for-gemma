@@ -23,7 +23,21 @@ Feature: Lessons were cancelled
     When I open the cancel dialog
     Then the page has no serious accessibility violations
 
+  Scenario: The dialog is accessible in the light theme
+    When I open the app
+    And I switch to the light theme and reload
+    And I open the cancel dialog
+    Then the theme is light
+    And the page has no serious accessibility violations
+
   Scenario: Setup with a cancellation is accessible
     Given I have recorded that 11D's period 3 on 24 November 2026 was cancelled for "School photos"
     When I open Setup
     Then the page has no serious accessibility violations
+
+  Scenario: Setup with a cancellation is accessible in the light theme
+    Given I have recorded that 11D's period 3 on 24 November 2026 was cancelled for "School photos"
+    When I open Setup
+    And I switch to the light theme and reload
+    Then the theme is light
+    And the page has no serious accessibility violations

@@ -63,21 +63,20 @@ function CancelForm({
     to,
     periods: allDay
       ? null
-      : (periods.slice().sort() as DisruptionBody["periods"]),
+      : (periods.slice().sort((a, b) => a - b) as DisruptionBody["periods"]),
     reason: withReason,
   });
   // The reason is left out so the list does not reload on every key she types.
   const preview = useDisruptionPreview(ready ? body("") : null);
   const hits = preview.data;
   const reasonMissing = reason.trim() === "";
+  const nothingToCancel = !hits || hits.length === 0;
 
   const submit = () => {
-    create.mutate(body(reason), {
-      onSuccess: (rows) => {
-        // One lesson can sit in several rows; the preview already counted it once.
-        onDone(hits?.length ?? rows.length);
-      },
-    });
+    // The button is only enabled once the preview has answered, and the save uses
+    // the same function, so these are the lessons the save cancels (not the row count).
+    const lessons = hits?.length ?? 0;
+    create.mutate(body(reason), { onSuccess: () => onDone(lessons) });
   };
   const change =
     <T,>(set: (v: T) => void) =>
@@ -90,7 +89,7 @@ function CancelForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (!reasonMissing) submit();
+        if (!reasonMissing && !nothingToCancel) submit();
       }}
       className="space-y-4"
     >
@@ -273,7 +272,9 @@ function CancelForm({
         <Button
           type="submit"
           variant="primary"
-          disabled={!ready || reasonMissing || create.isPending}
+          disabled={
+            !ready || reasonMissing || nothingToCancel || create.isPending
+          }
         >
           Cancel these lessons
         </Button>

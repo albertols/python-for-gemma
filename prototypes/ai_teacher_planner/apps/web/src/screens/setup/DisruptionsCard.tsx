@@ -36,6 +36,7 @@ function who(rows: Disruption[]): string {
     case "group":
       return rows
         .map((r) => (r.scope.kind === "group" ? r.scope.groupId : ""))
+        .sort()
         .join(", ");
   }
 }

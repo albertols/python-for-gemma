@@ -236,3 +236,15 @@ test("importing the calendar again keeps what she cancelled", async () => {
   );
   expect(slot.status).toBe("cancelled");
 });
+
+test("periods are stored in numeric order", async () => {
+  const app = await imported();
+  const res = await send(app, "POST", "/api/disruptions", {
+    scope: "school",
+    from: "2026-11-24",
+    to: "2026-11-24",
+    periods: [6, 2, 3],
+    reason: "Assembly",
+  });
+  expect(res.body[0].periods).toEqual([2, 3, 6]);
+});

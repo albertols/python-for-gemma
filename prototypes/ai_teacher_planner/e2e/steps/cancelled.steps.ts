@@ -113,16 +113,17 @@ When(
     await setDates(page, isoOf(d, month, y));
     await dialog(page).getByLabel("Reason").fill(reason);
     await expect(dialog(page)).toContainText("No lessons fall in these dates");
-    await dialog(page)
-      .getByRole("button", { name: "Cancel these lessons" })
-      .click();
+    // With no lesson to cancel the button is off, so nothing can be sent.
+    await expect(
+      dialog(page).getByRole("button", { name: "Cancel these lessons" }),
+    ).toBeDisabled();
   },
 );
 
 Then(
   "I see {string} in the dialog and nothing is stored",
   async ({ page, request }, text: string) => {
-    await expect(dialog(page).getByRole("alert")).toHaveText(text);
+    await expect(dialog(page)).toContainText(text);
     await expect(dialog(page)).toBeVisible();
     expect(await (await request.get("/api/disruptions")).json()).toEqual([]);
   },

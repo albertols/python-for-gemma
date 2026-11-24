@@ -68,7 +68,9 @@ function candidates(
     for (const groupId of chosen) scopes.push({ kind: "group", groupId });
   }
   const periods =
-    input.periods === null ? null : [...new Set(input.periods)].sort();
+    input.periods === null
+      ? null
+      : [...new Set(input.periods)].sort((a, b) => a - b);
   return scopes.map((scope) => ({
     id: ids(),
     scope,
