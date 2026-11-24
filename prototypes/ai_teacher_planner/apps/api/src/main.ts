@@ -11,10 +11,21 @@ import {
 } from "./db/backup.ts";
 import { openDatabase } from "./db/connection.ts";
 import { migrate } from "./db/migrate.ts";
+import { createResourceGateway } from "./gateway/resource-gateway.ts";
 import { localIsoDate } from "./today.ts";
 
 const KEEP_BACKUPS = 7;
-const config = loadConfig(process.env);
+function readConfig() {
+  try {
+    return loadConfig(process.env);
+  } catch (err) {
+    console.error(
+      `The planner could not start: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    process.exit(1);
+  }
+}
+const config = readConfig();
 
 try {
   fs.mkdirSync(config.dataDir, { recursive: true });
@@ -35,7 +46,12 @@ try {
 
   const server = serve(
     {
-      fetch: createApp({ config, db, now }).fetch,
+      fetch: createApp({
+        config,
+        db,
+        now,
+        gateway: createResourceGateway(config.resourcesDir),
+      }).fetch,
       port: config.port,
       hostname: config.host,
     },

@@ -11,6 +11,7 @@
     "@hono/node-server": "2.1.11",
     "@hono/zod-openapi": "1.6.3",
     "@planner/domain": "workspace:*",
+    "@planner/fixtures": "workspace:*",
     "@planner/importers": "workspace:*",
     "better-sqlite3": "13.2.0",
     "drizzle-orm": "0.45.4",

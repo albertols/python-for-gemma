@@ -11,3 +11,11 @@ export function localIsoDate(now: Date, timeZone: string): IsoDate {
   const get = (type: string) => parts.find((p) => p.type === type)?.value;
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
+
+/** Today for the app: the fixed date when one is set, otherwise the local date. */
+export function todayOf(
+  config: { fixedToday: IsoDate | null; timeZone: string },
+  now: Date,
+): IsoDate {
+  return config.fixedToday ?? localIsoDate(now, config.timeZone);
+}

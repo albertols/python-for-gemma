@@ -19,7 +19,10 @@ const tables = (db: ReturnType<typeof openDatabase>) =>
 test("migrating an empty database creates the tables and records the version", () => {
   const db = openDatabase(":memory:");
   const r = migrate(db, { migrationsDir: realDir, beforeMigrating: () => {} });
-  expect(r.applied).toEqual(["0001_calendar_timetable"]);
+  expect(r.applied).toEqual([
+    "0001_calendar_timetable",
+    "0002_report_raw_text",
+  ]);
   expect(tables(db)).toEqual(
     expect.arrayContaining([
       "calendar_imports",
@@ -35,6 +38,7 @@ test("migrating an empty database creates the tables and records the version", (
   );
   expect(db.prepare("select version from schema_migrations").all()).toEqual([
     { version: "0001_calendar_timetable" },
+    { version: "0002_report_raw_text" },
   ]);
 });
 

@@ -6,7 +6,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "biome check .",
     "test": "vitest run",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "seed:synthetic": "node scripts/seed-synthetic.ts"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "8.0.1",

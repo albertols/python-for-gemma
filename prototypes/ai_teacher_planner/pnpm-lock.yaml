@@ -41,6 +41,9 @@ importers:
       '@planner/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@planner/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
       '@planner/importers':
         specifier: workspace:*
         version: link:../../packages/importers

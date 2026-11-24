@@ -1,22 +1,14 @@
 import { expect, test } from "vitest";
 import { createApp } from "./app.ts";
 import type { Config } from "./config.ts";
-import { openDatabase } from "./db/connection.ts";
+import { fakeGateway, migratedDb, testConfig } from "./test-support.ts";
 
-const config: Config = {
-  dataDir: "/unused",
-  resourcesDir: "/unused",
-  port: 4319,
-  host: "127.0.0.1",
-  ai: "claude",
-  fixedToday: null,
-  timeZone: "Europe/Madrid",
-};
 const build = (over: Partial<Config> = {}, now = "2026-11-24T10:00:00Z") =>
   createApp({
-    config: { ...config, ...over },
-    db: openDatabase(":memory:"),
+    config: { ...testConfig, ...over },
+    db: migratedDb(),
     now: () => new Date(now),
+    gateway: fakeGateway({}),
   });
 
 test("health", async () =>
@@ -74,4 +66,30 @@ test("openapi.json is served", async () => {
   expect(Object.keys(((await res.json()) as { paths: object }).paths)).toEqual(
     expect.arrayContaining(["/api/health", "/api/config"]),
   );
+});
+
+test("malformed JSON keeps its 400 and has no stack", async () => {
+  const res = await build().request("/api/terms", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: "{not json",
+  });
+  expect(res.status).toBe(400);
+  const text = await res.text();
+  expect(JSON.parse(text).error.code).toBe("bad-request");
+  expect(text).not.toContain("    at ");
+});
+
+test("a body that fails validation is a 422 with a readable message", async () => {
+  const res = await build().request("/api/terms", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify([{ id: "T9" }]),
+  });
+  expect(res.status).toBe(422);
+  const body = (await res.json()) as {
+    error: { code: string; message: string };
+  };
+  expect(body.error.code).toBe("invalid-request");
+  expect(body.error.message.length).toBeGreaterThan(5);
 });

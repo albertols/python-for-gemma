@@ -5,6 +5,7 @@ import { expect, test } from "vitest";
 import {
   backupDatabase,
   describeStartupError,
+  hasDailyBackup,
   pruneBackups,
 } from "./backup.ts";
 import { openDatabase } from "./connection.ts";
@@ -67,4 +68,20 @@ test("other start-up errors are one line too", () => {
   });
   expect(describeStartupError(busy, "/x")).not.toContain("\n");
   expect(describeStartupError(new Error("boom"), "/x")).toContain("boom");
+});
+
+test("hasDailyBackup counts a 23:30 UTC backup for the next Madrid day, and never a pre-migration one", async () => {
+  const dataDir = tmp();
+  const db = openDatabase(path.join(dataDir, "planner.sqlite"));
+  await backupDatabase(
+    db,
+    dataDir,
+    "pre-migration",
+    new Date("2026-11-20T09:00:00Z"),
+  );
+  expect(hasDailyBackup(dataDir, "2026-11-20", "Europe/Madrid")).toBe(false);
+  await backupDatabase(db, dataDir, "daily", new Date("2026-11-20T23:30:00Z"));
+  expect(hasDailyBackup(dataDir, "2026-11-21", "Europe/Madrid")).toBe(true);
+  expect(hasDailyBackup(dataDir, "2026-11-20", "Europe/Madrid")).toBe(false);
+  db.close();
 });
