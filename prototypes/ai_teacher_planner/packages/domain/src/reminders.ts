@@ -80,5 +80,10 @@ export function reminders(input: {
     );
   }
 
-  return out.sort((a, b) => byCode(a.date, b.date) || byCode(a.label, b.label));
+  return out.sort(
+    (a, b) =>
+      byCode(a.date, b.date) ||
+      byCode(a.label, b.label) ||
+      byCode(a.groupIds.join(","), b.groupIds.join(",")),
+  );
 }

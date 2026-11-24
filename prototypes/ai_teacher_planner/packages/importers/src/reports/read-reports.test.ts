@@ -14,13 +14,26 @@ const eveningFor = (year: number) => {
   return e;
 };
 
-test("a Year 12 block takes its programme from its second row", () =>
-  expect(
-    windows
-      .filter((w) => w.yearGroup === 12)
-      .map((w) => w.programme)
-      .sort(),
-  ).toEqual(["A level", "IB"]));
+test("a Year 12 block takes its programme from its second row, for both its windows", () => {
+  const y12 = windows.filter((w) => w.yearGroup === 12);
+  expect(y12.map((w) => `${w.programme}/${w.name}`)).toEqual([
+    "A level/Report 1: Short",
+    "A level/Report 2: Long",
+    "IB/Report 1: Short",
+    "IB/Report 2: Long",
+  ]);
+});
+test("the report on a programme row keeps its name and dates", () => {
+  const long = windows.filter(
+    (w) => w.yearGroup === 12 && w.name === "Report 2: Long",
+  );
+  expect(long).toHaveLength(2);
+  for (const w of long) {
+    expect(w.dataDeadline.date).toBe("2026-11-30");
+    expect(w.hodReview.date).toBe("2026-12-04");
+    expect(w.sentHome.date).toBe("2026-12-11");
+  }
+});
 test("Year 11 has no programme", () => expect(y11.programme).toBeNull());
 test("the Year 11 long report's name and data deadline", () => {
   expect(y11.name).toBe("Report 2: Long");
@@ -32,7 +45,7 @@ test("a wrong weekday is kept as an issue, not fixed silently", () => {
   expect(y11.sentHome.issues).toEqual(["weekday-mismatch"]);
 });
 test("a Year 7 report is read, and windows are sorted by year", () => {
-  expect(windows.map((w) => w.yearGroup)).toEqual([7, 11, 12, 12]);
+  expect(windows.map((w) => w.yearGroup)).toEqual([7, 11, 12, 12, 12, 12]);
 });
 test("parents' evenings take their year from the term's months", () => {
   expect(eveningFor(13).date.date).toBe("2026-11-26");

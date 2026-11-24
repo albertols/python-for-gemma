@@ -259,20 +259,34 @@ function addReportSheets(wb: ExcelJS.Workbook): void {
   ]);
   reports.addRow([]);
   reports.addRow([
-    "Year 12",
-    "Report 3",
-    "Grade, Effort",
+    "Year 12 ",
+    "Report 1: Short",
+    "Effort, Attainment",
     "Wednesday 10th March 2027",
   ]);
-  reports.addRow(["IB"]);
+  reports.addRow([
+    "IB",
+    "Report 2: Long",
+    "Grade, Effort, Comment",
+    "Monday 30th November 2026",
+    "Friday 4th December 2026",
+    "Thursday 11th December 2026",
+  ]);
   reports.addRow([]);
   reports.addRow([
-    "Year 12",
-    "Report 3",
-    "Grade, Effort",
+    "Year 12 ",
+    "Report 1: Short",
+    "Effort, Attainment",
     "Wednesday 10th March 2027",
   ]);
-  reports.addRow(["A level"]);
+  reports.addRow([
+    "A level",
+    "Report 2: Long",
+    "Grade, Effort, Comment",
+    "Monday 30th November 2026",
+    "Friday 4th December 2026",
+    "Thursday 11th December 2026",
+  ]);
 
   const eves = wb.addWorksheet("Parents eves");
   eves.addRow(["", "Term 1", "Term 2", "Term 3"]);
