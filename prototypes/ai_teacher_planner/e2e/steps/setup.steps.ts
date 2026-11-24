@@ -167,7 +167,7 @@ When("I correct the Year 7 report date", async ({ page }) => {
   await row.getByRole("button", { name: "Save this date" }).click();
 });
 
-Then("the Year 7 report date no longer needs her", async ({ page }) => {
+Then("the Year 7 report date no longer needs checking", async ({ page }) => {
   await expect(page.getByText("Date saved.")).toBeVisible();
   await expect(
     page.getByText(/Year 7 Report 1: Short.*the sheet says/),
@@ -180,6 +180,10 @@ Then("the Year 7 report date no longer needs her", async ({ page }) => {
 
 Then("focus is on the report dates heading", async ({ page }) => {
   await expect(
-    page.getByRole("heading", { name: "Report dates that need her" }),
+    page.getByRole("heading", { name: "Report dates to check" }),
   ).toBeFocused();
+});
+
+When("I open the setup screen", async ({ page }) => {
+  await page.goto("/setup");
 });

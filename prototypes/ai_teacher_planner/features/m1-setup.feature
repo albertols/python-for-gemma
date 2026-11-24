@@ -7,6 +7,8 @@ Feature: Setup
     And the report says the wrong weekday on 11 July 2026 is outside the school year
 
   Scenario: Editing the timetable updates the totals
+    When I open the setup screen
+    Then the fortnight total for 11D is 5
     When I clear 11D from Week 1 Monday period 3
     Then the fortnight total for 11D is 4
     When I save the timetable
@@ -29,7 +31,7 @@ Feature: Setup
   Scenario: Correcting a report date
     When I import the school calendar
     And I correct the Year 7 report date
-    Then the Year 7 report date no longer needs her
+    Then the Year 7 report date no longer needs checking
     And focus is on the report dates heading
 
   Scenario: Setup is usable by keyboard and accessible

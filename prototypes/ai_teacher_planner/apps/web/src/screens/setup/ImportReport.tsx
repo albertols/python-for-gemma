@@ -121,7 +121,7 @@ export function ReportDates({ issues }: { issues: ReportIssue[] }) {
         tabIndex={-1}
         className="font-semibold"
       >
-        Report dates that need her
+        Report dates to check
       </h3>
       {save.isSuccess ? (
         <p role="status">
