@@ -67,6 +67,7 @@ Every task's requirements include this section.
 - Tests and CI use `FakeAiProvider`. CI has no access to Claude or to `prototypes/resources/`.
 - The Claude adapter uses exactly this flag set, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` removed from the child environment, and never `--bare`:
   `claude -p "<prompt>" --model <alias> --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`
+- Task 2.8 tests exactly this flag set, plus `--tools "WebSearch,WebFetch"` for a web skill (ADR-007), and no `--allowedTools`. Every task that runs a headless skill passes `--model <alias>` from its `SkillDefinition.model`. Attachments are refused until Task 2.20 proves an image path.
 - Every stored item has an origin: `engine`, `ai`, `teacher` or `import`. AI items also carry provider, model, skill, time, sources and a review state: `suggested`, `accepted`, `edited` or `rejected`.
 
 **Interface (spec section 12)**
@@ -120,7 +121,14 @@ Recorded in spec appendix D as well. Say so if any is wrong.
 | Her IAL sheet's total | It lists 70 classes across chapters 22 to 37 and states 65, because chapter 22's five were taught in Year 12. The import keeps both numbers |
 | Speaker notes | Never sent to a model: that is where notes about students are written |
 | Assessment in an exam week | Judged by the date she gave it in the scheme, not by the slot it moved to |
-| Browser tests | Run with today fixed at 20 November 2026 and re-seed before every scenario |
+| Browser tests | Run with today fixed at 20 November 2026 and re-seed before every scenario. `POST /api/test/reset` takes an optional `{ state }`: `"m1b"` (default, what every M1 and M1b scenario expects), `"m2-draft-pack"`, `"m2-no-positions"`, `"m2-planned"` (Task 2.12) |
+| Revision block | A group's last `revisionWeeks` Monday-to-Sunday weeks that hold a usable slot, counted back from the week of its last usable slot before the plan's first official exam (or its last usable slot when there is no exam). All usable slots in them are spare lessons. 0 turns it off (M2 pre-flight, 25 Nov 2026) |
+| Official exam | Each exam of the plan's groups is a checkpoint, and the latest is the plan's last. Block ends after it are dropped. Slots after a group's exam get no lesson and no spare lesson; the proposal says "N lessons after the official exam" |
+| Past spare lessons | A spare lesson dated before today is dropped from the new snapshot. It is not history and not in the check-in, unless she edited it (`FlexEdit`), when it stays as `assumed` |
+| Her M1b actions after a plan exists | Confirming an event or cancelling lessons still changes slots at once. The plan is then out of date (also when a head placement sits on a slot that is no longer usable) and moves only when she accepts a preview |
+| Web tools | No M2 skill uses web tools. M7, the first web skill, records a live run and adds `--allowedTools` only if it needs it, updating this file, ADR-007 and the planner `CLAUDE.md` together |
+| Images to the CLI | Task 2.8 refuses every attachment. Task 2.20 Step 1 is a spike; if it works it amends ADR-007 and the flag set here in the same commit |
+| Live Claude | Tests and CI never spawn `claude`. Steps that need it run locally, by the controller with Alberto, and say so |
 
 ## File structure
 
@@ -130,43 +138,51 @@ Everything below is under `prototypes/ai_teacher_planner/`.
 package.json  pnpm-workspace.yaml  tsconfig.base.json  biome.json  vitest.config.ts
 scripts/start.ts                 build if stale, start the API, open the browser
 packages/domain/src/             the engine (pure)
-  dates.ts calendar.ts timetable.ts slots.ts audit.ts reminders.ts permissions.ts      M1
-  scheme.ts lessons.ts provenance.ts plan.ts sequence.ts pace.ts history.ts
-  revisions.ts pack.ts timetable-diff.ts                                               M2
-  disruptions.ts events.ts reflow.ts parity.ts catchup.ts reimport.ts                  M3
+  dates.ts calendar.ts timetable.ts slots.ts audit.ts reminders.ts permissions.ts
+  provenance.ts                                                                        M1 (M2 extends it)
+  corrections.ts events.ts exams.ts breaks.ts todos.ts                                 M1b
+  scheme.ts lessons.ts plan.ts sequence.ts pace.ts history.ts revisions.ts pack.ts
+  fit.ts timetable-diff.ts                                                             M2
+  disruptions.ts reflow.ts parity.ts catchup.ts reimport.ts                            M3 (events.ts exists)
   hl.ts hl-sequence.ts hl-helper.ts pack-to-items.ts                                   M4
   moves.ts views.ts explain.ts                                                         M5
   coverage.ts assessments.ts                                                           M6
   index.ts                       re-exports the public surface
 packages/importers/src/
-  calendar/  reports/  loose-date.ts                                                   M1
+  calendar/ (read-calendar, day-off-findings, tidy-findings)  reports/  loose-date.ts
+  sha256.ts resources-available.ts                                                     M1, M1b
   pack/  planning/  assessment-schedule/                                               M2
   resources/  pptx/                                                                    M7
 packages/exporters/src/          xlsx/ teams/ (M2)  docx/ pptx/ (M8)
 packages/ai/src/                 port.ts fake.ts claude-cli.ts registry.ts skills/     M2
 packages/content-creator/src/    refresher.ts cover-lesson.ts independent-task.ts      M7
 apps/api/src/
-  main.ts app.ts config.ts
+  main.ts app.ts config.ts today.ts errors.ts test-support.ts
   db/ (connection.ts migrate.ts backup.ts schema.ts migrations/NNNN_name.sql)
   repos/ (ports.ts sqlite/*.ts)
   gateway/resource-gateway.ts
-  usecases/  routes/  jobs/queue.ts
+  routes/ (router.ts require-access.ts schemas.ts test-reset.ts ...)
+  usecases/ (planning.ts first-run.ts reset-to-seed.ts today-view.ts ...)
+  jobs/queue.ts  materials/ (M2)
 apps/web/src/
   main.tsx routes.tsx
   api/ (client.ts queries.ts)
+  lib/ (dates.ts possible.ts utils.ts)
   theme/ (tokens.css group-colours.ts)
-  components/ui/                 shadcn components
-  components/                    AppShell, LessonCard, ProposalDiff, AiBadge, ProvenancePopover,
-                                 WhyPopover, ActivityDrawer, JobChip, Legend
-  screens/                       today/ board/ scheme/ parity/ audit/ hl/ coverage/
-                                 assessments/ resources/ setup/
-features/                        NN-name.feature, numbered as spec section 17
+  components/ui/                 shadcn components (states.tsx)
+  components/                    AppShell, GroupBadge (M1); LessonCard, ProposalDiff, AiBadge, ProvenancePopover,
+                                 WhyPopover, ActivityDrawer, JobChip, Legend (M2 on)
+  screens/                       today/ board/ audit/ setup/ (M1), scheme/ (M2), parity/ hl/ coverage/
+                                 assessments/ resources/ (later)
+features/                        NN-name.feature (spec section 17), m1-*.feature, m1b-*.feature, m2-*.feature
 fixtures/                        package @planner/fixtures
-  timetable.2026-27.json  terms.2026-27.json
-  src/ (synthetic-calendar.ts synthetic-pack.ts synthetic-planning.ts feature-file.ts)
+  timetable.2026-27.json  terms.2026-27.json  groups.2026-27.json  external-exams.2026-27.json
+  courses.2026-27.json (M2)  ai/ (M2)
+  src/ (synthetic-calendar-model.ts synthetic-calendar.ts seed.ts domain-source.ts feature-file.ts
+        pace-world.ts synthetic-pack.ts synthetic-planning.ts synthetic-spec-pdf.ts fake-ai.ts)
   deny-canary/                   exists already; do not touch
 e2e/                             Playwright, playwright-bdd steps, axe helper
-data/                            git-ignored: planner.sqlite, backups/, packs/, uploads/
+data/                            git-ignored: planner.sqlite, backups/, packs/, uploads/, materials/
 ```
 
 Package names: `@planner/domain`, `@planner/importers`, `@planner/exporters`, `@planner/ai`, `@planner/content-creator`, `@planner/api`, `@planner/web`, `@planner/fixtures`, `@planner/e2e`. Each exports its source: `"exports": { ".": "./src/index.ts" }`. Relative imports carry the `.ts` or `.tsx` extension.
@@ -189,7 +205,15 @@ Dependency direction: `domain` imports nothing. `importers`, `exporters`, `ai` a
 | `pnpm start` | Build if needed, start the API on `127.0.0.1:4319`, open the app |
 | `pnpm seed:synthetic --data-dir <dir>` | Fill a data folder from the synthetic fixtures |
 
-**Environment variables:** `PLANNER_DATA_DIR` (default `./data`), `PLANNER_RESOURCES_DIR` (default `../resources`), `PLANNER_PORT` (default `4319`), `PLANNER_AI` (`claude`, `fake` or `off`; default `claude`), and two for tests only: `PLANNER_FIXED_TODAY` and `PLANNER_TEST_ROUTES`.
+**Environment variables:** `PLANNER_DATA_DIR` (default `./data`), `PLANNER_RESOURCES_DIR` (default `../resources`), `PLANNER_PORT` (default `4319`), `PLANNER_AI` (`claude`, `fake` or `off`; default `claude`), `PLANNER_TIME_ZONE` and `PLANNER_NO_OPEN` (both described in the planner `CLAUDE.md`), and two for tests only: `PLANNER_FIXED_TODAY` and `PLANNER_TEST_ROUTES`.
+
+**Routes.** Paths use the `{param}` syntax of `@hono/zod-openapi` (`/api/packs/{courseId}`), never `:param`. Each write route spreads `...guard(<resource>, "edit")` into `createRoute`; `routes.test.ts` fails any write route without it. Resources: packs, scheme, scheme import and lesson-count jobs use `scheme-of-work`; positions, plans, check-in, lesson notes, materials and the timetable image use `lesson-plans`. AI job start and cancel use `lesson-plans` on the route, and the review use case also checks the handler's own `resource` with `can()`.
+
+**Reuse, do not redefine.** Domain: `bySlotOrder`, `versionOn`, `teachingBlocks`, `disruptionHitsSlot`, `lessonsHitBy`, `disruptionsFromEvents`, `possibleDisruptions`, `possibleTextsFor`, `lastDaysBeforeBreaks`, `auditSlots(...).lastLesson` (open slots only; the sequencer's last usable slot includes cover, so it needs its own one-liner with another name). Importers: `sha256Hex`, `parseLooseDate(text, academicYear)`, `ImportFinding`, `FindingKind`. API: `ApiError`, `createRouter`, `guard`, `schemas.ts` (`isoDate`, `period`, `slot`), `testConfig`, `migratedDb`, `fakeGateway`, `syntheticGateway` (extend them in `apps/api/src/test-support.ts`, never copy). Web: `call()`, the `InferResponseType` pattern in `api/queries.ts`, `groupColour`, `GroupBadge`, `components/ui/states.tsx`, `lib/dates.ts`.
+
+**Migrations** are applied by sorted file name and the runner records the name. M1b reached `0007_todos.sql`. M2 uses `0008_ai.sql` (Task 2.9), `0009_scheme_plans.sql` (Task 2.12) and `0010_lesson_notes.sql` (Task 2.17b); later milestones take the next free number. A task that adds Drizzle tables also updates the mirror comment at the top of `db/schema.ts`.
+
+**Feature tags.** A scenario whose browser steps arrive in a later task is tagged `@engine @e2e @e2e-later`; the playwright config filters `@e2e and not @e2e-later`, so `pnpm e2e` stays green. The task that writes the browser steps removes `@e2e-later`.
 
 **Test-first, every task.** Write the tests the task lists, run them, and see them fail for the reason given. Then implement. Then run them again. A test shown as a name with an empty body or a one-line comment is still a required test: write its assertions from the name, the comment and the task's rules. Where a value matters, the plan gives it.
 
@@ -210,9 +234,11 @@ Dependency direction: `domain` imports nothing. `importers`, `exporters`, `ai` a
 | Course and plan | slug | `ial-business-u4`, `ib-business`, `igcse-business` |
 | Scheme item | slug, stable across re-imports | `ch26`, `a-ch26`, `p-unit1-podcast` |
 | Lesson | `${itemId}#${n}`, n from 1 | `ch26#2` |
-| Spare lesson | `flex:${groupId}:${checkpointId}#${n}` | `flex:13 1:cp:a-ch26#1` |
+| Spare lesson | `flex:${groupId}:${checkpointId}#${n}` | `flex:13 1:cp:a-ch26#1`, `flex:13 1:cp:revision#2` |
 | Slot | `${groupId}\|${date}\|${period}` | `13 1\|2027-01-08\|6` |
-| Checkpoint | `cp:${itemId}` or `cp:block:${blockId}` | `cp:a-ch26`, `cp:block:T1b` |
+| Checkpoint | `cp:${itemId}`, `cp:block:${blockId}`, `cp:exam:${code}` or `cp:revision` | `cp:a-ch26`, `cp:block:T1b`, `cp:exam:WBS14 01`, `cp:revision` |
+
+Exam checkpoints use the exam's `code`, never its id: exam ids are random (`x:<uuid>`) and differ on every machine and after a re-seed.
 
 **Web tasks.** A web task names the screen, what it shows, the states it must handle (loading, empty, error, AI unavailable) and its browser test. Component breakdown and visual detail are the builder's, inside spec section 12. Find elements in tests by role and accessible name, not by test id.
 
@@ -284,15 +310,20 @@ export function buildSlots(input: { days: readonly CalendarDay[]; timetables: re
 ### M2: scheme, lessons, plans
 
 ```ts
-// scheme.ts
+// provenance.ts (exists since M1b as a string union; Task 2.1 renames that union to Origin and adds the object)
 export type Origin = "engine" | "ai" | "teacher" | "import";
 export type ReviewState = "suggested" | "accepted" | "edited" | "rejected";
 export interface Source { url: string; title: string | null; opened: boolean }
 export interface Provenance { origin: Origin; ai: { runId: string; provider: string; model: string; skillId: string; at: string; sources: Source[]; review: ReviewState } | null }
+// EventClassification.provenance becomes `Origin` (values unchanged, "teacher" in M1b, no migration). M3 Task 3.2 decides whether it widens to Provenance.
+
+// scheme.ts
 export type ItemKind = "teaching" | "project" | "revision" | "buffer" | "assessment";
 export interface AssessmentSpec { date: IsoDate | null; type: string; marks: number | null; durationMinutes: number | null; slotUse: "whole" | "in-lesson"; status: "planned" | "sat"; covers: string[] /* teaching item ids */ }
 export interface SowItem { id: string; courseId: CourseId; order: number; kind: ItemKind; title: string; lessons: number; track: "core" | "hl"; packRefs: string[]; prerequisites: string[]; availableFrom: IsoDate | null /* used from M4 */; note: string | null; assessment: AssessmentSpec | null; provenance: Provenance }
 export interface GroupOverride { groupId: GroupId; itemId: string; lessons: number }
+// There is no course record in M1b: courses exist only as Group.courseId. Task 2.12 adds one:
+export interface Course { id: CourseId; title: string; board: "IAL" | "IB" | "IGCSE"; revisionWeeks: number }   // seeded from fixtures/courses.2026-27.json by firstRun, like groups; stored in 0009_scheme_plans.sql. `board` is the exam board; Group.programme stays as it is
 
 // lessons.ts
 export type LessonId = string;
@@ -309,11 +340,11 @@ export interface LessonLogEntry { groupId: GroupId; lessonId: LessonId; slotKey:
 export interface CoverChoice { slotKey: SlotKey; choice: "keep" | "swap" | "lost"; swapLessonId: LessonId | null }   // used from M3
 export interface HomeworkMode { groupId: GroupId; lessonId: LessonId }                                              // used from M3
 export interface PaceHold { id: string; checkpointId: string; firstDeferredLessonId: LessonId }                     // used from M3
-export interface FlexEdit { flexId: LessonId; title: string | null; purpose: "exam-practice" | "support" | "independent-study" | null }
+export interface FlexEdit { flexId: LessonId; title: string | null; purpose: "exam-practice" | "support" | "independent-study" | "revision" | null }   // "revision" is shown as "Revision and exam practice"
 export type PlacementState = "planned" | "assumed" | "taught" | "cover" | "homework" | "skipped" | "declared";
 export interface Placement { groupId: GroupId; lessonId: LessonId; slotKey: SlotKey | null; state: PlacementState; pinned: boolean; mergedInto: LessonId | null; viaCover: boolean }
 export interface AssessmentPlacement { groupId: GroupId; itemId: string; slotKey: SlotKey; slotUse: "whole" | "in-lesson" }
-export interface Checkpoint { id: string; kind: "assessment" | "block-end"; date: IsoDate; label: string; itemId: string | null }
+export interface Checkpoint { id: string; kind: "assessment" | "block-end" | "revision" | "exam"; date: IsoDate; label: string; itemId: string | null; perGroupDate?: Record<GroupId, IsoDate> /* revision: each group's first revision slot date */ }
 export interface Overflow { checkpointId: string; groupId: GroupId; lessonIds: LessonId[] }
 export type Conflict =
   | { kind: "assessment-no-slot"; groupId: GroupId; itemId: string; date: IsoDate }
@@ -321,7 +352,8 @@ export type Conflict =
   | { kind: "not-after-missed"; pinId: string; groupId: GroupId; lessonId: LessonId; date: IsoDate; plannedDate: IsoDate | null }
   | { kind: "hl-prerequisite"; groupId: GroupId; lessonId: LessonId; prerequisiteItemId: string; finishesOn: IsoDate | null };   // from M4
 export interface PlanSnapshot { courseId: CourseId; today: IsoDate; placements: Placement[]; assessments: AssessmentPlacement[]; checkpoints: Checkpoint[]; overflow: Overflow[]; absorbed: { groupId: GroupId; lessonId: LessonId }[]; conflicts: Conflict[] }
-export interface PlanInputs { courseId: CourseId; today: IsoDate; groups: Group[]; slots: Slot[]; blocks: TeachingBlock[]; items: SowItem[]; overrides: GroupOverride[]; positions: Position[]; log: LessonLogEntry[]; pins: Pin[]; merges: Merge[]; coverChoices: CoverChoice[]; homework: HomeworkMode[]; holds: PaceHold[]; flexEdits: FlexEdit[]; previous: PlanSnapshot | null }
+export interface PlanInputs { courseId: CourseId; today: IsoDate; groups: Group[]; slots: Slot[]; blocks: TeachingBlock[]; items: SowItem[]; overrides: GroupOverride[]; positions: Position[]; log: LessonLogEntry[]; pins: Pin[]; merges: Merge[]; coverChoices: CoverChoice[]; homework: HomeworkMode[]; holds: PaceHold[]; flexEdits: FlexEdit[]; previous: PlanSnapshot | null; exams: ExternalExam[] /* the plan's groups only; ExternalExam is from M1b exams.ts */; revisionWeeks: number }
+// Task 2.3 adds `exams` and `revisionWeeks`; Task 2.12's loadPlanInputs fills them (revisionWeeks from Course).
 
 // sequence.ts
 export function sequence(inputs: PlanInputs): PlanSnapshot;
@@ -329,7 +361,8 @@ export function sequence(inputs: PlanInputs): PlanSnapshot;
 // revisions.ts
 export interface PlanDiffEntry { groupId: GroupId; lessonId: LessonId; change: "moved" | "added" | "removed" | "state" | "correction"; from: SlotKey | null; to: SlotKey | null; fromState: PlacementState | null; toState: PlacementState | null; hitByDisruption: boolean }
 export interface PlanDiff { entries: PlanDiffEntry[]; changedByGroup: Record<GroupId, number> }
-export interface PlanMetrics { perGroup: Record<GroupId, { placed: number; spare: number; overflow: number; lastContentDate: IsoDate | null }> }
+export interface PlanMetrics { perGroup: Record<GroupId, { placed: number; spare: number; overflow: number; lastContentDate: IsoDate | null; officialExam: { code: string; date: IsoDate } | null }> }
+export function sameExceptHistoryStates(a: PlanSnapshot, b: PlanSnapshot): boolean;   // via snapshotKey of a copy with history states normalised; Task 2.12's upToDate uses it
 export interface Proposal { planId: string; baseRevisionId: string | null; label: string; candidate: PlanSnapshot; diff: PlanDiff; before: PlanMetrics | null; after: PlanMetrics; conflicts: Conflict[] }
 export function diffSnapshots(before: PlanSnapshot | null, after: PlanSnapshot, slots: readonly Slot[]): PlanDiff;
 export function planMetrics(s: PlanSnapshot, slots: readonly Slot[]): PlanMetrics;
@@ -340,6 +373,24 @@ export interface PackUnit { id: string; code: string; title: string; inScope: bo
 export interface SpecPoint { id: string; unitId: string; code: string; title: string; level: "core" | "hl-only"; page: number | null }
 export interface PackChapter { id: string; unitId: string; number: string; title: string; specPointIds: string[]; hlOnly: boolean; page: number | null }
 export interface CurriculumPack { schemaVersion: 1; courseId: CourseId; board: string; subject: string; version: string; units: PackUnit[]; specPoints: SpecPoint[]; chapters: PackChapter[]; source: { fileName: string; pages: number }; lockedAt: string | null; hash: string | null }
+// importers: hashing is async (Web Crypto, through sha256Hex)
+export function packHash(pack: CurriculumPack): Promise<string>;
+export function lockPack(pack: CurriculumPack, now: Date): Promise<CurriculumPack>;
+export function isLockedAndIntact(pack: CurriculumPack): Promise<boolean>;
+
+// fit.ts (Task 2.12; pure, runs `sequence`): the one rule for "does it fit"
+export interface GroupFit { groupId: GroupId; lessonsLeft: number; slotsLeft: number; fits: boolean; over: number }
+export function fitFor(inputs: PlanInputs): GroupFit[];
+```
+
+```ts
+// API (apps/api), as built from M1: AppDeps = { config, db, now, gateway, principal, webDir? }; M2 adds `ai: AiProvider | null`
+// (main.ts picks it from config.ai; test-support passes null unless a test gives a FakeAiProvider).
+// Route factories take small context objects ({ repos, now }, { config, repos, gateway, now }), not AppDeps.
+export function loadPlanInputs(repos: Repos, packs: PackStore, courseId: CourseId, today: IsoDate): PlanInputs;   // built on loadPlanning(repos); never calls buildSlots
+// ResourceGateway.find(pattern: "calendar-workbook" | "timetable-image" | "planning-files"); "planning-files" returns allowlisted .xlsx and .docx under <ial|ibdp|igcse>/Planning/
+// GET /api/placements?from&to returns { placements, assessments }; the web's PlacementView and AssessmentView are the InferResponseType of it (api/queries.ts)
+// Web board: BoardOptions gains `cards?: ReadonlyMap<SlotKey, CardModel>` and BoardCell gains `card: CardModel | null` (Task 2.17)
 ```
 
 ### AI port (M2, `packages/ai/src/port.ts`)
@@ -354,6 +405,15 @@ export interface AiProvider { id: string; available(): Promise<{ ok: true } | { 
 export class AiError extends Error { reason: "unavailable" | "signed-out" | "timeout" | "invalid-output" | "cancelled" | "failed" }
 ```
 
+```ts
+// apps/api (Task 2.9): jobs and item handlers take a context, not AppDeps
+export interface JobContext { repos: Repos; ai: AiProvider | null; now: () => Date; config: Config }
+export interface AiItem { id: string; runId: string; kind: string; target: string; courseId: CourseId | null; data: unknown; review: ReviewState; reviewedAt: string | null; sources: Source[] }
+export interface ItemHandler { kind: string; resource: Resource; toItems(output: unknown, input: unknown): { target: string; courseId: CourseId | null; data: unknown }[]; apply(item: AiItem, ctx: JobContext): Promise<void> }
+export function startJob(ctx: JobContext, request: { skillId: SkillId; input: unknown; text: string | null; attachments: string[] }): AiRun;
+// `AiItem.courseId` lets Task 2.19 leave out only the pending items of the course being exported.
+```
+
 ### Later milestones
 
 The engine functions added in M3 to M6 are defined in the task that introduces each, in that milestone's file: `strandedPlacements`, `eventCandidates`, `previewChange`, `parity`, `catchUpOptions`, `diffCalendar` (M3); `hlStatus`, `eligibleAt`, `teachableAt`, `runway` (M4); `moveTargets`, `itemSpans`, `explainPlacement` (M5); `coverage`, `assessmentEntries`, `assessmentWarnings` (M6).
@@ -366,10 +426,10 @@ The engine functions added in M3 to M6 are defined in the task that introduces e
 | 2 | Two-day week | `02-two-day-week` | Task 1.3 | |
 | 3 | One-day week | `03-one-day-week` | Task 1.3 | |
 | 4 | Staff days | `04-staff-days` | Task 1.3 | |
-| 5 | Schedule from my documents | `05-schedule-from-documents` | Tasks 2.3 and 2.13 | Task 2.21 |
+| 5 | Schedule from my documents | `05-schedule-from-documents` | Task 2.3 (domain, `paceWorld`) and Task 2.13 (`apps/api`, full year) | Task 2.21 |
 | 6 | The worked example | `06-worked-example` | Task 3.4 | Task 3.9 |
 | 7 | Absence | `07-absence` | Task 3.3 | Task 3.7 |
-| 8 | Undo | `08-undo` | Task 2.5 | Task 3.7 |
+| 8 | Undo | `08-undo` | Task 2.5 | Task 2.17 |
 | 9 | Pins survive | `09-pins-survive` | Task 5.1 | Task 5.2 |
 | 10 | HL prerequisites | `10-hl-prerequisites` | Tasks 4.2 and 4.3 | Task 4.6 |
 | 11 | Coverage | `11-coverage` | Task 6.3 | Task 6.5 |

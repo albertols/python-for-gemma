@@ -101,12 +101,14 @@ test("affectedBy lists the lessons a disruption would hit, in date order", () =>
 
 ### Task 3.2: Calendar events that may cancel lessons
 
+> **Changed by the M2 pre-flight (25 Nov 2026).** `Provenance` is now the object in `provenance.ts`; the old string union is `Origin`, and `EventClassification.provenance` is typed `Origin` (values unchanged). Decide here whether it widens to `Provenance` (a migration if so). M2 takes migrations 0008 to 0010, so this task's file is `0011_disruptions_events.sql` or later, not 0004. Step 3's update of `GET /api/slots` and `loadPlanInputs` is already done in M1b (`loadPlanInputs` builds on `loadPlanning`); nothing to change.
+
 > **Changed by M1b (24 Nov 2026).** The engine part of this task, the classification repository, `GET /api/events`, and the screen without AI were built in M1b Task 1b.3. That version has the `EventClassification` shape with `onlyDates` and `until` (not `exceptDates`), the extra pre-sort rows, and migration `0005_event_classifications.sql`. What is left here: the `planner-classify-calendar-events` skill and its job; `event-suggestion` items; and making confirmations go through the change preview (Task 3.3) once plans exist. Number this task's migration from the next free number. Start by comparing with the M1b code: the code wins.
 
 **Files:**
 - Create: `packages/domain/src/events.ts`, `events.test.ts`
 - Create: `packages/ai/src/skills/planner-classify-calendar-events.ts`, `.claude/skills/planner-classify-calendar-events/SKILL.md`, `schema.json`
-- Create: `apps/api/src/db/migrations/0004_disruptions_events.sql`, `repos/sqlite/event-repo.ts`, `usecases/classify-events.ts`, and tests
+- Create: `apps/api/src/db/migrations/0011_disruptions_events.sql` (next free number), `repos/sqlite/event-repo.ts`, `usecases/classify-events.ts`, and tests
 
 **Interfaces:**
 - Consumes: `CalendarRow`, `CalendarDay`, `Group`, `Slot`, `Disruption`, `startJob`, `registerItemHandler`.
@@ -439,11 +441,13 @@ test("a re-import whose workbook has an error stores nothing and keeps the old c
 
 ### Task 3.7: "A lesson was lost": the absence and closure flow
 
+> **Changed by the M2 pre-flight (25 Nov 2026).** The browser steps of `features/08-undo.feature` are written in Task 2.17 (`e2e/steps/undo.steps.ts`), not here; write only the steps for `07-absence.feature` and `m3-lost-lesson.feature`.
+
 > **Changed by M1b (24 Nov 2026).** Stored disruptions, their routes and a "Lessons were cancelled" dialog without a plan preview were built in M1b Task 1b.1. Extend that dialog here (absence, cover choices, preview with diffs). Do not build a second one.
 
 **Files:**
 - Create: `apps/web/src/screens/today/LostLessonDialog.tsx`, `CoverChoices.tsx`, `apps/web/src/components/ChangePreviewPanel.tsx`, `StrandedBanner.tsx`
-- Create: `e2e/steps/absence.steps.ts` (browser steps for `features/07-absence.feature` and `08-undo.feature`), `features/m3-lost-lesson.feature`
+- Create: `e2e/steps/absence.steps.ts` (browser steps for `features/07-absence.feature`; `08-undo` is Task 2.17's), `features/m3-lost-lesson.feature`
 - Modify: `TodayScreen.tsx`, `BoardScreen.tsx`, `SlotCell.tsx`
 
 **Interfaces:**
