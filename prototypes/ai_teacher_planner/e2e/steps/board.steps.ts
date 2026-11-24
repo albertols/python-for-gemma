@@ -32,6 +32,15 @@ When("I open the board", async ({ page }) => {
   await expect(page.getByRole("table").first()).toBeVisible();
 });
 
+When("I open the board at {string}", async ({ page }, path: string) => {
+  await page.goto(path);
+  await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
+});
+
+Then("the board says {string}", async ({ page }, text: string) => {
+  await expect(page.getByRole("status")).toHaveText(text);
+});
+
 When(
   "I go to the fortnight of {int} {word} {int}",
   async ({ page }, d, m, y) => {

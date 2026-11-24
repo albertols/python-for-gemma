@@ -23,6 +23,11 @@ const startOf = (f: Fortnight) => f.w1 ?? f.w2 ?? "";
 const rangeOf = (f: Fortnight | undefined) =>
   f ? { from: startOf(f), to: addDays(f.w2 ?? f.w1 ?? "", 6) } : null;
 
+/** "2026-12-21" and no other shape; "2026-02-30" is not a day. */
+const isIsoDate = (s: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
+
 export function BoardScreen() {
   const [params, setParams] = useSearchParams();
   const [notice, setNotice] = useState<string | null>(null);
@@ -32,16 +37,24 @@ export function BoardScreen() {
 
   const list = fortnights.data;
   const asked = params.get("w1");
+  const askedDate = asked && isIsoDate(asked) ? asked : null;
   const index = useMemo(() => {
     if (!list || list.length === 0) return -1;
-    const named = asked ? list.findIndex((f) => startOf(f) === asked) : -1;
-    if (named >= 0) return named;
+    if (askedDate) {
+      const named = fortnightContaining(list, askedDate);
+      return named ? list.indexOf(named) : -1;
+    }
     const today = config.data?.today;
     if (!today) return -1;
     const here = fortnightContaining(list, today);
     return here ? list.indexOf(here) : list.length - 1;
-  }, [list, asked, config.data?.today]);
+  }, [list, askedDate, config.data?.today]);
   const current = index >= 0 ? list?.[index] : undefined;
+  const noFortnight =
+    askedDate !== null && list !== undefined && index < 0
+      ? `There is no fortnight on or after ${longDate(askedDate)}.`
+      : null;
+  const message = notice ?? noFortnight;
   const range = rangeOf(current);
   const days = useBoardDays(range?.from ?? null, range?.to ?? null);
   const slots = useBoardSlots(range?.from ?? null, range?.to ?? null);
@@ -124,9 +137,9 @@ export function BoardScreen() {
           />
         </label>
       </div>
-      {notice ? (
+      {message ? (
         <p role="status" className="mt-3 text-muted-foreground">
-          {notice}
+          {message}
         </p>
       ) : null}
       <div className="mt-6">
@@ -137,7 +150,7 @@ export function BoardScreen() {
             breakBefore={current.breakBefore}
             colours={colours}
           />
-        ) : (
+        ) : noFortnight ? null : (
           <Loading what="the fortnight" />
         )}
       </div>

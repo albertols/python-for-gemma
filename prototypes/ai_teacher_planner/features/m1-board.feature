@@ -15,6 +15,18 @@ Feature: Fortnight board
     And I press "Next fortnight"
     Then Week 1 starts on 30 November 2026 and Week 2 on 7 December 2026
 
+  Scenario: The address opens the fortnight holding any date in it
+    When I open the board at "/board?w1=2026-12-21"
+    Then Week 1 starts on 14 December 2026 and Week 2 on 21 December 2026
+
+  Scenario: A Monday in Week 2 of a fortnight opens that fortnight
+    When I open the board at "/board?w1=2026-12-08"
+    Then Week 1 starts on 30 November 2026 and Week 2 on 7 December 2026
+
+  Scenario: An address date with no fortnight on or after it says so
+    When I open the board at "/board?w1=2030-01-01"
+    Then the board says "There is no fortnight on or after 1 January 2030."
+
   Scenario: A labelled official holiday has no lessons
     When I open the board
     And I go to the fortnight of 30 November 2026
