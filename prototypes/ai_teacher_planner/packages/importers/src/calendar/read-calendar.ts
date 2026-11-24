@@ -83,10 +83,14 @@ function textOf(value: ExcelJS.CellValue | undefined): string | null {
   return t === "" ? null : t;
 }
 
+const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 const compareFindings = (a: ImportFinding, b: ImportFinding) =>
   (a.sheetRow ?? Number.POSITIVE_INFINITY) -
     (b.sheetRow ?? Number.POSITIVE_INFINITY) ||
-  (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0);
+  cmp(a.kind, b.kind) ||
+  cmp(a.date ?? "", b.date ?? "") ||
+  cmp(a.message, b.message);
 
 function stop(
   fileHash: string,
@@ -121,16 +125,20 @@ const BLOCK_HEADERS: Record<string, keyof YearCells> = {
   "Assessments IB": "assessmentsIb",
 };
 
+/** The row holding the most required headers (at least two), or null. */
 function findHeaderRow(ws: ExcelJS.Worksheet): number | null {
+  let best: { row: number; hits: number } | null = null;
   for (let r = 1; r <= ws.rowCount; r++) {
     const texts = new Set<string>();
     ws.getRow(r).eachCell((c) => {
       const t = textOf(c.value);
       if (t) texts.add(t);
     });
-    if (REQUIRED.every((h) => texts.has(h))) return r;
+    const hits = REQUIRED.filter((h) => texts.has(h)).length;
+    if (hits >= 2 && (best === null || hits > best.hits))
+      best = { row: r, hits };
   }
-  return null;
+  return best?.row ?? null;
 }
 
 function locateColumns(
@@ -278,7 +286,19 @@ export async function readCalendarWorkbook(
 ): Promise<CalendarImport> {
   const fileHash = await sha256Hex(data);
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(data as unknown as ArrayBuffer);
+  try {
+    await wb.xlsx.load(data as unknown as ArrayBuffer);
+  } catch {
+    return stop(fileHash, [
+      {
+        kind: "missing-sheet",
+        severity: "error",
+        sheetRow: null,
+        date: null,
+        message: "The file could not be opened as an Excel workbook.",
+      },
+    ]);
+  }
 
   const ws = wb.worksheets.find((s) => CALENDAR_SHEET.test(s.name));
   if (!ws)

@@ -78,6 +78,9 @@ describe("the synthetic calendar", () => {
     );
     expect(bad.ok).toBe(false);
     expect(bad.rows).toEqual([]);
+    expect(
+      bad.findings.filter((f) => f.kind === "missing-header"),
+    ).toHaveLength(1);
     expect(bad.findings).toContainEqual(
       expect.objectContaining({
         kind: "missing-header",
@@ -141,6 +144,17 @@ describe("the synthetic calendar", () => {
     wb.addWorksheet("Staff list").addRow(["nothing here"]);
     const out = await readCalendarWorkbook(
       new Uint8Array((await wb.xlsx.writeBuffer()) as ArrayBuffer),
+    );
+    expect(out.ok).toBe(false);
+    expect(out.rows).toEqual([]);
+    expect(out.findings).toEqual([
+      expect.objectContaining({ kind: "missing-sheet", severity: "error" }),
+    ]);
+  });
+
+  test("a file that is not a workbook stops with one error", async () => {
+    const out = await readCalendarWorkbook(
+      new TextEncoder().encode("not xlsx"),
     );
     expect(out.ok).toBe(false);
     expect(out.rows).toEqual([]);

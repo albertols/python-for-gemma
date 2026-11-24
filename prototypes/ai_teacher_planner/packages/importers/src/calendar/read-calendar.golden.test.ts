@@ -48,6 +48,14 @@ describe.skipIf(!resourcesAvailable())("the school's real calendar", () => {
       findings("date-gap").length + findings("unparseable-row").length,
     ).toBe(4);
     expect(findings("merged-cells")).toEqual([]);
+    for (const kind of [
+      "missing-header",
+      "missing-sheet",
+      "label-on-weekend",
+      "year-block-mismatch",
+      "assrep-mismatch",
+    ])
+      expect(findings(kind), kind).toHaveLength(0);
     expect(need().findings.filter((f) => f.severity === "error")).toEqual([]);
   });
 
