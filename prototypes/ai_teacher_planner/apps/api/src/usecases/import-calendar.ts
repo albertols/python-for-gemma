@@ -16,6 +16,8 @@ import type {
 } from "../repos/ports.ts";
 
 export interface ReportIssue {
+  /** The id of the stored report window or parents' evening. */
+  id: string;
   kind: "report-window" | "parents-evening";
   label: string;
   field: "dataDeadline" | "hodReview" | "sentHome" | "date";
@@ -42,12 +44,13 @@ function reportIssuesOf(
     for (const field of fields) {
       const raw = w.raw[field];
       if (raw !== null && w[field] === null)
-        issues.push({ kind: "report-window", label, field, raw });
+        issues.push({ id: w.id, kind: "report-window", label, field, raw });
     }
   }
   for (const e of evenings)
     if (e.raw !== null && e.date === null)
       issues.push({
+        id: e.id,
         kind: "parents-evening",
         label:
           e.yearGroup === null ? e.label : `Year ${e.yearGroup} ${e.label}`,
@@ -58,6 +61,7 @@ function reportIssuesOf(
     (a, b) =>
       compare(a.kind, b.kind) ||
       compare(a.label, b.label) ||
+      compare(a.id, b.id) ||
       compare(a.field, b.field),
   );
 }

@@ -103,12 +103,14 @@ test("unreadable report and parents' evening dates are listed with their text", 
   const posted = await send(app, "POST", "/api/calendar/import", undefined);
   const expected = [
     {
+      id: expect.stringMatching(/^pe-/),
       kind: "parents-evening",
       label: "Year 11 Parent Meeting",
       field: "date",
       raw: "Parent Meeting: sometime soon",
     },
     {
+      id: expect.stringMatching(/^rw-/),
       kind: "report-window",
       label: "Year 7 Report 1: Short",
       field: "dataDeadline",
@@ -120,6 +122,53 @@ test("unreadable report and parents' evening dates are listed with their text", 
   expect((await get(app, "/api/calendar/import")).body.reportIssues).toEqual(
     expected,
   );
+});
+
+test("a corrected report date and parents' evening date leave the issue list", async () => {
+  const bytes = await buildSyntheticWorkbook({ reportDates: "unreadable" });
+  const app = await buildTestApp({}, fakeGateway({ [SYNTHETIC_FILE]: bytes }));
+  const { body } = await send(app, "POST", "/api/calendar/import", undefined);
+  const win = body.reportIssues.find((i: Json) => i.kind === "report-window");
+  const eve = body.reportIssues.find((i: Json) => i.kind === "parents-evening");
+
+  const w = await send(app, "PUT", `/api/reports/windows/${win.id}/date`, {
+    field: win.field,
+    date: "2027-03-12",
+  });
+  expect(w.status).toBe(200);
+  expect(w.body.reportIssues.map((i: Json) => i.id)).toEqual([eve.id]);
+  const e = await send(app, "PUT", `/api/reports/evenings/${eve.id}/date`, {
+    date: "2027-02-04",
+  });
+  expect(e.status).toBe(200);
+  expect(e.body.reportIssues).toEqual([]);
+  expect((await get(app, "/api/calendar/import")).body.reportIssues).toEqual(
+    [],
+  );
+});
+
+test("correcting a report date refuses unknown rows and unreal dates", async () => {
+  const bytes = await buildSyntheticWorkbook({ reportDates: "unreadable" });
+  const app = await buildTestApp({}, fakeGateway({ [SYNTHETIC_FILE]: bytes }));
+  await send(app, "POST", "/api/calendar/import", undefined);
+  const missing = await send(app, "PUT", "/api/reports/windows/nope/date", {
+    field: "dataDeadline",
+    date: "2027-03-12",
+  });
+  expect(missing.status).toBe(404);
+  const missingEvening = await send(
+    app,
+    "PUT",
+    "/api/reports/evenings/nope/date",
+    {
+      date: "2027-03-12",
+    },
+  );
+  expect(missingEvening.status).toBe(404);
+  const bad = await send(app, "PUT", "/api/reports/evenings/pe-001/date", {
+    date: "2027-02-30",
+  });
+  expect(bad.status).toBe(422);
 });
 
 test("a clean workbook has no report issues", async () => {

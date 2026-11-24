@@ -159,6 +159,27 @@ export function createCalendarRepo(db: Database): CalendarRepo {
       );
     },
 
+    setWindowDate(id, field, date) {
+      const column = {
+        dataDeadline: "data_deadline",
+        hodReview: "hod_review",
+        sentHome: "sent_home",
+      }[field];
+      return (
+        db
+          .prepare(`update report_windows set ${column} = ? where id = ?`)
+          .run(date, id).changes > 0
+      );
+    },
+
+    setEveningDate(id, date) {
+      return (
+        db
+          .prepare("update parents_evenings set date = ? where id = ?")
+          .run(date, id).changes > 0
+      );
+    },
+
     evenings() {
       const records = db
         .prepare("select * from parents_evenings order by id")

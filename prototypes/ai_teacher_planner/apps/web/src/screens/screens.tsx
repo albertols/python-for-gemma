@@ -41,11 +41,6 @@ export const AuditScreen = () => (
     The slot audit is built in a later task.
   </Placeholder>
 );
-export const SetupScreen = () => (
-  <Placeholder title="Setup">
-    Calendar import and the timetable arrive in a later task.
-  </Placeholder>
-);
 export const NotFoundScreen = () => (
   <section>
     <h1 className="text-2xl font-semibold">Page not found</h1>

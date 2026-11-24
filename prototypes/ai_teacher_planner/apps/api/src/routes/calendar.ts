@@ -27,6 +27,7 @@ const summary = z.object({
   counts: z.object({ W1: z.number(), W2: z.number() }),
   reportIssues: z.array(
     z.object({
+      id: z.string(),
       kind: z.enum(["report-window", "parents-evening"]),
       label: z.string(),
       field: z.enum(["dataDeadline", "hodReview", "sentHome", "date"]),
@@ -87,6 +88,41 @@ const putTerms = createRoute({
   },
 });
 
+const putWindowDate = createRoute({
+  method: "put",
+  path: "/api/reports/windows/{id}/date",
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      content: json(
+        z.object({
+          field: z.enum(["dataDeadline", "hodReview", "sentHome"]),
+          date: isoDate,
+        }),
+      ),
+      required: true,
+    },
+  },
+  responses: {
+    200: { description: "The import summary", content: json(summary) },
+    404: errorResponse("There is no such report window"),
+    422: errorResponse("The date is not a real date"),
+  },
+});
+const putEveningDate = createRoute({
+  method: "put",
+  path: "/api/reports/evenings/{id}/date",
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: json(z.object({ date: isoDate })), required: true },
+  },
+  responses: {
+    200: { description: "The import summary", content: json(summary) },
+    404: errorResponse("There is no such parents' evening"),
+    422: errorResponse("The date is not a real date"),
+  },
+});
+
 const byFirstDay = (
   a: { firstPupilDay: string },
   b: { firstPupilDay: string },
@@ -96,6 +132,13 @@ const byFirstDay = (
     : a.firstPupilDay > b.firstPupilDay
       ? 1
       : 0;
+
+function summaryOrThrow(repos: Repos) {
+  const s = importSummary(repos);
+  if (s === null)
+    throw new ApiError(404, "no-import", "The calendar has not been imported.");
+  return s;
+}
 
 export function calendarRoutes(deps: {
   config: Config;
@@ -109,6 +152,28 @@ export function calendarRoutes(deps: {
       c.json(await importCalendar({ gateway, repos, now }), 200),
     )
     .openapi(getImport, (c) => c.json(importSummary(repos), 200))
+    .openapi(putWindowDate, (c) => {
+      const { id } = c.req.valid("param");
+      const { field, date } = c.req.valid("json");
+      if (!repos.calendar.setWindowDate(id, field, date))
+        throw new ApiError(
+          404,
+          "no-such-report",
+          `There is no report window "${id}".`,
+        );
+      return c.json(summaryOrThrow(repos), 200);
+    })
+    .openapi(putEveningDate, (c) => {
+      const { id } = c.req.valid("param");
+      const { date } = c.req.valid("json");
+      if (!repos.calendar.setEveningDate(id, date))
+        throw new ApiError(
+          404,
+          "no-such-report",
+          `There is no parents' evening "${id}".`,
+        );
+      return c.json(summaryOrThrow(repos), 200);
+    })
     .openapi(getDays, (c) => {
       const { from, to } = c.req.valid("query");
       const days = loadPlanning(repos).days.filter(

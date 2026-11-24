@@ -15,11 +15,19 @@ export class PlannerNotRunning extends Error {
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  constructor(status: number, code: string, message: string) {
+  /** The API's list of reasons, when it gave one (a refused save). */
+  readonly issues: string[];
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    issues: string[] = [],
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.issues = issues;
   }
 }
 
@@ -33,11 +41,12 @@ export async function call<T>(request: () => Promise<Response>): Promise<T> {
   }
   if (res.ok) return (await res.json()) as T;
   const body = (await res.json().catch(() => null)) as {
-    error?: { code?: string; message?: string };
+    error?: { code?: string; message?: string; issues?: string[] };
   } | null;
   throw new ApiError(
     res.status,
     body?.error?.code ?? "unknown",
     body?.error?.message ?? `The planner answered with status ${res.status}.`,
+    body?.error?.issues ?? [],
   );
 }

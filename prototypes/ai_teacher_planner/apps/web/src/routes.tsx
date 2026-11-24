@@ -4,9 +4,9 @@ import {
   AuditScreen,
   BoardScreen,
   NotFoundScreen,
-  SetupScreen,
   TodayScreen,
 } from "./screens/screens.tsx";
+import { SetupScreen } from "./screens/setup/SetupScreen.tsx";
 
 export function AppRoutes() {
   return (

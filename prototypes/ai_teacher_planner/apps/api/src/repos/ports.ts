@@ -41,6 +41,13 @@ export interface CalendarRepo {
   windows(): StoredReportWindow[];
   /** Sorted by id. */
   evenings(): StoredParentsEvening[];
+  /** Stores a corrected date. False when there is no such row. */
+  setWindowDate(
+    id: string,
+    field: "dataDeadline" | "hodReview" | "sentHome",
+    date: string,
+  ): boolean;
+  setEveningDate(id: string, date: string): boolean;
 }
 
 export interface TimetableRepo {
