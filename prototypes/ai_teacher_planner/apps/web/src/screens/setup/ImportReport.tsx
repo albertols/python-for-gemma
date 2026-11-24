@@ -49,19 +49,19 @@ function FindingList({
   );
 }
 
-function decisionText(r: Summary["resolved"][number]["resolution"]): string {
+function decisionText(
+  r: ImportSummary["resolved"][number]["resolution"],
+): string {
   if (r.decision === "teaching-day") return "You have lessons that day.";
   return `No lessons that day: ${r.reason ?? "No lessons (your correction)"}.`;
 }
-
-type Summary = ImportSummary;
 
 /** Her decisions, each with Undo. */
 function Resolved({
   items,
   onDone,
 }: {
-  items: Summary["resolved"];
+  items: ImportSummary["resolved"];
   onDone: (message: string) => void;
 }) {
   const undo = useRemoveResolution();
@@ -112,7 +112,7 @@ function Stale({
   summary,
   onDone,
 }: {
-  summary: Summary;
+  summary: ImportSummary;
   onDone: (message: string) => void;
 }) {
   const removeLabel = useRemoveLabel();
@@ -128,9 +128,7 @@ function Stale({
       <ul className="mt-2 space-y-2">
         {summary.staleCorrections.map((s) => (
           <li key={`${s.type}-${s.date}`}>
-            Your {s.type === "label" ? "week label correction" : "decision"} for{" "}
-            <strong>{longDate(s.date)}</strong> no longer matches a day in the
-            calendar.{" "}
+            <strong>{longDate(s.date)}</strong>: {s.message}.{" "}
             <Button
               type="button"
               aria-label={`Remove your ${s.type === "label" ? "correction" : "decision"} for ${longDate(s.date)}`}

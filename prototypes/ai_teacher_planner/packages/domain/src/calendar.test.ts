@@ -49,8 +49,23 @@ test("a weekend is never a pupil day, whatever its label cell says", () =>
     kind: "weekend",
     pupilDay: false,
   }));
-test("checkLabels finds nothing wrong in the synthetic year", () =>
-  expect(checkLabels(days)).toEqual([]));
+// As on the real calendar, 4 May 2027 disagrees with the rest of its week.
+const MIXED_WEEK = [
+  expect.objectContaining({
+    kind: "mixed-labels-in-week",
+    weekOf: "2027-05-03",
+  }),
+];
+test("checkLabels finds only the mixed week of 3 May in the synthetic year", () =>
+  expect(checkLabels(days)).toEqual(MIXED_WEEK));
+test("her correction of 4 May clears it", () =>
+  expect(
+    checkLabels(
+      toCalendarDays(syntheticRows(), SYNTHETIC_TERMS, [
+        { date: "2027-05-04", weekLabel: "W1", note: null },
+      ]),
+    ),
+  ).toEqual([]));
 test("checkLabels reports a week with two labels", () => {
   const changed = days.map((x) =>
     x.date === "2026-09-09" ? { ...x, weekLabel: "W1" as const } : x,
@@ -157,7 +172,7 @@ test.each([
 );
 
 test("a holiday does not disturb labels, blocks or fortnights", () => {
-  expect(checkLabels(days)).toEqual([]);
+  expect(checkLabels(days)).toEqual(MIXED_WEEK);
   expect(
     teachingBlocks(days, SYNTHETIC_TERMS).some(
       (b) => b.from <= "2026-12-08" && b.to >= "2026-12-08",

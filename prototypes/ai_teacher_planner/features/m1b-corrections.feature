@@ -13,7 +13,8 @@ Feature: Correcting the calendar
 
   Scenario: A week label is corrected
     When I import the synthetic calendar
-    And I change the week label of 4 May 2027 to Week 1
+    Then the report shows 4 May 2027 as Week 2
+    When I change the week label of 4 May 2027 to Week 1
     Then the board shows 4 May 2027 as Week 1, marked corrected
 
   Scenario: Notes outside the school year are folded away

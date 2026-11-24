@@ -45,6 +45,9 @@ const OTHER_EVENTS: [string, string, string][] = [
 /** Stray "x" in the label column: a Saturday in October, and a Monday in August before the school year. */
 const STRAY_X = ["2026-10-31", "2026-08-17"];
 
+/** As on the real calendar, a Tuesday whose label disagrees with the rest of its week: that week is mixed. */
+const WRONG_LABEL: Record<string, "W1" | "W2"> = { "2027-05-04": "W2" };
+
 function eventOn(
   table: [string, string, string][],
   date: string,
@@ -89,7 +92,7 @@ export function syntheticRows(): CalendarRow[] {
 
   return dates.map((date): CalendarRow => {
     const weekLabel = isLabelled(date)
-      ? (labelOfWeek.get(mondayOf(date)) ?? null)
+      ? (WRONG_LABEL[date] ?? labelOfWeek.get(mondayOf(date)) ?? null)
       : null;
     return {
       date,

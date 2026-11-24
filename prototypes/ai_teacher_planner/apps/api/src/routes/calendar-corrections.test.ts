@@ -268,8 +268,8 @@ test("a correction whose date left the calendar is an error finding until she re
     expect.objectContaining({ severity: "error", date: "2027-06-29" }),
   ]);
   expect(again.body.staleCorrections).toEqual([
-    { type: "label", date: "2027-05-04" },
-    { type: "resolution", date: "2027-06-29" },
+    expect.objectContaining({ type: "label", date: "2027-05-04" }),
+    expect.objectContaining({ type: "resolution", date: "2027-06-29" }),
   ]);
   // Still there after a reload of the summary.
   expect((await summary(app)).staleCorrections).toHaveLength(2);
@@ -283,20 +283,109 @@ test("a correction whose date left the calendar is an error finding until she re
   ).toEqual([]);
 });
 
-test("fixing a mixed week removes its label warning", async () => {
+test("a genuinely mixed week is reported, a correction clears it, and removing the correction brings it back", async () => {
   const app = await imported();
-  const before = (await summary(app)).shown.filter(
-    (f: Json) => f.kind === "label-issue",
-  );
-  // Make Tuesday of an ordinary week disagree with its week, then fix it again.
-  const day = await dayOn(app, "2026-11-17");
-  const other = day.weekLabel === "W1" ? "W2" : "W1";
-  await send(app, "PUT", label("2026-11-17"), { weekLabel: other, note: null });
-  await send(app, "PUT", label("2026-11-17"), {
-    weekLabel: day.weekLabel,
+  const mixed = async () =>
+    (await summary(app)).shown.filter(
+      (f: Json) => f.kind === "label-issue" && f.date === "2027-05-03",
+    );
+  // 4 May is Week 2 in the calendar; the rest of its week is Week 1.
+  expect((await dayOn(app, "2027-05-04")).weekLabel).toBe("W2");
+  expect(await mixed()).toHaveLength(1);
+  await send(app, "PUT", label("2027-05-04"), { weekLabel: "W1", note: null });
+  expect(await mixed()).toEqual([]);
+  await send(app, "DELETE", label("2027-05-04"));
+  expect(await mixed()).toHaveLength(1);
+});
+
+test("a label correction equal to the calendar's own label is refused", async () => {
+  const app = await imported();
+  const res = await send(app, "PUT", label("2027-05-04"), {
+    weekLabel: "W2",
     note: null,
   });
+  expect(res.status).toBe(422);
+  expect(res.body.error.message).toBe("That is already the calendar's label");
   expect(
-    (await summary(app)).shown.filter((f: Json) => f.kind === "label-issue"),
-  ).toEqual(before);
+    (await send(app, "GET", "/api/calendar/corrections")).body.labels,
+  ).toEqual([]);
+});
+
+test("a decision whose note the new calendar no longer raises stays visible, keeps its effect, and can be removed", async () => {
+  const files = { [SYNTHETIC_FILE]: await buildSyntheticWorkbook() };
+  const app = await imported(fakeGateway(files));
+  await send(app, "PUT", resolution("2027-03-19"), {
+    decision: "no-lessons",
+    reason: "Staff training",
+  });
+  // The same year, but 19 March is no longer marked as a possible day off.
+  files[SYNTHETIC_FILE] = await buildSyntheticWorkbook({
+    clearNotesOn: ["2027-03-19"],
+  });
+  const again = await send(app, "POST", "/api/calendar/import");
+  expect(again.body.staleCorrections).toEqual([
+    expect.objectContaining({ type: "resolution", date: "2027-03-19" }),
+  ]);
+  expect(
+    again.body.shown.filter((f: Json) => f.kind === "orphaned-correction"),
+  ).toEqual([
+    expect.objectContaining({
+      severity: "error",
+      date: "2027-03-19",
+      message:
+        "Your decision for 2027-03-19 no longer matches a note in the calendar",
+    }),
+  ]);
+  expect(again.body.resolved).toEqual([]);
+  // It still cancels the lessons until she removes it.
+  expect(
+    (await slotsOn(app, "2027-03-19")).every(
+      (s: Json) => s.status === "cancelled",
+    ),
+  ).toBe(true);
+  expect((await send(app, "DELETE", resolution("2027-03-19"))).status).toBe(
+    200,
+  );
+  expect(
+    (await slotsOn(app, "2027-03-19")).every((s: Json) => s.status === "open"),
+  ).toBe(true);
+  expect((await summary(app)).staleCorrections).toEqual([]);
+});
+
+test("a label correction whose date is no longer in term after a term change is stale and removable", async () => {
+  const app = await imported();
+  await send(app, "PUT", label("2027-05-04"), { weekLabel: "W1", note: null });
+  const terms = (await send(app, "GET", "/api/terms")).body;
+  const shortened = terms.map((t: Json) =>
+    t.id === "T3" ? { ...t, lastPupilDay: "2027-04-30" } : t,
+  );
+  expect((await send(app, "PUT", "/api/terms", shortened)).status).toBe(200);
+  const s = await summary(app);
+  expect(s.staleCorrections).toEqual([
+    {
+      type: "label",
+      date: "2027-05-04",
+      message:
+        "Your correction for 2027-05-04 is no longer on a weekday in term",
+    },
+  ]);
+  expect(
+    s.shown.filter((f: Json) => f.kind === "orphaned-correction"),
+  ).toHaveLength(1);
+  expect((await send(app, "DELETE", label("2027-05-04"))).status).toBe(200);
+  expect((await summary(app)).staleCorrections).toEqual([]);
+});
+
+test("a finding of another kind cannot be settled", async () => {
+  const app = await imported();
+  // 3 May 2027 carries a mixed-week warning, which she fixes by correcting a label, not by a decision.
+  const res = await send(app, "PUT", resolution("2027-05-03"), {
+    decision: "no-lessons",
+    reason: "x",
+  });
+  expect(res.status).toBe(422);
+  expect(res.body.error.message).toBe(
+    "There is nothing to settle on that date",
+  );
+  expect((await send(app, "GET", "/api/disruptions")).body).toEqual([]);
 });

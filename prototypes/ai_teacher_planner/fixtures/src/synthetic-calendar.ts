@@ -21,6 +21,8 @@ export interface SyntheticWorkbookOptions {
   rowsUntil?: IsoDate;
   /** "none" leaves the report and parents' evening sheets empty; "unreadable" gives one date of each that cannot be read. */
   reportDates?: "none" | "unreadable";
+  /** Leave the event note of these dates blank, so the importer raises nothing about them. */
+  clearNotesOn?: IsoDate[];
 }
 
 const MONTHS = [
@@ -185,7 +187,8 @@ function addCalendarSheet(
           day: DAYS[p.weekday] ?? "",
           label: labelText(row),
           event:
-            row.date >= "2027-02-15" && row.date <= "2027-02-19"
+            (row.date >= "2027-02-15" && row.date <= "2027-02-19") ||
+            options.clearNotesOn?.includes(row.date)
               ? null
               : row.secondaryEvent,
         },

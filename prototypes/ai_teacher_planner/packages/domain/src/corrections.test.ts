@@ -58,13 +58,14 @@ test("a correction can label an unlabelled weekday in term", () => {
 
 test("a week whose holiday has another label is not mixed", () => {
   // The labelled official holiday of 8 December has the week's other label flipped on it.
-  const days = toCalendarDays(rows, terms).map((d) =>
-    d.date === "2026-12-08"
-      ? {
-          ...d,
-          weekLabel: d.weekLabel === "W1" ? ("W2" as const) : ("W1" as const),
-        }
-      : d,
+  const days = toCalendarDays(rows, terms, [fix("2027-05-04", "W1")]).map(
+    (d) =>
+      d.date === "2026-12-08"
+        ? {
+            ...d,
+            weekLabel: d.weekLabel === "W1" ? ("W2" as const) : ("W1" as const),
+          }
+        : d,
   );
   expect(checkLabels(days)).toEqual([]);
 });

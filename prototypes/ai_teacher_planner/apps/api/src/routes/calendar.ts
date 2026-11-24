@@ -47,7 +47,11 @@ const summary = z.object({
   outsideYear: z.array(finding),
   resolved: z.array(z.object({ finding, resolution })),
   staleCorrections: z.array(
-    z.object({ type: z.enum(["label", "resolution"]), date: isoDate }),
+    z.object({
+      type: z.enum(["label", "resolution"]),
+      date: isoDate,
+      message: z.string(),
+    }),
   ),
   counts: z.object({ W1: z.number(), W2: z.number() }),
   reportIssues: z.array(

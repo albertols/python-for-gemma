@@ -174,3 +174,14 @@ When("I open the notes outside the school year", async ({ page }) => {
   await page.getByText(/^Outside the school year/).click();
   await expect(page.getByText(/weekday does not match/)).toBeVisible();
 });
+
+Then(
+  "the report shows {int} {word} {int} as Week {int}",
+  async ({ page }, d: number, month: string, y: number, week: number) => {
+    await expect(
+      warningOn(page, longOf(d, month, y)).getByText(`Week ${week}`, {
+        exact: true,
+      }),
+    ).toBeVisible();
+  },
+);

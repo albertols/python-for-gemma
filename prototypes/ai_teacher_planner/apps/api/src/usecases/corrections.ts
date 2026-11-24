@@ -34,12 +34,18 @@ export function setLabelCorrection(
   input: { date: IsoDate; weekLabel: WeekLabel; note: string | null },
   now: Date,
 ): LabelCorrection {
-  const hasRow = repos.calendar.rows().some((r) => r.date === input.date);
-  if (!hasRow || !canCorrectLabel(input.date, repos.settings.terms()))
+  const row = repos.calendar.rows().find((r) => r.date === input.date);
+  if (!row || !canCorrectLabel(input.date, repos.settings.terms()))
     throw new ApiError(
       422,
       "cannot-correct-label",
       "You can only change the week label of a weekday in term that is in the calendar.",
+    );
+  if (row.weekLabel === input.weekLabel)
+    throw new ApiError(
+      422,
+      "same-label",
+      "That is already the calendar's label",
     );
   const correction: LabelCorrection = {
     date: input.date,

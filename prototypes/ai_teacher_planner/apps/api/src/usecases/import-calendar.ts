@@ -1,4 +1,5 @@
 import {
+  canCorrectLabel,
   checkLabels,
   type IsoDate,
   termSpanning,
@@ -7,6 +8,7 @@ import {
 import {
   dayOffFindings,
   type ImportFinding,
+  isSettleable,
   readCalendarWorkbook,
   readParentsEvenings,
   readReportDeadlines,
@@ -32,10 +34,11 @@ export interface ReportIssue {
   field: "dataDeadline" | "hodReview" | "sentHome" | "date";
   raw: string;
 }
-/** A correction or decision whose date the calendar no longer has. Kept until she removes it. */
+/** A correction or decision that no longer fits the calendar. It keeps its effect until she removes it. */
 export interface StaleCorrection {
   type: "label" | "resolution";
   date: IsoDate;
+  message: string;
 }
 export interface ImportSummary extends TidyReport {
   ok: boolean;
@@ -46,6 +49,7 @@ export interface ImportSummary extends TidyReport {
 }
 
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+const cmpDate = compare;
 
 function reportIssuesOf(
   windows: readonly StoredReportWindow[],
@@ -80,9 +84,6 @@ function reportIssuesOf(
   );
 }
 
-const staleMessage = (date: IsoDate) =>
-  `Your correction for ${date} no longer matches a day in the calendar`;
-
 /**
  * The latest stored import, tidied with her decisions, or null when nothing has
  * been imported. The stored findings are the importer's own; her corrections
@@ -109,19 +110,48 @@ export function importSummary(repos: Repos): ImportSummary | null {
   );
   const tidy = tidyFindings(current, repos.settings.terms(), resolutions);
 
+  const terms = repos.settings.terms();
   const known = new Set(rows.map((r) => r.date));
+  const settleable = new Set(
+    latest.findings.filter(isSettleable).map((f) => f.date),
+  );
+  const gone = (date: IsoDate) =>
+    `Your correction for ${date} no longer matches a day in the calendar`;
   const staleCorrections: StaleCorrection[] = [
-    ...labels.map((c) => ({ type: "label" as const, date: c.date })),
-    ...resolutions.map((r) => ({ type: "resolution" as const, date: r.date })),
-  ].filter((s) => !known.has(s.date));
-  const stale = [...new Set(staleCorrections.map((s) => s.date))].sort();
-  const staleFindings = stale.map(
-    (date): ImportFinding => ({
+    ...labels.flatMap((c): StaleCorrection[] =>
+      !known.has(c.date)
+        ? [{ type: "label", date: c.date, message: gone(c.date) }]
+        : !canCorrectLabel(c.date, terms)
+          ? [
+              {
+                type: "label",
+                date: c.date,
+                message: `Your correction for ${c.date} is no longer on a weekday in term`,
+              },
+            ]
+          : [],
+    ),
+    ...resolutions.flatMap((r): StaleCorrection[] =>
+      !known.has(r.date)
+        ? [{ type: "resolution", date: r.date, message: gone(r.date) }]
+        : !settleable.has(r.date)
+          ? [
+              {
+                type: "resolution",
+                date: r.date,
+                message: `Your decision for ${r.date} no longer matches a note in the calendar`,
+              },
+            ]
+          : [],
+    ),
+  ].sort((a, b) => cmpDate(a.date, b.date) || cmpDate(a.type, b.type));
+  const staleFindings = staleCorrections.map(
+    (s): ImportFinding => ({
       kind: "orphaned-correction",
       severity: "error",
       sheetRow: null,
-      date,
-      message: staleMessage(date),
+      date: s.date,
+      message: s.message,
     }),
   );
   const shown = [...tidy.shown, ...staleFindings];
