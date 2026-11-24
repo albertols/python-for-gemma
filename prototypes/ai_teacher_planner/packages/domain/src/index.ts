@@ -11,6 +11,7 @@ export * from "./plan.ts";
 export * from "./provenance.ts";
 export * from "./reminders.ts";
 export * from "./scheme.ts";
+export * from "./sequence.ts";
 export * from "./slots.ts";
 export * from "./timetable.ts";
 export * from "./todos.ts";

@@ -34,7 +34,8 @@ decisions: "Her decisions and recorded facts (stored rows)" {
   item: "SowItem\norder, kind, track, lessons,\nprereqs, provenance" {class: win}
   override: "GroupOverride\nlessons for one group" {class: win}
   assessment: "AssessmentSpec\ndate, type, marks, length,\nwhole slot or in lesson" {class: win}
-  pin: "Pin\nlesson, slot or not-after" {class: win}
+  pin: "Pin and Merge\nlesson to a slot, not-after,\ntwo lessons in one slot" {class: win}
+  position: "Position\nnext lesson, items done" {class: win}
   labelfix: "LabelCorrection and\nFindingResolution\nher day label, her import decision" {class: win}
   exam: "ExternalExam\ncode, date, session, groups" {class: win}
   disruption: "Disruption\nscope, dates, effect, reason" {class: win}
@@ -47,7 +48,8 @@ derived: "Derived by the engine" {
 
   slot: "Slot\ngroup, date, period, status" {class: concept}
   lesson: "Lesson\nitem#n, per group;\nassessments are not lessons" {class: concept}
-  placement: "Placement\nlesson, slot, state" {class: concept}
+  placement: "Placement\nlesson, slot, state;\nspare lessons fill the rest" {class: concept}
+  anchors: "AssessmentPlacement,\nCheckpoint, Overflow, Conflict\nwhat did not fit or was refused" {class: concept}
 }
 
 revision: "PlanRevision\nimmutable snapshot,\npoints to its parent" {
@@ -69,6 +71,9 @@ decisions.item -> pack.speclink: {class: flow}
 pack.speclink -> pack.spec: {class: flow}
 decisions.assessment -> decisions.item: "assesses" {class: flow}
 decisions.pin -> derived.placement: "fixes" {class: flow}
+decisions.position -> derived.lesson: "declares what is behind her" {class: flow}
+decisions.assessment -> derived.anchors: "anchored to a slot" {class: flow}
+derived.placement -> derived.anchors: "unplaced or refused" {class: flow}
 derived.lesson -> derived.placement: {class: flow}
 derived.slot -> derived.placement: {class: flow}
 derived.placement -> revision: "saved on accept" {class: flow}

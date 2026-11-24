@@ -45,7 +45,7 @@ Look for the five shared pieces every screen reuses; the purple ones are where A
 
 Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import.
 
-![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, derived slots, lessons and placements, plan revisions, provenance with review state](05-domain-model.svg)
+![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints, overflow and conflicts, plan revisions, provenance with review state](05-domain-model.svg)
 
 ## 6. Scheduling pipeline
 
