@@ -18,5 +18,4 @@ export {
   CALENDAR_WORKBOOK_NAME,
   calendarWorkbookPath,
   resourcesAvailable,
-  resourcesDir,
 } from "./resources-available.ts";

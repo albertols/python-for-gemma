@@ -1,21 +1,48 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const domainSrc = join(import.meta.dirname, "../../packages/domain/src");
+/** The workspace root, prototypes/ai_teacher_planner. */
+export const workspaceRoot = join(import.meta.dirname, "../..");
 
-/** Every non-test `.ts` file under packages/domain/src, as absolute paths. */
-export function domainSourceFiles(): string[] {
+const domainSrc = join(workspaceRoot, "packages/domain/src");
+
+/** Every non-test `.ts` file under `dir`, as absolute paths, sorted. */
+function sourceFilesUnder(dir: string): string[] {
   const found: string[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const path = join(dir, entry.name);
+  const walk = (current: string): void => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const path = join(current, entry.name);
       if (entry.isDirectory()) walk(path);
       else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts"))
         found.push(path);
     }
   };
-  walk(domainSrc);
+  walk(dir);
   return found.sort();
+}
+
+/** Every non-test `.ts` file under packages/domain/src, as absolute paths. */
+export function domainSourceFiles(): string[] {
+  return sourceFilesUnder(domainSrc);
+}
+
+/** Every non-test `.ts` file under `src/` of each package and app and under fixtures/src. */
+export function workspaceSourceFiles(): string[] {
+  return ["packages", "apps"]
+    .flatMap((group) =>
+      readdirSync(join(workspaceRoot, group), { withFileTypes: true })
+        .filter((e) => e.isDirectory() && e.name !== "node_modules")
+        .map((e) => join(workspaceRoot, group, e.name, "src")),
+    )
+    .concat(join(workspaceRoot, "fixtures/src"))
+    .flatMap((dir) => {
+      try {
+        return sourceFilesUnder(dir);
+      } catch {
+        return [];
+      }
+    })
+    .sort();
 }
 
 export function read(file: string): string {
