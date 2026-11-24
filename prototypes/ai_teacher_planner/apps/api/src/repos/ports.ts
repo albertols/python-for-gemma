@@ -1,6 +1,7 @@
 import type {
   CalendarRow,
   Disruption,
+  EventClassification,
   FindingResolution,
   Group,
   LabelCorrection,
@@ -100,12 +101,23 @@ export interface CorrectionRepo {
   removeResolution(date: string): boolean;
 }
 
+/** Her confirmations of calendar events. A new import never touches them. */
+export interface EventRepo {
+  /** Sorted by id. */
+  list(): EventClassification[];
+  /** Replaces any confirmation with the same id. */
+  upsert(classification: EventClassification, createdAt: string): void;
+  /** False when there was none. */
+  remove(id: string): boolean;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
   settings: SettingsRepo;
   disruptions: DisruptionRepo;
   corrections: CorrectionRepo;
+  events: EventRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }

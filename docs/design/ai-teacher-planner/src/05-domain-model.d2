@@ -35,6 +35,7 @@ decisions: "Her decisions and recorded facts (stored rows)" {
   assessment: "Assessment\ndate, type, status" {class: win}
   pin: "Pin\nlesson, slot or not-after" {class: win}
   disruption: "Disruption\nscope, dates, effect, reason" {class: win}
+  eventconfirm: "EventClassification\nwording, year, dates, groups,\nperiods, until" {class: win}
 }
 
 derived: "Derived by the engine" {
@@ -55,6 +56,7 @@ setup.day -> derived.slot: "label and date" {class: flow}
 setup.timetable -> derived.slot: "periods" {class: flow}
 setup.grp -> pack.course: "follows" {class: flow}
 decisions.disruption -> derived.slot: "cancels or covers" {class: flow}
+decisions.eventconfirm -> derived.slot: "cancels only once confirmed" {class: flow}
 pack.course -> decisions.item: "ordered items" {class: flow}
 decisions.item -> derived.lesson: "one per lesson" {class: flow}
 decisions.item -> pack.speclink: {class: flow}

@@ -5,6 +5,7 @@ import {
   useBoardDays,
   useBoardSlots,
   useConfig,
+  useEvents,
   useFortnights,
   useTimetable,
 } from "../../api/queries.ts";
@@ -15,6 +16,7 @@ import {
   Loading,
 } from "../../components/ui/states.tsx";
 import { longDate } from "../../lib/dates.ts";
+import { possibleOf } from "../../lib/possible.ts";
 import { boardFor, fortnightContaining } from "./board-model.ts";
 import { FortnightGrid } from "./FortnightGrid.tsx";
 
@@ -33,6 +35,7 @@ export function BoardScreen() {
   const config = useConfig();
   const fortnights = useFortnights();
   const timetable = useTimetable();
+  const events = useEvents();
 
   const list = fortnights.data;
   const asked = params.get("w1");
@@ -64,7 +67,7 @@ export function BoardScreen() {
   const days = useBoardDays(range?.from ?? null, range?.to ?? null);
   const slots = useBoardSlots(range?.from ?? null, range?.to ?? null);
 
-  const failed = [config, fortnights, timetable, days, slots].find(
+  const failed = [config, fortnights, timetable, days, slots, events].find(
     (q) => q.isError,
   );
   if (failed?.error) return <ErrorState message={failed.error.message} />;
@@ -93,7 +96,13 @@ export function BoardScreen() {
   );
   const ready = current && days.data && slots.data;
   const board = ready
-    ? boardFor(current, days.data, slots.data, timetable.data.versions)
+    ? boardFor(
+        current,
+        days.data,
+        slots.data,
+        timetable.data.versions,
+        possibleOf(events.data, timetable.data.groups),
+      )
     : null;
 
   return (

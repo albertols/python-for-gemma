@@ -383,3 +383,59 @@ export function useRemoveResolution() {
     onSuccess: () => invalidateCorrections(qc),
   });
 }
+
+export type EventItem = InferResponseType<
+  typeof api.api.events.$get,
+  200
+>[number];
+export type StaleEvent = InferResponseType<
+  typeof api.api.events.stale.$get,
+  200
+>[number];
+export type ClassificationBody = InferRequestType<
+  (typeof api.api.events.classifications)[":id"]["$put"]
+>["json"];
+
+export function useEvents() {
+  return useQuery({
+    queryKey: ["events"],
+    queryFn: () => call<EventItem[]>(() => api.api.events.$get()),
+  });
+}
+
+export function useStaleEvents() {
+  return useQuery({
+    queryKey: ["events", "stale"],
+    queryFn: () => call<StaleEvent[]>(() => api.api.events.stale.$get()),
+  });
+}
+
+/** Confirming or undoing an event changes the list, the lessons, the board, Today and the audit. */
+function invalidateEvents(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["events"] });
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  void qc.invalidateQueries({ queryKey: ["board", "slots"] });
+  invalidateBoard(qc);
+}
+
+export function useSaveClassification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...json }: { id: string } & ClassificationBody) =>
+      call<unknown>(() =>
+        api.api.events.classifications[":id"].$put({ param: { id }, json }),
+      ),
+    onSuccess: () => invalidateEvents(qc),
+  });
+}
+
+export function useRemoveClassification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<unknown>(() =>
+        api.api.events.classifications[":id"].$delete({ param: { id } }),
+      ),
+    onSuccess: () => invalidateEvents(qc),
+  });
+}

@@ -39,6 +39,9 @@ const OTHER_EVENTS: [string, string, string][] = [
   // Wording the engine does not act on: she confirms it in Milestone 3.
   ["2027-03-19", "2027-03-19", "HOLIDAY?????"],
   ["2027-05-04", "2027-05-04", "Staff training day"],
+  // Whole-school study leave starts, twice: she confirms it for Year 13 in M1b.
+  ["2027-05-05", "2027-05-05", "Study leave starts"],
+  ["2027-05-11", "2027-05-11", "Study leave starts"],
   ["2027-06-29", "2027-06-29", "Staff only"],
 ];
 
@@ -71,6 +74,7 @@ function byYearOn(date: string): CalendarRow["byYear"] {
     out[13] = cells("Mock exams");
   }
   if (date === "2026-12-02") out[12] = cells("Geography trip");
+  if (date === "2027-03-04") out[12] = cells("Extended essay day");
   return out;
 }
 

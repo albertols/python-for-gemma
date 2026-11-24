@@ -21,6 +21,8 @@ export interface BoardCell {
   label: string | null;
   /** The first half of a double whose two periods are in the same state: it is drawn joined to the next period. */
   joinsNext: boolean;
+  /** Unconfirmed calendar events that might cancel this lesson. */
+  possible: string[];
   /** The other period of a double, even when the two are drawn apart because one is cancelled. */
   doublePartner: Period | null;
 }
@@ -44,7 +46,12 @@ export interface BoardWeek {
 
 const stateOf = (s: Slot) =>
   `${s.status}|${s.reasons.map((r) => r.text).join(";")}`;
-const sameState = (a: Slot, b: Slot) => stateOf(a) === stateOf(b);
+const sameState = (a: Slot, b: Slot, possibleOf: PossibleOf) =>
+  stateOf(a) === stateOf(b) &&
+  possibleOf(a).join(";") === possibleOf(b).join(";");
+
+/** The unconfirmed events that might cancel a lesson. */
+export type PossibleOf = (slot: Slot) => string[];
 
 const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];
 
@@ -54,6 +61,7 @@ function dayOf(
   day: CalendarDay | undefined,
   slotsOnDate: readonly Slot[],
   timetables: readonly TimetableVersion[],
+  possibleOf: PossibleOf,
 ): BoardDay {
   const dayKind: DayKind = day?.kind ?? "outside-term";
   const text = day?.text ?? null;
@@ -72,6 +80,7 @@ function dayOf(
         label: null,
         joinsNext: false,
         doublePartner: null,
+        possible: [],
       })),
     };
   const duties = versionOn(timetables, date)?.duties ?? [];
@@ -97,8 +106,9 @@ function dayOf(
           joinsNext:
             partner !== undefined &&
             period % 2 === 1 &&
-            sameState(slot, partner),
+            sameState(slot, partner, possibleOf),
           doublePartner,
+          possible: possibleOf(slot),
         };
       }
       const duty = duties.find(
@@ -115,6 +125,7 @@ function dayOf(
         label: duty?.label ?? null,
         joinsNext: false,
         doublePartner: null,
+        possible: [],
       };
     }),
   };
@@ -125,6 +136,7 @@ function weekOf(
   days: readonly CalendarDay[],
   slots: readonly Slot[],
   timetables: readonly TimetableVersion[],
+  possibleOf: PossibleOf,
 ): BoardWeek | null {
   if (monday === null) return null;
   const boardDays = ([1, 2, 3, 4, 5] as const).map((weekday) => {
@@ -135,6 +147,7 @@ function weekOf(
       days.find((d) => d.date === date),
       slots.filter((s) => s.date === date),
       timetables,
+      possibleOf,
     );
   });
   const labels: WeekLabel[] = [];
@@ -160,10 +173,11 @@ export function boardFor(
   days: readonly CalendarDay[],
   slots: readonly Slot[],
   timetables: readonly TimetableVersion[],
+  possibleOf: PossibleOf = () => [],
 ): { w1: BoardWeek | null; w2: BoardWeek | null } {
   return {
-    w1: weekOf(fortnight.w1, days, slots, timetables),
-    w2: weekOf(fortnight.w2, days, slots, timetables),
+    w1: weekOf(fortnight.w1, days, slots, timetables, possibleOf),
+    w2: weekOf(fortnight.w2, days, slots, timetables, possibleOf),
   };
 }
 

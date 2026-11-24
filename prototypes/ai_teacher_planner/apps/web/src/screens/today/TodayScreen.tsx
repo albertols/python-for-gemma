@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import {
   type TodayData,
   useDayText,
+  useEvents,
   useFortnights,
   useTimetable,
   useToday,
@@ -16,6 +17,7 @@ import {
   Loading,
 } from "../../components/ui/states.tsx";
 import { fullDayWithYear } from "../../lib/dates.ts";
+import { possibleOf } from "../../lib/possible.ts";
 import { CancelLessonsDialog } from "./CancelLessonsDialog.tsx";
 import { RemindersList } from "./RemindersList.tsx";
 import { whyNoLessons } from "./why-no-lessons.ts";
@@ -47,6 +49,8 @@ function NextTeachingDay({ date }: { date: string }) {
 
 function Lessons({ today }: { today: TodayData }) {
   const timetable = useTimetable();
+  const events = useEvents();
+  const possible = possibleOf(events.data, timetable.data?.groups);
   const colours = new Map(
     (timetable.data?.groups ?? []).map((g) => [g.id, g.colour] as const),
   );
@@ -115,6 +119,14 @@ function Lessons({ today }: { today: TodayData }) {
                       : ""}
                   </span>
                 )}
+                {possible(slot).map((t) => (
+                  <span
+                    key={t}
+                    className="ml-2 text-sm italic text-muted-foreground"
+                  >
+                    Possible disruption: {t}
+                  </span>
+                ))}
               </td>
               <td className="py-2">
                 {slot.room ? `Room ${slot.room}` : "No room set"}

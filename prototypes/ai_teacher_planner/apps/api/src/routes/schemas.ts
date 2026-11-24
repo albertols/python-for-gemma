@@ -143,3 +143,43 @@ export const disruptionInput = z.object({
   periods: z.array(period).nullable(),
   reason: z.string(),
 });
+
+export const eventClassification = z.object({
+  id: z.string(),
+  wordingKey: z.string(),
+  yearGroup: yearGroup.nullable(),
+  onlyDates: z.array(isoDate).nullable(),
+  decision: z.enum(["cancels", "no-effect"]),
+  groupIds: z.array(z.string()).nullable(),
+  periods: z.array(period).nullable(),
+  until: isoDate.nullable(),
+  provenance: z.enum(["engine", "ai", "teacher", "import"]),
+});
+/** What she decides; the id is in the address and the provenance is always "teacher". */
+export const eventClassificationInput = eventClassification.omit({
+  id: true,
+  provenance: true,
+});
+export const eventCandidate = z.object({
+  wordingKey: z.string(),
+  text: z.string(),
+  column: z.enum(["secondary", "events", "assessments"]),
+  yearGroup: yearGroup.nullable(),
+  dates: z.array(isoDate),
+  presort: z.object({
+    category: z.enum([
+      "staff-only",
+      "mock-exams",
+      "external-exam",
+      "study-leave",
+      "coursework",
+      "half-day",
+      "trip",
+      "assembly",
+      "meeting",
+      "other",
+    ]),
+    suggestion: z.enum(["cancels", "no-effect", "unsure"]),
+    rule: z.string().nullable(),
+  }),
+});

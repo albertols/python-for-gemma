@@ -29,6 +29,9 @@ export function SlotCell({
     const why = slot.reasons.map((r) => r.text).join("; ");
     const status =
       slot.status === "open" ? "" : `, ${slot.status}${why ? `: ${why}` : ""}`;
+    const possible = cell.possible
+      .map((t) => `Possible disruption: ${t}`)
+      .join("; ");
     const double = cell.doublePartner
       ? `, double with period ${cell.doublePartner}`
       : "";
@@ -36,7 +39,7 @@ export function SlotCell({
       <td
         {...common}
         rowSpan={cell.joinsNext ? 2 : 1}
-        aria-label={`${slot.groupId}, ${when}${slot.room ? `, room ${slot.room}` : ""}${double}${status}`}
+        aria-label={`${slot.groupId}, ${when}${slot.room ? `, room ${slot.room}` : ""}${double}${status}${possible ? `, ${possible}` : ""}`}
         className={`${base} align-top ${cell.joinsNext ? "border-b-0" : ""}`}
         style={{ background: bg, color: fg }}
       >
@@ -54,6 +57,16 @@ export function SlotCell({
             {why ? `: ${why}` : ""}
           </span>
         )}
+        {cell.possible.map((t) => (
+          <span
+            key={t}
+            aria-hidden="true"
+            className="block text-xs italic"
+            data-possible
+          >
+            Possible disruption: {t}
+          </span>
+        ))}
       </td>
     );
   }

@@ -90,6 +90,15 @@ function applies(
   }
 }
 
+/** Whether a disruption takes this slot. The one rule behind the board, the previews and the counts. */
+export function disruptionHitsSlot(
+  d: Disruption,
+  slot: Pick<Slot, "date" | "period" | "groupId">,
+  yearOf: ReadonlyMap<GroupId, YearGroup>,
+): boolean {
+  return applies(d, slot.date, slot.period, slot.groupId, yearOf);
+}
+
 const byReason = (a: Disruption, b: Disruption) =>
   compare(a.id, b.id) ||
   compare(a.reason, b.reason) ||
