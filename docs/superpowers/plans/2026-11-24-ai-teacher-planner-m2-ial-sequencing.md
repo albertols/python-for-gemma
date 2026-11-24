@@ -51,7 +51,9 @@ Six lessons are due before `a1`. Slack is 2, 3 and 2, so two more lessons (`c3#1
 
 ```ts
 export function defaultDuration(board: "IAL" | "IB" | "IGCSE", marks: number | null): number | null;   // IAL: marks * 1.5, else null
-export function defaultSlotUse(durationMinutes: number | null): "whole" | "in-lesson";                 // null or 30 and over: "whole"
+export function withExtraTime(durationMinutes: number): number;                                       // floor(m * 1.25)
+export function defaultSlotUse(durationMinutes: number | null): "whole" | "in-lesson";                 // null, or withExtraTime over 27: "whole"
+export function extraTimeWarning(durationMinutes: number | null, periodMinutes?: number): string | null; // period 55 by default
 export interface SchemeTotals { teaching: number; project: number; revision: number; buffer: number; assessmentSlots: number; assessmentsInLesson: number }
 export function schemeTotals(items: readonly SowItem[], overrides: readonly GroupOverride[], groupId: GroupId): SchemeTotals;
 export function weeksFor(lessons: number, lessonsPerFortnight: number): number;                        // one decimal place
@@ -67,9 +69,17 @@ test("a 12-mark IAL question takes 18 minutes and sits inside a lesson", () => {
   expect(defaultDuration("IAL", 12)).toBe(18);
   expect(defaultSlotUse(18)).toBe("in-lesson");
 });
-test("30 minutes and over takes a whole slot; an unknown length takes a whole slot", () => {
-  expect(defaultSlotUse(30)).toBe("whole"); expect(defaultSlotUse(29)).toBe("in-lesson"); expect(defaultSlotUse(null)).toBe("whole");
+// Changed after her answer to question 16 (spec appendix E): no fixed 30-minute line.
+// withExtraTime(m) = floor(m * 1.25), as she counts it (30 -> 37, 55 -> 68). Whole lesson when that is over 27 (half of 55).
+test("the length with 25% extra time decides the default; an unknown length takes a whole slot", () => {
+  expect(withExtraTime(30)).toBe(37); expect(withExtraTime(55)).toBe(68);
+  expect(defaultSlotUse(22)).toBe("whole"); expect(defaultSlotUse(21)).toBe("in-lesson"); expect(defaultSlotUse(null)).toBe("whole");
 });
+test("an assessment longer than the lesson with extra time carries a warning", () => {
+  expect(extraTimeWarning(55)).toBe("With 25% extra time this takes 68 minutes, 13 more than the lesson");
+  expect(extraTimeWarning(40)).toBeNull();
+});
+test("her choice overrides the default either way", () => { /* slotUse set on the item wins over defaultSlotUse */ });
 test("expandLessons numbers each item's lessons from 1", () =>
   expect(expandLessons(world.items, [], "13 1", "core").slice(0, 4).map(l => l.id)).toEqual(["c1#1", "c1#2", "c1#3", "c2#1"]));
 test("an assessment is not a lesson", () => expect(lessonIds).not.toContain("a1#1"));
@@ -165,6 +175,10 @@ test("slots left after the last lesson become spare lessons", () => { /* ids sta
 ---
 
 ### Task 2.3: The pace line and spare lessons
+
+> **Added after M1b (spec appendix E).** Each group's slots already stop at its study leave, because M1b's confirmed events cancel them. Two more rules:
+> - **Revision block.** A plan has `revisionWeeks` (default 2, changeable per plan). Each group's last `revisionWeeks` calendar weeks of open slots, ending at its last lesson, are reserved as spare lessons with purpose "Revision and exam practice". New content must fit before them. Content that does not fit is overflow at a checkpoint named "Before revision", never placed inside the block. Test: with study leave confirmed from 11 May 2027, no 13 1 content lesson falls after 23 April 2027 in the synthetic year, and every 13 1 slot from 26 April to 7 May 2027 is "Revision and exam practice".
+> - **The official exam is the plan's last checkpoint**, from M1b's `ExternalExam` rows for the plan's groups (WBS14 01 on 1 June 2027 for IAL). The proposal summary shows "Last content lesson" and "Official exam" per group.
 
 **Files:**
 - Create: `packages/domain/src/pace.ts`, `pace.test.ts`, `pace.prop.test.ts`, `schedule.steps.test.ts`
@@ -994,6 +1008,44 @@ The "Undo" scenario is the browser side of `features/08-undo.feature`.
 - [ ] **Step 3: Implement.** The dialog traps focus and returns it to the control that opened it.
 - [ ] **Step 4: Run again.** Expected: PASS.
 - [ ] **Step 5: Finish line and commit.** `feat(web): positions, proposal preview with accept and undo, and the plan on the board`
+
+---
+
+### Task 2.17b: Lesson notes and materials (added after her M1 click-through)
+
+She asked for room on Today to plan each of the day's lessons and to attach documents and materials so they are ready (spec appendix E).
+
+**Files:**
+- Create: `apps/api/src/db/migrations/00NN_lesson_notes.sql` (next free number), `repos/sqlite/lesson-note-repo.ts`, `routes/lesson-notes.ts`, `apps/api/src/materials/store.ts`, and tests
+- Create: `apps/web/src/components/LessonNotes.tsx`, `MaterialsList.tsx`, `features/m2-lesson-notes.feature`, `e2e/steps/lesson-notes.steps.ts`
+- Modify: `TodayScreen.tsx`, `LessonCard.tsx`
+
+**Rules:**
+- **Notes and materials attach to the lesson (`LessonId` plus `groupId`), not to the slot,** so they follow the lesson when the plan changes. A slot with no planned lesson shows no notes box.
+- **A note** is plain text, at most 2,000 characters, with the hint "No student names". It is never sent to a model.
+- **Materials:**
+  - Accepted: `.pptx`, `.docx`, `.xlsx`, `.pdf`, `.png` and `.jpg`, checked by extension and by the file's first bytes; anything else is refused.
+  - Size: at most 25 MB each.
+  - Stored as `data/materials/<uuid>.<ext>`, with the original file name kept in the database only.
+  - Served back by `GET /api/materials/{id}` with `Content-Disposition: attachment`.
+  - The store never reads or writes outside `data/materials/`, and a test proves `../` names are refused.
+  - Materials are never sent to a model and never pass through `ResourceGateway`: the gateway reads the school folder, and these are uploads.
+- **Routes:**
+  - `GET /api/lessons/{groupId}/{lessonId}/notes`
+  - `PUT /api/lessons/{groupId}/{lessonId}/notes`
+  - `POST /api/lessons/{groupId}/{lessonId}/materials` (multipart)
+  - `DELETE /api/materials/{id}`
+  - All writes are guarded with `lesson-plans` edit.
+
+What it shows. On Today, each lesson card opens to a "Plan for this lesson" box and a materials list with "Attach a file" and "Remove". The board's lesson card shows a paper-clip count.
+
+- [ ] **Step 1: Write the failing tests.** Note round trip; a note follows its lesson after a re-sequence; refused types, sizes and names; download headers; and the browser feature (write a note for 13 1's lesson today, attach a small PDF, see it listed, remove it; axe in both themes).
+- [ ] **Step 2: Run them.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run again.** Expected: PASS. Click through in Chrome. Use the file-upload tool with a synthetic PDF from the scratchpad, never one of her files.
+- [ ] **Step 5: Finish line and commit.** `feat(planner): plan notes and materials for each lesson`
+
+The task review for this task uses the security model tier, because it adds file uploads.
 
 ---
 

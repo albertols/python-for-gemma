@@ -188,6 +188,8 @@ test("an undated mock gives null", () => {});
 
 ### Task 4.4: The IB scheme: from the pack, with unit totals
 
+> **Added after M1 (spec appendix E).** The IB groups spend lesson time on their Internal Assessment in Terms 2 and 3. Add IA project items to the IB scheme, sized from the hours in the reviewed IB pack (the Business Management guide), with the milestones from her IA task schedule. The planner never opens `ibdp/IA/IAs 2025` or `ibdp/IA/IA 2026` (denied, student work). Ask her for the schedule's file name; if it sits directly in `ibdp/IA/` and holds no student names, add that one file to the gateway allowlist with a test. Otherwise she enters the milestones by hand in the scheme screen. Year 12 IB mocks and Extended Essay days are already cancelled by M1b's confirmed events.
+
 **Files:**
 - Create: `packages/domain/src/pack-to-items.ts`, `pack-to-items.test.ts`
 - Create: `apps/api/src/usecases/split-unit-totals.ts`, and its test

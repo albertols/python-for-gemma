@@ -204,6 +204,8 @@ Feature: Card actions
 
 ### Task 5.5: Day, week, month and unit views
 
+> **Changed by M1b (24 Nov 2026).** The one-week view and the class filter (`?groups=`, `view=week`) were built read-only in M1b Task 1b.5. Reuse them; this task adds the day, month and unit views, editing in the week view, and keeps the filter in every view.
+
 **Files:**
 - Create: `packages/domain/src/views.ts`, `views.test.ts`
 - Create: `apps/web/src/screens/board/DayView.tsx`, `WeekView.tsx`, `MonthView.tsx`, `UnitView.tsx`, `ViewSwitch.tsx`

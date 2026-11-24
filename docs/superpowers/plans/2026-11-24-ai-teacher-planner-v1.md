@@ -17,6 +17,7 @@ This file holds what every task shares. Each milestone has its own file, and eac
 | File | Milestone | Proves (spec section 17) |
 |---|---|---|
 | [`…-m1-calendar-timetable-board.md`](2026-11-24-ai-teacher-planner-m1-calendar-timetable-board.md) | M1: workspace, calendar, slots, Today, read-only board | Scenarios 1 to 4, 14, 15 |
+| [`…-m1b-gemma-corrections.md`](2026-11-24-ai-teacher-planner-m1b-gemma-corrections.md) | M1b: her corrections after M1: day labels, import report, cancelled lessons, calendar events, exams, board filter and week view, to-do notes (added 24 Nov 2026, spec appendix E) | Scenario 4 extended; appendix E |
 | [`…-m2-ial-sequencing.md`](2026-11-24-ai-teacher-planner-m2-ial-sequencing.md) | M2: IAL Unit 4 end to end, AI layer | Scenario 5 |
 | [`…-m3-disruptions-reflow-parity.md`](2026-11-24-ai-teacher-planner-m3-disruptions-reflow-parity.md) | M3: disruptions, reflow, parity | Scenarios 6, 7, 8, 16 |
 | [`…-m4-ib-hl-helper.md`](2026-11-24-ai-teacher-planner-m4-ib-hl-helper.md) | M4: IB tracks and the HL helper | Scenario 10 |
@@ -106,7 +107,8 @@ Recorded in spec appendix D as well. Say so if any is wrong.
 | Staff-only days inside term | A whole-school disruption she confirms, so lost lessons show in the audit. Days outside term dates never have slots |
 | Pace line | Exact rule in Task 2.3. A group that cannot fit the content due before an assessment is short alone |
 | "Not after" deadlines | Checked and reported as a conflict when missed. They never reorder lessons |
-| Assessments | A length in minutes; 30 or more takes a whole slot, less is in-lesson. Undated assessments are streamed in scheme order |
+| Assessments | A length in minutes and a "takes the whole lesson" choice, defaulted to yes when the length with 25% extra time is over 27 minutes (half of 55); a warning when the length with extra time is over 55. Undated assessments are streamed in scheme order. (Was a fixed 30-minute line; changed by her answer to question 16, spec appendix E) |
+| Milestone M1b | Inserted before M2 after her M1 click-through, so plans never land in study leave, mocks or days she says have no lessons (spec appendix E) |
 | Freeze horizon | Per plan: today through the next date on which any group of that plan has a usable slot |
 | Timetable image upload | Moved from M1 to M2, with the AI layer |
 | Router | `react-router`, declarative routes. The spec left it to the builder |
@@ -241,9 +243,9 @@ export type YearGroup = 7 | 8 | 9 | 10 | 11 | 12 | 13;
 export interface YearCells { events: string | null; communication: string | null; assessments: string | null; assessmentsALevel: string | null; assessmentsIb: string | null }
 export interface CalendarRow { date: IsoDate; rawLabel: string | null; weekLabel: WeekLabel | null; afterSchool: string | null; datesOfImportance: string | null; secondaryEvent: string | null; byYear: Partial<Record<YearGroup, YearCells>>; hash: string }
 export interface Term { id: "T1" | "T2" | "T3"; firstPupilDay: IsoDate; lastPupilDay: IsoDate }
-export type DayKind = "pupil" | "weekend" | "outside-term" | "unlabelled";
+export type DayKind = "pupil" | "weekend" | "outside-term" | "unlabelled" | "holiday";   // "holiday": labelled day marked official/school holiday (Task 1.14b)
 export interface CalendarDay { date: IsoDate; weekLabel: WeekLabel | null; kind: DayKind; pupilDay: boolean; text: string | null }
-export function toCalendarDays(rows: readonly CalendarRow[], terms: readonly Term[]): CalendarDay[];
+export function toCalendarDays(rows: readonly CalendarRow[], terms: readonly Term[], corrections?: readonly LabelCorrection[]): CalendarDay[];   // corrections: M1b; CalendarDay gains labelSource
 export interface LabelIssue { kind: "mixed-labels-in-week" | "labels-do-not-alternate"; weekOf: IsoDate; detail: string }
 export function checkLabels(days: readonly CalendarDay[]): LabelIssue[];
 export interface TeachingBlock { id: string; termId: Term["id"]; from: IsoDate; to: IsoDate }   // id "T1a", "T1b", ...
@@ -274,6 +276,9 @@ export function slotKey(groupId: GroupId, date: IsoDate, period: Period): SlotKe
 export function buildSlots(input: { days: readonly CalendarDay[]; timetables: readonly TimetableVersion[]; groups: readonly Group[]; disruptions: readonly Disruption[] }): Slot[];
 
 // audit.ts, reminders.ts, permissions.ts: see Tasks 1.3, 1.5 and 1.13
+// As built in M1: the API's AppDeps also carries `gateway: ResourceGateway` and `principal: Principal`; the board's
+// `boardFor(fortnight, days, slots, timetables[])` returns BoardWeeks with `mixed` and `labels` (no single `label`);
+// the seed lives at the `@planner/fixtures/seed` subpath. M1b adds corrections.ts, events.ts, exams.ts, breaks.ts.
 ```
 
 ### M2: scheme, lessons, plans

@@ -175,6 +175,8 @@ test("the summary adds up to the number of points", () => {});
 
 ### Task 6.4: The assessment calendar and its warnings
 
+> **Added after M1 (spec appendix E).** Assessment length uses M2's `withExtraTime` and `extraTimeWarning`: the calendar shows each assessment's length with 25% extra time, and warns when it is longer than the lesson. 11D's official exams (4BS1 01 on 12 May 2027, 4BS1 02 on 21 May 2027) and Year 11 study leave from 5 May 2027 come from M1b. A department checkpoint after 11D's last lesson is reported, not placed.
+
 **Files:**
 - Create: `packages/domain/src/assessments.ts`, `assessments.test.ts`
 - Create: `apps/api/src/usecases/assessment-calendar.ts`, `routes/assessments.ts`, and tests
