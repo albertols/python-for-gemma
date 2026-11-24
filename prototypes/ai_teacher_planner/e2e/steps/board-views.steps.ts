@@ -114,3 +114,16 @@ When("I open Today", async ({ page }) => {
 Then("Today says {string}", async ({ page }, text: string) => {
   await expect(page.getByText(text, { exact: true })).toBeVisible();
 });
+
+Then(
+  "the {word} button is pressed and the {word} button is not",
+  async ({ page }, on: string, off: string) => {
+    const button = (name: string) =>
+      page.getByRole("button", { name, exact: true });
+    await expect(button(on)).toHaveAttribute("aria-pressed", "true");
+    await expect(button(off)).toHaveAttribute("aria-pressed", "false");
+    // Pressed must also be visible: a ring around the chosen button only.
+    await expect(button(off)).toHaveCSS("box-shadow", "none");
+    await expect(button(on)).not.toHaveCSS("box-shadow", "none");
+  },
+);

@@ -9,8 +9,10 @@ Feature: Board views
 
   Scenario: One week at a time
     When I open the board
-    And I switch the board to Week
-    Then I see one week, and "Next week" moves by seven days
+    Then the Fortnight button is pressed and the Week button is not
+    When I switch the board to Week
+    Then the Week button is pressed and the Fortnight button is not
+    And I see one week, and "Next week" moves by seven days
 
   Scenario: The last day before the winter holiday is marked
     When I open the board on 22 December 2026

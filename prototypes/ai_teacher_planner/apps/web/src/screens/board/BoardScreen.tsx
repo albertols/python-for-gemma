@@ -38,6 +38,11 @@ const rangeOf = (f: Fortnight | undefined) =>
 /** Shown when no fortnight holds or follows a date (the address or the date field). */
 const noFortnightOn = (iso: string) =>
   `There is no fortnight on or after ${longDate(iso)}.`;
+const noWeekOn = (iso: string) =>
+  `There is no week on or after ${longDate(iso)}.`;
+/** What makes the chosen view's button look pressed, besides aria-pressed. */
+const PRESSED =
+  "aria-pressed:bg-muted aria-pressed:font-semibold aria-pressed:ring-2 aria-pressed:ring-foreground";
 
 export function BoardScreen() {
   const [params, setParams] = useSearchParams();
@@ -87,7 +92,7 @@ export function BoardScreen() {
     askedDate !== null &&
     list !== undefined &&
     (weekView ? weekIndex : index) < 0
-      ? noFortnightOn(askedDate)
+      ? (weekView ? noWeekOn : noFortnightOn)(askedDate)
       : null;
   const message = notice ?? noFortnight;
   const range = weekView
@@ -179,6 +184,7 @@ export function BoardScreen() {
           <Button
             type="button"
             aria-pressed={!weekView}
+            className={PRESSED}
             onClick={() => setView("fortnight")}
           >
             Fortnight
@@ -186,6 +192,7 @@ export function BoardScreen() {
           <Button
             type="button"
             aria-pressed={weekView}
+            className={PRESSED}
             onClick={() => setView("week")}
           >
             Week
@@ -258,7 +265,7 @@ export function BoardScreen() {
               if (weekView) {
                 const found = weekContaining(mondays, mondayOf(e.target.value));
                 if (found) openAt(found);
-                else setNotice(noFortnightOn(e.target.value));
+                else setNotice(noWeekOn(e.target.value));
                 return;
               }
               const found = fortnightContaining(list, e.target.value);
@@ -276,6 +283,12 @@ export function BoardScreen() {
           onAll={() => setChosen(null)}
         />
       </div>
+      {lastDays.isError ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          The last days before holidays could not be loaded, so they are not
+          marked.
+        </p>
+      ) : null}
       {message ? (
         <p role="status" className="mt-3 text-muted-foreground">
           {message}
@@ -283,11 +296,7 @@ export function BoardScreen() {
       ) : null}
       <div className="mt-6">
         {oneWeek ? (
-          <WeekPanel
-            side={oneWeek.labels[0] ?? "W1"}
-            week={oneWeek}
-            colours={colours}
-          />
+          <WeekPanel week={oneWeek} colours={colours} />
         ) : board && current ? (
           <FortnightGrid
             w1={board.w1}

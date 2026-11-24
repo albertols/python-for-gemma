@@ -12,15 +12,19 @@ export function WeekPanel({
   week,
   colours,
 }: {
-  side: WeekLabel;
+  /** Names an absent week and falls back for a week with no labels; a one-week view has none. */
+  side?: WeekLabel;
   week: BoardWeek | null;
   colours: ReadonlyMap<string, string>;
 }) {
-  const id = `board-${side}`;
+  const id = `board-${side ?? "week"}`;
   // A mixed week names every label it carries, in order: "Week 2 -> Week 1".
-  const heading = week
-    ? week.labels.map((l) => NAME[l]).join(" → ") || NAME[side]
-    : NAME[side];
+  const named = week?.labels.map((l) => NAME[l]).join(" → ") ?? "";
+  const heading =
+    named ||
+    (side
+      ? NAME[side]
+      : `Week of ${week?.monday ? longDate(week.monday) : ""}`.trim());
   return (
     <section aria-labelledby={id} className="min-w-0">
       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -42,7 +46,7 @@ export function WeekPanel({
         />
       ) : (
         <p className="rounded-lg border border-dashed border-border p-4 text-muted-foreground">
-          This fortnight has no {NAME[side]}.
+          This fortnight has no {NAME[side ?? "W1"]}.
         </p>
       )}
     </section>

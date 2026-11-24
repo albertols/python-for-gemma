@@ -308,7 +308,7 @@ test("a day in the last-days set says so", () => {
   expect(b.w1?.days.some((d) => d.lastBeforeBreak)).toBe(false);
 });
 
-test("weekContaining finds the Monday-to-Friday week, else the next, else null", () => {
+test("weekContaining finds the week (Monday to Sunday) holding the date, else the next, else null", () => {
   const mondays = ["2026-11-16", "2026-11-23", "2026-12-21", "2027-01-11"];
   expect(weekContaining(mondays, "2026-11-18")).toBe("2026-11-16");
   expect(weekContaining(mondays, "2026-11-22")).toBe("2026-11-16");
@@ -332,4 +332,14 @@ test("today's week on a weekend is the next week", () => {
   expect(weekToShow(["2026-11-16", "2026-11-23"], "2026-11-20")).toBe(
     "2026-11-16",
   );
+});
+
+test("Next week skips weeks with no calendar row across a holiday", () => {
+  // The fortnights of the synthetic year: 14 Dec, then 4 Jan. 28 Dec has no pupil week.
+  const mondays = weeksOf(fortnights(days));
+  const here = mondays.indexOf("2026-12-21");
+  expect(here).toBeGreaterThan(-1);
+  expect(mondays).not.toContain("2026-12-28");
+  expect(mondays[here + 1]).toBe("2027-01-04");
+  expect(mondays[here - 1]).toBe("2026-12-14");
 });

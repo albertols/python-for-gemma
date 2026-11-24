@@ -28,8 +28,29 @@ test("a shorter minimum counts shorter gaps, a longer one fewer", () => {
   ]);
 });
 
-test("a weekend between two pupil days is not a break", () => {
-  expect(lastDaysBeforeBreaks(days)).not.toContain("2026-11-20");
+const pupil = (date: string) =>
+  ({
+    date,
+    weekLabel: "W1",
+    labelSource: "calendar",
+    kind: "pupil",
+    pupilDay: true,
+    text: null,
+  }) as const;
+
+test("four weekdays off is not a break, five is, and the weekend does not count", () => {
+  // Friday 4 Sep, then Monday 7 to Thursday 10 off (4 weekdays): back on Friday 11.
+  expect(
+    lastDaysBeforeBreaks([pupil("2026-09-04"), pupil("2026-09-11")]),
+  ).toEqual(["2026-09-11"]);
+  // Friday 4 Sep, then Monday 7 to Friday 11 off (5 weekdays): back on Monday 14.
+  expect(
+    lastDaysBeforeBreaks([pupil("2026-09-04"), pupil("2026-09-14")]),
+  ).toEqual(["2026-09-04", "2026-09-14"]);
+  // Friday to Monday is only a weekend.
+  expect(
+    lastDaysBeforeBreaks([pupil("2026-09-04"), pupil("2026-09-07")]),
+  ).toEqual(["2026-09-07"]);
 });
 
 test("no days, no breaks", () => {

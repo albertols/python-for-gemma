@@ -211,6 +211,11 @@ export function TodayScreen() {
       {lastDays.data?.has(data.date) ? (
         <p className="mt-1">Last day before the holiday</p>
       ) : null}
+      {lastDays.isError ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          The last days before holidays could not be loaded.
+        </p>
+      ) : null}
       {data.weekLabel ? (
         <p className="mt-1 text-lg">Week {data.weekLabel.slice(1)}</p>
       ) : null}
