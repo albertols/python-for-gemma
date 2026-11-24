@@ -20,6 +20,16 @@ classes.
 >
 > Everything below describes the original Python scaffold from the course.
 
+## ▶️ How to start it
+
+The planner is a web app that runs on your own Mac. Nothing is sent anywhere.
+
+1. **Once only:** open a terminal in this folder and run `mise install`, then `pnpm install`. (If your Mac says `pnpm` is not found, put `~/.local/bin/mise exec --` in front.)
+2. **Every time:** run `pnpm start`. The first run takes a minute while it builds the screens. Then the planner opens in your browser at `http://127.0.0.1:4319`.
+3. **To stop it:** go back to the terminal and press `Ctrl+C`.
+
+Your plan lives in the `data/` folder next to this file, on your Mac only. It never leaves your computer, and the planner makes a backup copy each day.
+
 ## 🎯 What this will do for you
 
 Once it's fully built, this prototype will read your real school staff

@@ -67,9 +67,9 @@ Look for the red dashed arrows: each one ends at a guard.
 
 ## 9. Tech stack
 
-Look for the versions: they were checked on 19 Nov 2026 and proven together in a throwaway spike.
+Look for the exact versions: every library built in milestone M1 is pinned, and the office-file readers for later milestones are marked "later".
 
-![Tech stack: runtime, language and lint, web, API, data, tests, office files, diagrams, AI](09-tech-stack.svg)
+![Tech stack: runtime, language and lint, web, API, data, tests, office files, diagrams, AI, with the exact pinned versions](09-tech-stack.svg)
 
 ## 10. Roadmap
 
@@ -92,4 +92,13 @@ Layout: ELK is the default. Diagrams 01, 03, 05, 06 and 08 set `layout-engine: t
 
 ## Screenshots
 
-`screens/` is empty for now. It will hold real screenshots from browser validation, one per acceptance test, once the app exists.
+Real screenshots from browser validation live in `screens/`, named `mN-screen-name.png`. All of them show the synthetic school year, never real data.
+
+Milestone M1 (calendar, timetable, slots, Setup, board, Today, slot audit):
+
+| Screen | Screenshot |
+|---|---|
+| Setup: calendar import with its findings, terms, timetable | ![Setup](screens/m1-setup.png) |
+| Board: one fortnight, Week 1 beside Week 2 | ![Board](screens/m1-board.png) |
+| Today: the day's lessons and what is coming up | ![Today](screens/m1-today.png) |
+| Slot audit: lessons per teaching block and group, days off | ![Slot audit](screens/m1-audit.png) |

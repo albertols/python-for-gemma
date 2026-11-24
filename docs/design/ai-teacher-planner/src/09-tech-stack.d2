@@ -13,7 +13,7 @@ vars: {
 
 title: |md
   # Tech stack: layers and versions
-  Versions as checked on 19 Nov 2026 and proven together in a throwaway spike. Exact pins live in the lockfile.
+  Every library built in milestone M1 is pinned to an exact version. Office-file readers for later milestones are not installed yet.
 | {near: top-center}
 
 grid-rows: 3
@@ -26,27 +26,27 @@ runtime: "Runtime" {
 }
 language: "Language and lint" {
   class: group
-  box: "TypeScript 7.0, strict\nBiome 2.6" {class: concept}
+  box: "TypeScript 7.0.2, strict\nBiome 2.6.8" {class: concept}
 }
 web: "Web" {
   class: group
-  box: "React 19.3, Vite 8.3\nTailwind 4, shadcn/ui" {class: concept}
+  box: "React 19.3.1, Vite 8.3.8\nreact-router 8.5.2\n@tanstack/react-query 5.108.0\nTailwind 4.3.5, shadcn-style parts" {class: concept}
 }
 api: "API" {
   class: group
-  box: "Hono 4.13 + zod-openapi\nZod 4" {class: concept}
+  box: "Hono 4.13.19, @hono/node-server 2.1.11\n@hono/zod-openapi 1.6.3, Zod 4.6.7" {class: concept}
 }
 data: "Data" {
   class: group
-  box: "Drizzle 0.45\nbetter-sqlite3 13" {class: win}
+  box: "Drizzle 0.45.4\nbetter-sqlite3 13.2.0" {class: win}
 }
 tests: "Tests" {
   class: group
-  box: "Vitest 5, Gherkin, fast-check\nPlaywright + installed Chrome" {class: concept}
+  box: "Vitest 5.1.0, vitest-cucumber 8.0.1\nfast-check 4.10.2\n@playwright/test 1.65.1 + installed Chrome\nplaywright-bdd 9.2.1\n@axe-core/playwright 4.14.0" {class: concept}
 }
 office: "Office files" {
   class: group
-  box: "exceljs, mammoth\ndocx, pptxgenjs" {class: concept}
+  box: "exceljs 4.4.0 (calendar import)\nmammoth, docx, pptxgenjs: later" {class: concept}
 }
 diagrams: "Diagrams" {
   class: group

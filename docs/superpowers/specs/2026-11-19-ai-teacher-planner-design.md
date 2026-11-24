@@ -797,3 +797,5 @@ Alberto approved the spec on 24 Nov 2026 and passed on Gemma's answers. These ar
 | 15 | The calendar says the first day of term for students was Fri 4 Sep 2026. You said lessons started on the 3rd. Which is right for your groups? | 4 Sep, as the calendar says; she can change term dates in Setup. It affects only the count of past lessons |
 | 16 | Is 30 minutes the right line between an assessment that takes a whole lesson and one that fits inside a lesson? | Yes |
 | 17 | You said 21 and 22 Dec will be lighter lessons. Should the planner mark the last days before a holiday? | The board marks a week of one or two teaching days as a "short week"; nothing is rescheduled |
+| 18 | Your calendar switches from Week 2 to Week 1 on Wednesday 5 May 2027, mid-week. Is that intended? | Yes; each day follows its own label and the board marks the week "Mixed week" |
+| 19 | The slot audit's totals count lessons that take place (including cover) and show cancelled ones as "lost". Is that the number you would check against your timetable? | Yes |

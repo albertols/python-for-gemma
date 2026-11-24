@@ -2,7 +2,7 @@
 
 A local web app that turns Gemma's syllabus, scheme of work, school calendar and two-week timetable into a dated lesson plan for each group. Fixed rules do the dates; Claude helps with judgement calls and is labelled wherever it does.
 
-**Status:** spec approved on 24 Nov 2026; the task-level plan is written. No application code exists yet. The build starts at milestone M1, Task 1.1.
+**Status:** M1 built (calendar, timetable, slots, Setup, board, Today, slot audit); M2 next.
 
 ## Read first
 - Spec: `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md` (appendix D lists what changed after approval)
@@ -11,7 +11,7 @@ A local web app that turns Gemma's syllabus, scheme of work, school calendar and
 - Decisions: `docs/adr/006` to `016` (005 is reserved for Gemma)
 - Gemma's requirements: `src/ai_teacher_planner/template_prompt.md`. It is her document: do not edit it
 
-## Map (target layout; built from milestone M1)
+## Map (target layout; M1 is built, the rest arrives with its milestone)
 - `packages/domain` — the engine. Pure TypeScript
 - `packages/importers`, `packages/exporters` — files in, files out
 - `packages/ai` — `AiProvider` port, Claude CLI adapter, fake adapter
@@ -21,9 +21,13 @@ A local web app that turns Gemma's syllabus, scheme of work, school calendar and
 - `features/` Gherkin · `fixtures/` synthetic data · `e2e/` browser tests · `data/` git-ignored local data
 - `src/ai_teacher_planner/*.py`, `tests/`, `mock_data/` — the Python scaffold from the course. Leave it alone
 
-## Commands (arrive with M1; keep this list true)
+## Commands (keep this list true)
 Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/bin/mise exec --`.
-- `pnpm install` · `pnpm start` (build, serve, open the app) · `pnpm typecheck` · `pnpm test` · `pnpm e2e` · `pnpm lint`
+- `pnpm install`
+- `pnpm start` — builds the web app if it is out of date, starts the API on port 4319, opens the browser. Ctrl+C stops it. If a planner already answers on the port it just opens the browser
+- `pnpm typecheck` · `pnpm lint` · `pnpm test` (Vitest, all packages) · `pnpm e2e` (builds, then runs the Gherkin browser tests with axe on port 4320)
+- `pnpm seed:synthetic --data-dir <dir>` — fills a folder with the synthetic school year. Refuses `data/` unless `--force`
+- Environment variables, read once in `apps/api/src/config.ts`: `PLANNER_DATA_DIR` (default `data/`), `PLANNER_RESOURCES_DIR` (default `prototypes/resources`), `PLANNER_PORT` (4319), `PLANNER_AI` (`claude`, `fake` or `off`), `PLANNER_FIXED_TODAY` (a date such as 2026-11-20, for tests and screenshots), `PLANNER_TIME_ZONE`, `PLANNER_TEST_ROUTES=1` (browser tests only; refused outside a seeded temporary folder), `PLANNER_NO_OPEN=1` (`pnpm start` does not open a browser; use it when an agent starts the app)
 - `sh docs/design/render.sh` — re-render diagrams
 
 ## Rules that must hold
