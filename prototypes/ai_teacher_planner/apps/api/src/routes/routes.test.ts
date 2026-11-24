@@ -1,10 +1,13 @@
 import { buildSyntheticWorkbook } from "@planner/fixtures";
 import { expect, test } from "vitest";
+import { createApp } from "../app.ts";
 import {
   buildTestApp,
   fakeGateway,
+  migratedDb,
   SYNTHETIC_FILE,
   syntheticGateway,
+  testConfig,
 } from "../test-support.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: the tests read loose JSON
@@ -58,11 +61,71 @@ test("import stores the rows and returns the counts", async () => {
   expect(days.body[0]).toMatchObject({ weekLabel: "W1", kind: "pupil" });
 });
 
-test("importing twice replaces the calendar instead of doubling it", async () => {
-  const app = await imported("2026-11-19");
-  const first = (await get(app, "/api/calendar/days")).body.length;
-  await app.request("/api/calendar/import", { method: "POST" });
-  expect((await get(app, "/api/calendar/days")).body).toHaveLength(first);
+test("importing again replaces the calendar, report windows and parents' evenings", async () => {
+  const db = migratedDb();
+  const full = await buildSyntheticWorkbook();
+  const files = { [SYNTHETIC_FILE]: full };
+  const app = createApp({
+    config: { ...testConfig, fixedToday: "2026-11-19" },
+    db,
+    now: () => new Date("2026-11-24T10:00:00Z"),
+    gateway: fakeGateway(files),
+  });
+  const count = (table: string) =>
+    (db.prepare(`select count(*) as n from ${table}`).get() as { n: number }).n;
+  const post = () => app.request("/api/calendar/import", { method: "POST" });
+
+  expect((await post()).status).toBe(200);
+  const rowsBefore = count("calendar_rows");
+  expect(count("report_windows")).toBeGreaterThan(0);
+  expect(count("parents_evenings")).toBeGreaterThan(0);
+  expect((await post()).status).toBe(200);
+  expect(count("calendar_rows")).toBe(rowsBefore);
+
+  files[SYNTHETIC_FILE] = await buildSyntheticWorkbook({
+    rowsUntil: "2026-12-22",
+    reportDates: "none",
+  });
+  const smaller = await post();
+  expect(smaller.status).toBe(200);
+  expect(((await smaller.json()) as Json).ok).toBe(true);
+  expect(count("calendar_rows")).toBeLessThan(rowsBefore);
+  expect(db.prepare("select max(date) as d from calendar_rows").get()).toEqual({
+    d: "2026-12-22",
+  });
+  expect(count("report_windows")).toBe(0);
+  expect(count("parents_evenings")).toBe(0);
+});
+
+test("unreadable report and parents' evening dates are listed with their text", async () => {
+  const bytes = await buildSyntheticWorkbook({ reportDates: "unreadable" });
+  const app = await buildTestApp({}, fakeGateway({ [SYNTHETIC_FILE]: bytes }));
+  const posted = await send(app, "POST", "/api/calendar/import", undefined);
+  const expected = [
+    {
+      kind: "parents-evening",
+      label: "Year 11 Parent Meeting",
+      field: "date",
+      raw: "Parent Meeting: sometime soon",
+    },
+    {
+      kind: "report-window",
+      label: "Year 7 Report 1: Short",
+      field: "dataDeadline",
+      raw: "sometime in March",
+    },
+  ];
+  expect(posted.body.reportIssues).toEqual(expected);
+  // The raw text survives the database: the stored summary says the same.
+  expect((await get(app, "/api/calendar/import")).body.reportIssues).toEqual(
+    expected,
+  );
+});
+
+test("a clean workbook has no report issues", async () => {
+  const app = await buildTestApp();
+  const res = await send(app, "POST", "/api/calendar/import", undefined);
+  expect(res.body.reportIssues).toEqual([]);
 });
 
 test("importing a workbook with a renamed header stores nothing", async () => {
@@ -177,6 +240,19 @@ test("today after the last day of the year has no next teaching day", async () =
   const res = await get(await imported("2027-07-10"), "/api/today");
   expect(res.status).toBe(200);
   expect(res.body.nextTeachingDay).toBeNull();
+});
+
+test("the last teaching day names no next day, and the day before names it", async () => {
+  const slots = (await get(await imported("2027-07-10"), "/api/slots")).body;
+  const dates: string[] = [...new Set<string>(slots.map((x: Json) => x.date))];
+  const last = dates[dates.length - 1] as string;
+  const before = dates[dates.length - 2] as string;
+  expect(
+    (await get(await imported(last), "/api/today")).body.nextTeachingDay,
+  ).toBeNull();
+  expect(
+    (await get(await imported(before), "/api/today")).body.nextTeachingDay,
+  ).toBe(last);
 });
 
 test("today before any import says so instead of failing", async () => {

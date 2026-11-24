@@ -17,6 +17,10 @@ export interface SyntheticWorkbookOptions {
   insertBlankColumnAt?: number;
   /** Give the AssRep tab the wrong week for this Monday. */
   assRepMismatchOn?: IsoDate;
+  /** Stop the calendar after this date, for a smaller workbook. */
+  rowsUntil?: IsoDate;
+  /** "none" leaves the report and parents' evening sheets empty; "unreadable" gives one date of each that cannot be read. */
+  reportDates?: "none" | "unreadable";
 }
 
 const MONTHS = [
@@ -167,7 +171,9 @@ function addCalendarSheet(
 
   let mergeFrom: number | null = null;
   let mergeTo = 0;
-  for (const row of syntheticRows()) {
+  for (const row of syntheticRows().filter(
+    (x) => options.rowsUntil === undefined || x.date <= options.rowsUntil,
+  )) {
     const p = parts(row.date);
     put(
       r,
@@ -229,8 +235,13 @@ function addAssRepSheet(wb: ExcelJS.Workbook, wrongOn: IsoDate | undefined) {
   }
 }
 
-function addReportSheets(wb: ExcelJS.Workbook): void {
+function addReportSheets(
+  wb: ExcelJS.Workbook,
+  mode: SyntheticWorkbookOptions["reportDates"],
+): void {
   const reports = wb.addWorksheet("Report deadlines");
+  const eves = wb.addWorksheet("Parents eves");
+  if (mode === "none") return;
   reports.addRow([
     "Year / programme",
     "Report",
@@ -245,7 +256,7 @@ function addReportSheets(wb: ExcelJS.Workbook): void {
     "Year 7",
     "Report 1: Short",
     "Effort, Attainment",
-    "Wednesday 10th March 2027",
+    mode === "unreadable" ? "sometime in March" : "Wednesday 10th March 2027",
   ]);
   reports.addRow([]);
   reports.addRow([
@@ -288,9 +299,13 @@ function addReportSheets(wb: ExcelJS.Workbook): void {
     "Thursday 11th December 2026",
   ]);
 
-  const eves = wb.addWorksheet("Parents eves");
   eves.addRow(["", "Term 1", "Term 2", "Term 3"]);
-  eves.addRow(["Year 11", "Parent Meeting: Oct 29"]);
+  eves.addRow([
+    "Year 11",
+    mode === "unreadable"
+      ? "Parent Meeting: sometime soon"
+      : "Parent Meeting: Oct 29",
+  ]);
   eves.addRow(["Year 13", "Parent Meeting: Nov 26"]);
 }
 
@@ -301,7 +316,7 @@ export async function buildSyntheticWorkbook(
   wb.addWorksheet("Staff list").addRow(["Name", "Role"]);
   addCalendarSheet(wb, options);
   addAssRepSheet(wb, options.assRepMismatchOn);
-  addReportSheets(wb);
+  addReportSheets(wb, options.reportDates);
   wb.addWorksheet("Calendar notes").addRow(["Not the calendar"]);
   return new Uint8Array(await wb.xlsx.writeBuffer());
 }

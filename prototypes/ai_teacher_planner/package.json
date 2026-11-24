@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p scripts",
     "lint": "biome check .",
     "test": "vitest run",
     "build": "pnpm -r --if-present build",

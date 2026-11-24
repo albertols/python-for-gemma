@@ -1,4 +1,3 @@
-import type { IsoDate } from "@planner/domain";
 import {
   type ImportFinding,
   readCalendarWorkbook,
@@ -117,7 +116,6 @@ async function readWorkbook(
   }
 }
 
-const dateOrNull = (d: IsoDate | null) => d;
 const rawOrNull = (raw: string) => (raw === "" ? null : raw);
 
 /**
@@ -148,9 +146,9 @@ export async function importCalendar(deps: {
       yearGroup: w.yearGroup,
       programme: w.programme,
       name: w.name,
-      dataDeadline: dateOrNull(w.dataDeadline.date),
-      hodReview: dateOrNull(w.hodReview.date),
-      sentHome: dateOrNull(w.sentHome.date),
+      dataDeadline: w.dataDeadline.date,
+      hodReview: w.hodReview.date,
+      sentHome: w.sentHome.date,
       raw: {
         dataDeadline: rawOrNull(w.dataDeadline.raw),
         hodReview: rawOrNull(w.hodReview.raw),
@@ -163,7 +161,7 @@ export async function importCalendar(deps: {
       id: `pe-${String(i + 1).padStart(3, "0")}`,
       yearGroup: e.yearGroup,
       label: e.label,
-      date: dateOrNull(e.date.date),
+      date: e.date.date,
       raw: rawOrNull(e.date.raw),
     }),
   );

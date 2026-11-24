@@ -1,4 +1,8 @@
-import { SEED_GROUPS, SEED_TERMS, SEED_TIMETABLE } from "@planner/fixtures";
+import {
+  SEED_GROUPS,
+  SEED_TERMS,
+  SEED_TIMETABLE,
+} from "@planner/fixtures/seed";
 import type { Repos } from "../repos/ports.ts";
 
 const SEEDED = "seeded";

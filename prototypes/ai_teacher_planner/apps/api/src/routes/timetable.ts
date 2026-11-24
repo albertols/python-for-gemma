@@ -82,7 +82,7 @@ export function timetableRoutes(deps: { repos: Repos }) {
     ),
   );
 
-  // Registered before the `{id}` route so "versions" is never read as an id.
+  // POST and PUT never share a path, so the order of these two does not matter.
   app.openapi(postVersion, (c) => {
     const { validFrom, copyOf } = c.req.valid("json");
     const versions = repos.timetable.versions();
