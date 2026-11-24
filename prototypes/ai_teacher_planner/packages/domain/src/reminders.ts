@@ -33,7 +33,7 @@ export function reminders(input: {
   today: IsoDate;
   windows: readonly ReportWindow[];
   evenings: readonly ParentsEvening[];
-  exams?: readonly ExternalExam[];
+  exams: readonly ExternalExam[];
   groups: readonly Group[];
   horizonDays: number;
 }): Reminder[] {
@@ -82,7 +82,7 @@ export function reminders(input: {
     );
   }
 
-  for (const x of input.exams ?? [])
+  for (const x of input.exams)
     add("exam", x.date, `${x.code} ${x.title}`, x.groupIds);
 
   return out.sort(

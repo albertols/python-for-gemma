@@ -156,6 +156,7 @@ describe.skipIf(!resourcesAvailable())("the school's real calendar", () => {
       blocks: teachingBlocks(d, SEED_TERMS),
       timetables: [SEED_TIMETABLE],
       groups: SEED_GROUPS,
+      disruptions: [],
     });
     expect(audit.daysOff.map((x) => x.date)).toEqual([
       "2026-10-12",

@@ -127,6 +127,7 @@ test("a holiday on the first day of a block is still a day off", () => {
     blocks: edgeBlocks,
     timetables: [SEED_TIMETABLE],
     groups: SEED_GROUPS,
+    disruptions: [],
   });
   const off = result.daysOff.find((d) => d.date === "2026-11-09");
   expect(off?.wouldHaveHad.length).toBeGreaterThan(0);
@@ -233,4 +234,28 @@ test("a day off does not list a group whose lessons that day are already cancell
     { ...snow, id: `day:${dayOff}`, from: dayOff, to: dayOff },
   ]).daysOff.find((d) => d.date === dayOff);
   expect(own?.wouldHaveHad).toEqual(baseline?.wouldHaveHad);
+});
+
+test("the groups of each reason are listed in group order, not the order the lessons were met", () => {
+  // 13 5's lesson comes first by date and period, yet 13 1 sorts before it.
+  const keys = audit([snow]).lostByReason[0]
+    ? Object.keys(audit([snow]).lostByReason[0]?.perGroup ?? {})
+    : [];
+  expect(keys).toEqual([...keys].sort());
+  expect(keys.length).toBeGreaterThan(1);
+  const early: Disruption = {
+    ...snow,
+    id: "early",
+    scope: { kind: "group", groupId: "IB S" },
+    reason: "Order",
+    from: "2026-11-16",
+    to: "2026-11-20",
+  };
+  const late: Disruption = {
+    ...early,
+    id: "late",
+    scope: { kind: "group", groupId: "11D" },
+  };
+  const mixed = audit([early, late]).lostByReason[0];
+  expect(Object.keys(mixed?.perGroup ?? {})).toEqual(["11D", "IB S"]);
 });

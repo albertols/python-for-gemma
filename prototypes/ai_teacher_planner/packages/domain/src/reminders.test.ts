@@ -28,6 +28,7 @@ const remindersFor = (w: ReportWindow, today: IsoDate = "2026-11-20") =>
     today,
     windows: [w],
     evenings: [],
+    exams: [],
     groups: SEED_GROUPS,
     horizonDays: 14,
   });
@@ -38,6 +39,7 @@ test("a deadline ten days ahead is shown with the days left, for her group in th
       today: "2026-11-20",
       windows: [y11Window],
       evenings: [],
+      exams: [],
       groups: SEED_GROUPS,
       horizonDays: 14,
     }),
@@ -79,6 +81,7 @@ describe("parents' evenings", () => {
       today: "2026-11-20",
       windows: [],
       evenings,
+      exams: [],
       groups: SEED_GROUPS,
       horizonDays: 14,
     });
@@ -118,6 +121,7 @@ test("reminders are sorted by date, then label", () => {
         date: "2026-11-26",
       },
     ],
+    exams: [],
     groups: SEED_GROUPS,
     horizonDays: 14,
   });

@@ -26,6 +26,7 @@ describeFeature(feature, ({ Scenario }) => {
           },
         ],
         evenings: [],
+        exams: [],
         groups: SEED_GROUPS,
         horizonDays: 14,
       });

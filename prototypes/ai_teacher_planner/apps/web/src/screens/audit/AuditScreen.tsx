@@ -152,12 +152,14 @@ export function AuditView({
             >
               <p className="font-medium">{r.reason}</p>
               <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                {Object.entries(r.perGroup).map(([id, n]) => (
-                  <li key={id} data-group={id}>
-                    <GroupBadge id={id} colour={colours.get(id)} />
-                    {`: ${plural(n)}`}
-                  </li>
-                ))}
+                {Object.entries(r.perGroup)
+                  .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+                  .map(([id, n]) => (
+                    <li key={id} data-group={id}>
+                      <GroupBadge id={id} colour={colours.get(id)} />
+                      {`: ${plural(n)}`}
+                    </li>
+                  ))}
               </ul>
             </li>
           ))}

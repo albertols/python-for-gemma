@@ -64,7 +64,7 @@ export function auditSlots(input: {
   timetables: readonly TimetableVersion[];
   groups: readonly Group[];
   /** Everything that cancels or covers lessons, so a day off can leave out a group already lost to another cause. */
-  disruptions?: readonly Disruption[];
+  disruptions: readonly Disruption[];
 }): SlotAudit {
   const blocks = [...input.blocks].sort(
     (a, b) => compare(a.from, b.from) || compare(a.id, b.id),
@@ -99,7 +99,15 @@ export function auditSlots(input: {
   const total = (c: Record<GroupId, number>) =>
     Object.values(c).reduce((n, v) => n + v, 0);
   const lostByReason = [...byReason]
-    .map(([reason, perGroup]): LostByReason => ({ reason, perGroup }))
+    .map(
+      ([reason, counts]): LostByReason => ({
+        reason,
+        // Built in group order, so the view and the JSON never depend on the order lessons were met.
+        perGroup: Object.fromEntries(
+          Object.entries(counts).sort(([a], [b]) => compare(a, b)),
+        ),
+      }),
+    )
     .sort(
       (a, b) =>
         total(b.perGroup) - total(a.perGroup) || compare(a.reason, b.reason),
@@ -118,7 +126,7 @@ export function auditSlots(input: {
 
   // A "no lessons" decision on the day itself is why it is off, not another cause.
   const yearOf = new Map(input.groups.map((g) => [g.id, g.yearGroup]));
-  const cancellers = (input.disruptions ?? []).filter(
+  const cancellers = input.disruptions.filter(
     (d) => d.effect === "cancelled" && !d.id.startsWith("day:"),
   );
   const daysOff: DayOff[] = [];

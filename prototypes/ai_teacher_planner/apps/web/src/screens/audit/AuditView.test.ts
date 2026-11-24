@@ -59,7 +59,7 @@ const exams = [
   {
     id: "x1",
     code: "WBS14 01",
-    title: "IAL Business Unit 4: Global Business",
+    title: "IAL <i>Unit</i> 4: Global Business",
     date: "2027-06-01",
     session: "morning" as const,
     durationMinutes: 120,
@@ -121,4 +121,9 @@ test("each group shows its last lesson and its exams", () => {
   expect(row("13 3")).toContain("WBS14 01");
   expect(row("11D")).toContain("Tuesday 11 May 2027");
   expect(row("11D")).not.toContain("WBS14 01");
+});
+
+test("an exam title with markup is shown as text", () => {
+  expect(html).toContain("IAL &lt;i&gt;Unit&lt;/i&gt; 4");
+  expect(html).not.toContain("<i>Unit</i>");
 });

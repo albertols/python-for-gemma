@@ -157,7 +157,9 @@ When(
 When("I remove the exam {string}", async ({ page }, code: string) => {
   await openExams(page);
   await page.getByRole("button", { name: `Remove ${code}` }).click();
-  await expect(page.getByRole("status")).toContainText(`Removed ${code}`);
+  await expect(
+    page.getByRole("region", { name: "Official exams" }).locator("[aria-live]"),
+  ).toContainText(`Removed ${code}`);
   await expect(page.locator(`li[data-exam="${code}"]`)).toHaveCount(0);
 });
 

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { ApiError } from "../../api/client.ts";
 import {
   type Exam,
@@ -184,6 +184,47 @@ function ExamForm({
   );
 }
 
+/** One exam as text. A source is linked only when it is a secure web address, whatever is stored. */
+export function ExamSummary({
+  exam: e,
+  colours,
+}: {
+  exam: Exam;
+  colours: ReadonlyMap<string, string>;
+}) {
+  return (
+    <div>
+      <p className="font-medium">
+        {e.code} {e.title}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {longDate(e.date)}, {e.session}, {e.durationMinutes} minutes
+        {" · "}
+        {e.groupIds.map((id, i) => (
+          <span key={id}>
+            {i > 0 ? ", " : ""}
+            <GroupBadge id={id} colour={colours.get(id)} />
+          </span>
+        ))}
+        {" · "}
+        {e.source?.startsWith("https://") ? (
+          <a
+            href={e.source}
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+            aria-label={`Source of ${e.code}`}
+          >
+            Source
+          </a>
+        ) : (
+          "No source link"
+        )}
+      </p>
+    </div>
+  );
+}
+
 /** Her official exams: public timetable data she can correct, add to or remove. Free text is the title and code only. */
 export function ExamsCard() {
   const exams = useExams();
@@ -195,9 +236,18 @@ export function ExamsCard() {
     (timetable.data?.groups ?? []).map((g) => [g.id, g.colour]),
   );
   const groups = timetable.data?.groups ?? [];
+  /** The button that opened the form: focus goes back to it when the form closes. */
+  const opener = useRef<HTMLElement | null>(null);
+  const open = (id: string, button: HTMLElement) => {
+    opener.current = button;
+    setMessage(null);
+    setEditing(id);
+  };
   const close = (text: string) => {
     setEditing(null);
     if (text !== "") setMessage(text);
+    // After the form has left the page.
+    requestAnimationFrame(() => opener.current?.focus());
   };
 
   return (
@@ -230,43 +280,12 @@ export function ExamsCard() {
               className="rounded-md border border-border p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium">
-                    {e.code} {e.title}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {longDate(e.date)}, {e.session}, {e.durationMinutes} minutes
-                    {" · "}
-                    {e.groupIds.map((id, i) => (
-                      <span key={id}>
-                        {i > 0 ? ", " : ""}
-                        <GroupBadge id={id} colour={colours.get(id)} />
-                      </span>
-                    ))}
-                    {" · "}
-                    {e.source ? (
-                      <a
-                        href={e.source}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline"
-                        aria-label={`Source of ${e.code}`}
-                      >
-                        Source
-                      </a>
-                    ) : (
-                      "No source recorded"
-                    )}
-                  </p>
-                </div>
+                <ExamSummary exam={e} colours={colours} />
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     aria-label={`Edit ${e.code}`}
-                    onClick={() => {
-                      setMessage(null);
-                      setEditing(e.id);
-                    }}
+                    onClick={(ev) => open(e.id, ev.currentTarget)}
                   >
                     Edit
                   </Button>
@@ -302,24 +321,21 @@ export function ExamsCard() {
       ) : null}
       {editing === "new" ? (
         <ExamForm exam={null} groups={groups} onDone={close} />
-      ) : (
-        <div className="mt-3">
-          <Button
-            type="button"
-            onClick={() => {
-              setMessage(null);
-              setEditing("new");
-            }}
-          >
-            Add an exam
-          </Button>
-        </div>
-      )}
-      {message !== null && !remove.isError ? (
-        <p role="status" className="mt-3">
-          {message}
-        </p>
       ) : null}
+      <div className="mt-3">
+        <Button
+          type="button"
+          aria-expanded={editing === "new"}
+          disabled={editing === "new"}
+          onClick={(ev) => open("new", ev.currentTarget)}
+        >
+          Add an exam
+        </Button>
+      </div>
+      {/* Always on the page, so a screen reader announces the text when it changes. */}
+      <p aria-live="polite" className="mt-3">
+        {message !== null && !remove.isError ? message : ""}
+      </p>
     </section>
   );
 }
