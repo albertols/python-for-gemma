@@ -1,4 +1,5 @@
-import type { Group, Term, TimetableVersion } from "@planner/domain";
+import type { ExamInput, Group, Term, TimetableVersion } from "@planner/domain";
+import examsJson from "../external-exams.2026-27.json" with { type: "json" };
 import groupsJson from "../groups.2026-27.json" with { type: "json" };
 import termsJson from "../terms.2026-27.json" with { type: "json" };
 import timetableJson from "../timetable.2026-27.json" with { type: "json" };
@@ -12,3 +13,6 @@ export const SEED_GROUPS: Group[] = groupsJson as Group[];
 
 /** The three terms of 2026-27: first and last pupil day. */
 export const SEED_TERMS: Term[] = termsJson as Term[];
+
+/** Her official exams from Pearson's final summer 2027 timetables (spec appendix E). */
+export const SEED_EXAMS: ExamInput[] = examsJson as ExamInput[];

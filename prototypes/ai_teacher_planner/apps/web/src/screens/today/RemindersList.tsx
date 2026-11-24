@@ -1,7 +1,7 @@
 import type { TodayData } from "../../api/queries.ts";
 import { daysLeftInWords, fullDayWithYear } from "../../lib/dates.ts";
 
-/** Report deadlines and parents' evenings coming up, with the days left in words. */
+/** Report deadlines, parents' evenings and official exams coming up, with the days left in words. */
 export function RemindersList({
   reminders,
 }: {
@@ -10,7 +10,8 @@ export function RemindersList({
   if (reminders.length === 0)
     return (
       <p className="text-muted-foreground">
-        No report deadlines or parents' evenings in the next two weeks.
+        No report deadlines, parents' evenings or official exams in the next two
+        weeks.
       </p>
     );
   return (

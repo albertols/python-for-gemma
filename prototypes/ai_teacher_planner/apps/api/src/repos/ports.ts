@@ -2,6 +2,7 @@ import type {
   CalendarRow,
   Disruption,
   EventClassification,
+  ExternalExam,
   FindingResolution,
   Group,
   LabelCorrection,
@@ -111,6 +112,16 @@ export interface EventRepo {
   remove(id: string): boolean;
 }
 
+/** The official exams. Seeded once; after that they are hers to edit. */
+export interface ExamRepo {
+  /** Sorted by date, then code. */
+  list(): ExternalExam[];
+  /** Replaces any exam with the same id. A code already used by another exam throws. */
+  upsert(exam: ExternalExam): void;
+  /** False when there was none. */
+  remove(id: string): boolean;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
@@ -118,6 +129,7 @@ export interface Repos {
   disruptions: DisruptionRepo;
   corrections: CorrectionRepo;
   events: EventRepo;
+  exams: ExamRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }

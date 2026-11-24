@@ -1,6 +1,7 @@
 import {
   buildSlots,
   type CalendarDay,
+  type Disruption,
   disruptionsFromEvents,
   type EventCandidate,
   type EventClassification,
@@ -22,6 +23,8 @@ export interface Planning {
   slots: Slot[];
   /** The slots with no cancellation applied: every lesson she has, open or cancelled. */
   allSlots: Slot[];
+  /** Everything that cancels lessons: hers, and the events she confirmed. */
+  disruptions: Disruption[];
   /** Calendar events she could confirm, and her confirmations. */
   candidates: EventCandidate[];
   classifications: EventClassification[];
@@ -41,6 +44,10 @@ export function loadPlanning(repos: Repos): Planning {
   const allSlots = buildSlots({ days, timetables, groups, disruptions: [] });
   const candidates = eventCandidates({ rows, days, groups, slots: allSlots });
   const classifications = repos.events.list();
+  const disruptions = [
+    ...repos.disruptions.list(),
+    ...disruptionsFromEvents(candidates, classifications, groups),
+  ];
   return {
     terms,
     days,
@@ -49,14 +56,7 @@ export function loadPlanning(repos: Repos): Planning {
     allSlots,
     candidates,
     classifications,
-    slots: buildSlots({
-      days,
-      timetables,
-      groups,
-      disruptions: [
-        ...repos.disruptions.list(),
-        ...disruptionsFromEvents(candidates, classifications, groups),
-      ],
-    }),
+    disruptions,
+    slots: buildSlots({ days, timetables, groups, disruptions }),
   };
 }

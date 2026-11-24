@@ -1,5 +1,6 @@
 import type { YearGroup } from "./calendar.ts";
 import { daysBetween, type IsoDate } from "./dates.ts";
+import type { ExternalExam } from "./exams.ts";
 import type { Group, GroupId } from "./timetable.ts";
 
 export interface ReportWindow {
@@ -18,7 +19,7 @@ export interface ParentsEvening {
   date: IsoDate | null;
 }
 export interface Reminder {
-  kind: "report-data-deadline" | "parents-evening";
+  kind: "report-data-deadline" | "parents-evening" | "exam";
   date: IsoDate;
   daysLeft: number;
   label: string;
@@ -27,11 +28,12 @@ export interface Reminder {
 
 const byCode = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** Upcoming report data deadlines and parents' evenings for her groups, from today to the horizon. */
+/** Upcoming report data deadlines, parents' evenings and official exams for her groups, from today to the horizon. */
 export function reminders(input: {
   today: IsoDate;
   windows: readonly ReportWindow[];
   evenings: readonly ParentsEvening[];
+  exams?: readonly ExternalExam[];
   groups: readonly Group[];
   horizonDays: number;
 }): Reminder[] {
@@ -79,6 +81,9 @@ export function reminders(input: {
       groups.filter((g) => g.yearGroup === e.yearGroup).map((g) => g.id),
     );
   }
+
+  for (const x of input.exams ?? [])
+    add("exam", x.date, `${x.code} ${x.title}`, x.groupIds);
 
   return out.sort(
     (a, b) =>

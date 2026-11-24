@@ -49,10 +49,27 @@ const audit = {
     },
   ],
   daysOff: [],
+  lostByReason: [
+    { reason: "Year 11 trip", perGroup: { "11D": 1 } },
+    { reason: "Mock <b>exams</b>", perGroup: { "13 1": 5, "13 3": 3 } },
+  ],
+  lastLesson: { "11D": "2027-05-11", "13 1": "2027-05-07", "13 3": null },
 };
+const exams = [
+  {
+    id: "x1",
+    code: "WBS14 01",
+    title: "IAL Business Unit 4: Global Business",
+    date: "2027-06-01",
+    session: "morning" as const,
+    durationMinutes: 120,
+    groupIds: ["13 1", "13 3"],
+    source: "https://example.test/ial.pdf",
+  },
+];
 
 const html = renderToStaticMarkup(
-  createElement(AuditView, { audit, colours: new Map() }),
+  createElement(AuditView, { audit, exams, colours: new Map() }),
 );
 
 test("a cancelled lesson shows as lost in its block and in the year total", () => {
@@ -76,4 +93,32 @@ test("the cancelled-lessons list names group, period, date and reason", () => {
 
 test("block dates include the year", () => {
   expect(html).toContain("4 September 2026");
+});
+
+test("lessons that will not run are listed by reason with a count for each group, as text", () => {
+  expect(html).toContain("Lessons that will not run");
+  expect(html).toMatch(/data-reason="Year 11 trip"/);
+  expect(html).toMatch(
+    /data-group="11D"[^>]*>(?:<[^>]+>)*11D(?:<[^>]+>)*: 1 lesson</,
+  );
+  expect(html).toMatch(
+    /data-group="13 1"[^>]*>(?:<[^>]+>)*13 1(?:<[^>]+>)*: 5 lessons</,
+  );
+  // The reason is escaped, never markup.
+  expect(html).toContain("Mock &lt;b&gt;exams&lt;/b&gt;");
+  expect(html).not.toContain("<b>exams</b>");
+});
+
+test("each group shows its last lesson and its exams", () => {
+  expect(html).toContain("Last lesson and official exams");
+  const row = (id: string) =>
+    html.match(new RegExp(`<li[^>]*data-last-lesson="${id}".*?</li>`))?.[0] ??
+    "";
+  expect(row("13 1")).toContain("Friday 7 May 2027");
+  expect(row("13 1")).toContain("WBS14 01");
+  expect(row("13 1")).toContain("Tuesday 1 June 2027");
+  expect(row("13 3")).toContain("No lesson left");
+  expect(row("13 3")).toContain("WBS14 01");
+  expect(row("11D")).toContain("Tuesday 11 May 2027");
+  expect(row("11D")).not.toContain("WBS14 01");
 });

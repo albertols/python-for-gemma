@@ -1,6 +1,7 @@
 import { SEED_GROUPS } from "@planner/fixtures";
 import { describe, expect, test } from "vitest";
 import type { IsoDate } from "./dates.ts";
+import type { ExternalExam } from "./exams.ts";
 import {
   type ParentsEvening,
   type ReportWindow,
@@ -126,4 +127,46 @@ test("reminders are sorted by date, then label", () => {
     "Year 11 A: data deadline",
     "Year 11 B: data deadline",
   ]);
+});
+
+describe("official exams", () => {
+  const exam: ExternalExam = {
+    id: "x1",
+    code: "WBS14 01",
+    title: "IAL Business Unit 4: Global Business",
+    date: "2026-11-27",
+    session: "morning",
+    durationMinutes: 120,
+    groupIds: ["13 5", "13 1", "13 3"],
+    source: null,
+  };
+  const run = (exams: ExternalExam[], today: IsoDate = "2026-11-20") =>
+    reminders({
+      today,
+      windows: [],
+      evenings: [],
+      exams,
+      groups: SEED_GROUPS,
+      horizonDays: 14,
+    });
+  test("an exam is a reminder of kind exam, labelled with its code and title", () =>
+    expect(run([exam])).toEqual([
+      {
+        kind: "exam",
+        date: "2026-11-27",
+        daysLeft: 7,
+        label: "WBS14 01 IAL Business Unit 4: Global Business",
+        groupIds: ["13 1", "13 3", "13 5"],
+      },
+    ]));
+  test("an exam fifteen days ahead is not in Coming up; fourteen and seven days ahead it is", () => {
+    // The look-ahead window is 14 days, not the brief's 7 and 12.
+    expect(run([{ ...exam, date: "2026-12-05" }])).toEqual([]);
+    expect(run([{ ...exam, date: "2026-12-04" }])[0]?.daysLeft).toBe(14);
+    expect(run([exam])[0]?.daysLeft).toBe(7);
+  });
+  test("a past exam, or one for no group, is not shown", () => {
+    expect(run([{ ...exam, date: "2026-11-19" }])).toEqual([]);
+    expect(run([{ ...exam, groupIds: [] }])).toEqual([]);
+  });
 });

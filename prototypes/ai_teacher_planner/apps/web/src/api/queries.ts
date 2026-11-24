@@ -440,3 +440,46 @@ export function useRemoveClassification() {
     onSuccess: () => invalidateEvents(qc),
   });
 }
+
+export type Exam = InferResponseType<typeof api.api.exams.$get, 200>[number];
+export type ExamBody = InferRequestType<typeof api.api.exams.$post>["json"];
+
+export function useExams() {
+  return useQuery({
+    queryKey: ["exams"],
+    queryFn: () => call<Exam[]>(() => api.api.exams.$get()),
+  });
+}
+
+/** An exam shows in Coming up on Today and in the audit's last-lesson list. */
+function invalidateExams(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["exams"] });
+  void qc.invalidateQueries({ queryKey: ["today"] });
+}
+
+export function useCreateExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ExamBody) =>
+      call<Exam>(() => api.api.exams.$post({ json: body })),
+    onSuccess: () => invalidateExams(qc),
+  });
+}
+
+export function useUpdateExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...json }: { id: string } & ExamBody) =>
+      call<Exam>(() => api.api.exams[":id"].$put({ param: { id }, json })),
+    onSuccess: () => invalidateExams(qc),
+  });
+}
+
+export function useRemoveExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<unknown>(() => api.api.exams[":id"].$delete({ param: { id } })),
+    onSuccess: () => invalidateExams(qc),
+  });
+}

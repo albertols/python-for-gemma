@@ -45,7 +45,8 @@ const getAudit = createRoute({
   path: "/api/audit",
   responses: {
     200: {
-      description: "Lessons per teaching block, lost lessons and days off",
+      description:
+        "Lessons per teaching block, lost lessons (and why), each group's last lesson and days off",
       content: json(
         z.object({
           rows: z.array(
@@ -60,6 +61,13 @@ const getAudit = createRoute({
             }),
           ),
           lost: z.array(slot),
+          lostByReason: z.array(
+            z.object({
+              reason: z.string(),
+              perGroup: z.record(z.string(), z.number()),
+            }),
+          ),
+          lastLesson: z.record(z.string(), isoDate.nullable()),
           daysOff: z.array(
             z.object({
               date: isoDate,
@@ -90,7 +98,8 @@ export function slotRoutes(deps: { repos: Repos }) {
       c.json(fortnights(loadPlanning(repos).days), 200),
     )
     .openapi(getAudit, (c) => {
-      const { days, terms, slots, timetables, groups } = loadPlanning(repos);
+      const { days, terms, slots, timetables, groups, disruptions } =
+        loadPlanning(repos);
       return c.json(
         auditSlots({
           slots,
@@ -98,6 +107,7 @@ export function slotRoutes(deps: { repos: Repos }) {
           blocks: teachingBlocks(days, terms),
           timetables,
           groups,
+          disruptions,
         }),
         200,
       );

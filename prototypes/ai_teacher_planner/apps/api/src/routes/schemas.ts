@@ -103,7 +103,7 @@ export const slot = z.object({
   doubleWith: z.string().nullable(),
 });
 export const reminder = z.object({
-  kind: z.enum(["report-data-deadline", "parents-evening"]),
+  kind: z.enum(["report-data-deadline", "parents-evening", "exam"]),
   date: isoDate,
   daysLeft: z.number(),
   label: z.string(),
@@ -183,3 +183,15 @@ export const eventCandidate = z.object({
     rule: z.string().nullable(),
   }),
 });
+
+/** The text limits (120 and 20) are checked by the use case, which says why in her words. */
+export const examInput = z.object({
+  code: z.string(),
+  title: z.string(),
+  date: isoDate,
+  session: z.enum(["morning", "afternoon"]),
+  durationMinutes: z.number().int(),
+  groupIds: z.array(z.string()),
+  source: z.string().nullable(),
+});
+export const exam = examInput.extend({ id: z.string() });

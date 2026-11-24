@@ -3,6 +3,7 @@ export * from "./calendar.ts";
 export * from "./corrections.ts";
 export * from "./dates.ts";
 export * from "./events.ts";
+export * from "./exams.ts";
 export * from "./permissions.ts";
 export * from "./provenance.ts";
 export * from "./reminders.ts";

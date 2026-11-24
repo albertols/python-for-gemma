@@ -11,6 +11,7 @@ import { createRepos } from "./repos/sqlite/index.ts";
 import { calendarRoutes } from "./routes/calendar.ts";
 import { disruptionRoutes } from "./routes/disruptions.ts";
 import { eventRoutes } from "./routes/events.ts";
+import { examRoutes } from "./routes/exams.ts";
 import type { Principal } from "./routes/require-access.ts";
 import { createRouter } from "./routes/router.ts";
 import { slotRoutes } from "./routes/slots.ts";
@@ -100,6 +101,7 @@ export function createApp(deps: AppDeps) {
     .route("/", slotRoutes({ repos }))
     .route("/", disruptionRoutes({ repos, now }))
     .route("/", eventRoutes({ repos, now }))
+    .route("/", examRoutes({ repos }))
     .route("/", todayRoutes({ config, repos, now }));
 
   if (config.testRoutes) app.route("/", testRoutes({ db, repos, now }));

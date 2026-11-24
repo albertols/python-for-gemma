@@ -33,6 +33,7 @@ const audit = (disruptions: Disruption[]) =>
     blocks,
     timetables: [SEED_TIMETABLE],
     groups: SEED_GROUPS,
+    disruptions,
   });
 const plain = audit([]);
 const auditWithSnow = audit([snow]);
@@ -132,3 +133,104 @@ test("a holiday on the first day of a block is still a day off", () => {
 });
 test("a week off with no pupil day lists no days off", () =>
   expect(plain.daysOff.map((d) => d.date)).not.toContain("2026-11-02"));
+
+const trip: Disruption = {
+  id: "trip",
+  scope: { kind: "group", groupId: "13 3" },
+  from: "2026-11-19",
+  to: "2026-11-19",
+  periods: [3],
+  effect: "cancelled",
+  reason: "Trip",
+  source: "teacher",
+};
+
+test("lost lessons are grouped by reason with counts per group", () => {
+  const both = audit([snow, trip]);
+  // 13 3 period 3 has two reasons: it counts under each, once in the lost list.
+  expect(both.lost).toHaveLength(5);
+  expect(both.lostByReason).toEqual([
+    { reason: "Snow", perGroup: { "IB S": 2, "13 3": 2, "13 5": 1 } },
+    { reason: "Trip", perGroup: { "13 3": 1 } },
+  ]);
+});
+test("reasons are sorted by their total, largest first, then by reason", () => {
+  const out = audit([
+    { ...trip, id: "a", reason: "B trip", periods: null },
+    { ...trip, id: "b", reason: "A trip", periods: [3] },
+    snow,
+  ]).lostByReason.map((r) => r.reason);
+  expect(out).toEqual(["Snow", "B trip", "A trip"]);
+});
+test("nothing lost means no reasons", () =>
+  expect(plain.lostByReason).toEqual([]));
+
+test("lastLesson is the last open slot of each group, null when it has none", () => {
+  const lastOf = (id: string) =>
+    plain.rows.length === 0
+      ? null
+      : buildSlots({
+          days,
+          timetables: [SEED_TIMETABLE],
+          groups: SEED_GROUPS,
+          disruptions: [],
+        })
+          .filter((s) => s.groupId === id && s.status === "open")
+          .map((s) => s.date)
+          .sort()
+          .at(-1);
+  for (const g of SEED_GROUPS)
+    expect(plain.lastLesson[g.id]).toBe(lastOf(g.id));
+  const lastDay = plain.lastLesson["13 1"] as string;
+  const leave = audit([
+    {
+      ...snow,
+      id: "leave",
+      scope: { kind: "year", yearGroup: 13 },
+      from: "2026-12-01",
+      to: "2027-12-31",
+      reason: "Study leave",
+    },
+  ]);
+  expect(
+    leave.lastLesson["13 1"] && leave.lastLesson["13 1"] < "2026-12-01",
+  ).toBe(true);
+  expect(leave.lastLesson["13 1"]).not.toBe(lastDay);
+  expect(leave.lastLesson["11D"]).toBe(plain.lastLesson["11D"]);
+  const none = audit([
+    { ...snow, id: "all", from: "2026-01-01", to: "2027-12-31" },
+  ]);
+  expect(none.lastLesson["11D"]).toBeNull();
+});
+
+test("a day off does not list a group whose lessons that day are already cancelled by another disruption", () => {
+  const dayOff = "2026-12-08";
+  const baseline = plain.daysOff.find((d) => d.date === dayOff);
+  expect(baseline?.wouldHaveHad.some((m) => m.groupId.startsWith("13"))).toBe(
+    true,
+  );
+  const leave: Disruption = {
+    ...snow,
+    id: "leave",
+    scope: { kind: "year", yearGroup: 13 },
+    from: "2026-12-01",
+    to: "2026-12-31",
+    reason: "Study leave",
+  };
+  const off = audit([leave]).daysOff.find((d) => d.date === dayOff);
+  expect(off?.wouldHaveHad.some((m) => m.groupId.startsWith("13"))).toBe(false);
+  expect(off?.wouldHaveHad.length).toBe(
+    (baseline?.wouldHaveHad.length ?? 0) -
+      (baseline?.wouldHaveHad.filter((m) => m.groupId.startsWith("13"))
+        .length ?? 0),
+  );
+  // A cover lesson is not a cancellation, and a day's own "no lessons" decision is not another cause.
+  const cover = audit([
+    { ...leave, id: "cover", effect: "cover" },
+  ]).daysOff.find((d) => d.date === dayOff);
+  expect(cover?.wouldHaveHad).toEqual(baseline?.wouldHaveHad);
+  const own = audit([
+    { ...snow, id: `day:${dayOff}`, from: dayOff, to: dayOff },
+  ]).daysOff.find((d) => d.date === dayOff);
+  expect(own?.wouldHaveHad).toEqual(baseline?.wouldHaveHad);
+});

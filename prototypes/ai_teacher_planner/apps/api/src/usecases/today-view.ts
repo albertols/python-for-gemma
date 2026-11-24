@@ -43,6 +43,7 @@ export function todayView(repos: Repos, today: IsoDate): TodayView {
       today,
       windows: repos.calendar.windows(),
       evenings: repos.calendar.evenings(),
+      exams: repos.exams.list(),
       groups,
       horizonDays: REMINDER_HORIZON_DAYS,
     }),

@@ -36,3 +36,50 @@ test("a failure part-way through seeding stores nothing and leaves the flag unse
   firstRun(repos);
   expect(repos.timetable.versions()).toHaveLength(1);
 });
+
+test("first run seeds the three exams once, and one she deleted is never added back", () => {
+  const repos = createRepos(migratedDb());
+  firstRun(repos);
+  expect(repos.exams.list().map((e) => e.code)).toEqual([
+    "4BS1 01",
+    "4BS1 02",
+    "WBS14 01",
+  ]);
+  const wbs = repos.exams.list().find((e) => e.code === "WBS14 01");
+  expect(wbs).toMatchObject({
+    date: "2027-06-01",
+    session: "morning",
+    durationMinutes: 120,
+    groupIds: ["13 1", "13 3", "13 5"],
+  });
+  expect(wbs?.source).toMatch(/^https:\/\/qualifications\.pearson\.com\/.*ial/);
+  const paper1 = repos.exams.list().find((e) => e.code === "4BS1 01");
+  expect(paper1).toMatchObject({
+    date: "2027-05-12",
+    session: "afternoon",
+    durationMinutes: 90,
+    groupIds: ["11D"],
+  });
+  expect(repos.exams.list().find((e) => e.code === "4BS1 02")).toMatchObject({
+    date: "2027-05-21",
+    durationMinutes: 90,
+  });
+  if (!paper1) throw new Error("no paper 1");
+  repos.exams.remove(paper1.id);
+  firstRun(repos);
+  expect(repos.exams.list().map((e) => e.code)).toEqual([
+    "4BS1 02",
+    "WBS14 01",
+  ]);
+});
+
+test("a planner seeded before exams existed gets them on the next start, once", () => {
+  const repos = createRepos(migratedDb());
+  // The older "seeded" flag alone does not stop the exams: they have their own marker.
+  repos.settings.setFlag("seeded");
+  firstRun(repos);
+  expect(repos.exams.list()).toHaveLength(3);
+  for (const e of repos.exams.list()) repos.exams.remove(e.id);
+  firstRun(repos);
+  expect(repos.exams.list()).toEqual([]);
+});
