@@ -1,0 +1,19 @@
+{
+  "name": "@planner/importers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@planner/domain": "workspace:*",
+    "exceljs": "4.4.0"
+  },
+  "devDependencies": {
+    "@planner/fixtures": "workspace:*"
+  }
+}

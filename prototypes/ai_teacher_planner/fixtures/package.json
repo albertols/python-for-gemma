@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@planner/domain": "workspace:*"
+    "@planner/domain": "workspace:*",
+    "exceljs": "4.4.0"
   }
 }
