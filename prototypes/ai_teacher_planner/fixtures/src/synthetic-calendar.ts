@@ -229,6 +229,57 @@ function addAssRepSheet(wb: ExcelJS.Workbook, wrongOn: IsoDate | undefined) {
   }
 }
 
+function addReportSheets(wb: ExcelJS.Workbook): void {
+  const reports = wb.addWorksheet("Report deadlines");
+  reports.addRow([
+    "Year / programme",
+    "Report",
+    "SIMS columns",
+    "Data deadline",
+    "HoD review",
+    "Sent home",
+    "Explanation",
+  ]);
+  reports.addRow([]);
+  reports.addRow([
+    "Year 7",
+    "Report 1: Short",
+    "Effort, Attainment",
+    "Wednesday 10th March 2027",
+  ]);
+  reports.addRow([]);
+  reports.addRow([
+    "Year 11 ",
+    "Report 2: Long",
+    "Grade, Effort, Comment",
+    "Monday 30th November 2026",
+    "Friday 4th December 2026",
+    "Thursday 11th December 2026",
+    "Comments in full",
+  ]);
+  reports.addRow([]);
+  reports.addRow([
+    "Year 12",
+    "Report 3",
+    "Grade, Effort",
+    "Wednesday 10th March 2027",
+  ]);
+  reports.addRow(["IB"]);
+  reports.addRow([]);
+  reports.addRow([
+    "Year 12",
+    "Report 3",
+    "Grade, Effort",
+    "Wednesday 10th March 2027",
+  ]);
+  reports.addRow(["A level"]);
+
+  const eves = wb.addWorksheet("Parents eves");
+  eves.addRow(["", "Term 1", "Term 2", "Term 3"]);
+  eves.addRow(["Year 11", "Parent Meeting: Oct 29"]);
+  eves.addRow(["Year 13", "Parent Meeting: Nov 26"]);
+}
+
 export async function buildSyntheticWorkbook(
   options: SyntheticWorkbookOptions = {},
 ): Promise<Uint8Array> {
@@ -236,6 +287,7 @@ export async function buildSyntheticWorkbook(
   wb.addWorksheet("Staff list").addRow(["Name", "Role"]);
   addCalendarSheet(wb, options);
   addAssRepSheet(wb, options.assRepMismatchOn);
+  addReportSheets(wb);
   wb.addWorksheet("Calendar notes").addRow(["Not the calendar"]);
   return new Uint8Array(await wb.xlsx.writeBuffer());
 }
