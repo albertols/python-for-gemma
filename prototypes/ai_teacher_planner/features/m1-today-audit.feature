@@ -19,7 +19,8 @@ Feature: Today and slot audit
 
   Scenario: The slot audit explains a day off
     When I open the slot audit
-    Then I see lessons per group for each teaching block
+    Then I see the audit's guiding sentence
+    And I see lessons per group for each teaching block
     And I see that Monday 12 October 2026 was "Official Holiday" and what each group missed
     And I see that no lessons have been lost
 

@@ -25,6 +25,7 @@ export function useConfig() {
 function invalidateBoard(qc: QueryClient) {
   void qc.invalidateQueries({ queryKey: ["fortnights"] });
   void qc.invalidateQueries({ queryKey: ["board"] });
+  void qc.invalidateQueries({ queryKey: ["today"] });
 }
 
 export type ImportSummary = NonNullable<
@@ -79,7 +80,10 @@ export function useSaveReportDate() {
               json: { date },
             }),
           ),
-    onSuccess: (summary) => qc.setQueryData(["calendar-import"], summary),
+    onSuccess: (summary) => {
+      qc.setQueryData(["calendar-import"], summary);
+      void qc.invalidateQueries({ queryKey: ["today"] });
+    },
   });
 }
 

@@ -42,12 +42,12 @@ Then("I see {string}", async ({ page }, text: string) => {
 });
 
 Then(
-  "I see the lesson {string} at {int}:{int} in room {int}",
-  async ({ page }, group: string, h: number, m: number, room: number) => {
+  "I see the lesson {string} at {word} in room {int}",
+  async ({ page }, group: string, time: string, room: number) => {
     const row = page
       .getByRole("row")
       .filter({ hasText: group })
-      .filter({ hasText: `${h}:${m}` });
+      .filter({ hasText: time });
     await expect(row).toContainText(`Room ${room}`);
   },
 );
@@ -122,25 +122,48 @@ When("I open the slot audit", async ({ page }) => {
   await expect(page.getByRole("table").first()).toBeVisible();
 });
 
+type Audit = {
+  rows: { perGroup: Record<string, { open: number; cover: number }> }[];
+};
+const taught = (c: { open: number; cover: number } | undefined) =>
+  (c?.open ?? 0) + (c?.cover ?? 0);
+
 Then(
   "I see lessons per group for each teaching block",
   async ({ page, request }) => {
-    const audit = (await (await request.get("/api/audit")).json()) as {
-      rows: { perGroup: Record<string, unknown> }[];
-    };
+    const audit = (await (await request.get("/api/audit")).json()) as Audit;
+    const groups = Object.keys(audit.rows[0]?.perGroup ?? {});
+    expect(audit.rows.length).toBeGreaterThan(0);
     const table = page.getByRole("table", { name: /lessons per group/i });
     const blocks = table.locator("tbody tr");
-    // One row per teaching block; the year total sits in the footer.
     await expect(blocks).toHaveCount(audit.rows.length);
-    for (const group of Object.keys(audit.rows[0]?.perGroup ?? {}))
-      await expect(
-        table.getByRole("columnheader", { name: group }),
-      ).toBeVisible();
+    const headers = await table.locator("thead th").allTextContents();
+    expect(headers).toEqual(["Teaching block", ...groups]);
+    // Every block row shows open plus cover lessons for each group, in column order.
+    for (const [i, row] of audit.rows.entries())
+      await expect(blocks.nth(i).locator("td")).toHaveText(
+        groups.map((g) => new RegExp(`^${taught(row.perGroup[g])}$`)),
+      );
+    // The year total is the sum of the blocks.
     await expect(
-      table.getByRole("rowheader", { name: /Year total/ }),
+      table.getByRole("rowheader", { name: "Year total" }),
     ).toBeVisible();
+    await expect(table.locator("tfoot td")).toHaveText(
+      groups.map(
+        (g) =>
+          new RegExp(
+            `^${audit.rows.reduce((n, r) => n + taught(r.perGroup[g]), 0)}$`,
+          ),
+      ),
+    );
   },
 );
+
+Then("I see the audit's guiding sentence", async ({ page }) => {
+  await expect(page.getByRole("main")).toContainText(
+    "Compare these counts with your own timetable. If one is wrong, a date is wrong.",
+  );
+});
 
 Then(
   "I see that Monday 12 October 2026 was {string} and what each group missed",

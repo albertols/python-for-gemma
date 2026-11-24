@@ -1,11 +1,11 @@
-import { useAudit, useTimetable } from "../../api/queries.ts";
+import { type AuditData, useAudit, useTimetable } from "../../api/queries.ts";
 import { GroupBadge } from "../../components/GroupBadge.tsx";
 import {
   EmptyState,
   ErrorState,
   Loading,
 } from "../../components/ui/states.tsx";
-import { fullDayWithYear, shortDate } from "../../lib/dates.ts";
+import { fullDayWithYear, longDate } from "../../lib/dates.ts";
 
 const TERM = { T1: "Term 1", T2: "Term 2", T3: "Term 3" } as const;
 const cell = "border border-border px-3 py-2 text-left align-top";
@@ -17,26 +17,38 @@ export function AuditScreen() {
   if (failed) return <ErrorState message={failed.message} />;
   if (!audit.data || !timetable.data) return <Loading what="the slot audit" />;
 
-  const { rows, lost, daysOff } = audit.data;
   const colours = new Map(timetable.data.groups.map((g) => [g.id, g.colour]));
-  const groupIds = Object.keys(rows[0]?.perGroup ?? {});
-  /** Lessons that took place or are covered; a cancelled one is counted apart. */
-  const taught = (id: string, from = 0, to = rows.length) =>
-    rows
-      .slice(from, to)
-      .reduce(
-        (n, r) =>
-          n + (r.perGroup[id]?.open ?? 0) + (r.perGroup[id]?.cover ?? 0),
-        0,
-      );
-  const cancelled = (id: string) =>
-    rows.reduce((n, r) => n + (r.perGroup[id]?.cancelled ?? 0), 0);
-
   return (
     <section aria-labelledby="audit-title">
       <h1 id="audit-title" className="text-2xl font-semibold">
         Slot audit
       </h1>
+      <AuditView audit={audit.data} colours={colours} />
+    </section>
+  );
+}
+
+/** The guiding sentence, the table and the two lists. Pure: it takes the audit as data. */
+export function AuditView({
+  audit,
+  colours,
+}: {
+  audit: AuditData;
+  colours: ReadonlyMap<string, string>;
+}) {
+  const { rows, lost, daysOff } = audit;
+  const groupIds = Object.keys(rows[0]?.perGroup ?? {});
+  /** Lessons that took place or are covered; a cancelled one is counted apart. */
+  const taught = (id: string) =>
+    rows.reduce(
+      (n, r) => n + (r.perGroup[id]?.open ?? 0) + (r.perGroup[id]?.cover ?? 0),
+      0,
+    );
+  const cancelled = (id: string) =>
+    rows.reduce((n, r) => n + (r.perGroup[id]?.cancelled ?? 0), 0);
+
+  return (
+    <>
       <p className="mt-2">
         Compare these counts with your own timetable. If one is wrong, a date is
         wrong.
@@ -72,7 +84,7 @@ export function AuditScreen() {
                   <th scope="row" className={`${cell} font-normal`}>
                     <span className="font-medium">{TERM[r.block.termId]}</span>
                     {", "}
-                    {shortDate(r.block.from)} to {shortDate(r.block.to)}
+                    {longDate(r.block.from)} to {longDate(r.block.to)}
                   </th>
                   {groupIds.map((id) => {
                     const lostHere = r.perGroup[id]?.cancelled ?? 0;
@@ -163,6 +175,6 @@ export function AuditScreen() {
           ))}
         </ul>
       )}
-    </section>
+    </>
   );
 }
