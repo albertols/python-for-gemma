@@ -2,10 +2,11 @@
 
 A local web app that turns Gemma's syllabus, scheme of work, school calendar and two-week timetable into a dated lesson plan for each group. Fixed rules do the dates; Claude helps with judgement calls and is labelled wherever it does.
 
-**Status:** spec written, awaiting approval. No application code exists yet. Until the spec is approved, write docs only.
+**Status:** spec approved on 24 Nov 2026; the task-level plan is written. No application code exists yet. The build starts at milestone M1, Task 1.1.
 
 ## Read first
-- Spec: `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`
+- Spec: `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md` (appendix D lists what changed after approval)
+- Plan: `docs/superpowers/plans/2026-11-24-ai-teacher-planner-v1.md` is the index (constraints, conventions, shared types); one file per milestone beside it. Work the tasks in order
 - Diagrams, one glance each: `docs/design/ai-teacher-planner/README.md`
 - Decisions: `docs/adr/006` to `016` (005 is reserved for Gemma)
 - Gemma's requirements: `src/ai_teacher_planner/template_prompt.md`. It is her document: do not edit it
@@ -22,7 +23,7 @@ A local web app that turns Gemma's syllabus, scheme of work, school calendar and
 
 ## Commands (arrive with M1; keep this list true)
 Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/bin/mise exec --`.
-- `pnpm install` · `pnpm start` (build, serve, open the app) · `pnpm -r typecheck` · `pnpm -r test` · `pnpm e2e` · `pnpm lint`
+- `pnpm install` · `pnpm start` (build, serve, open the app) · `pnpm typecheck` · `pnpm test` · `pnpm e2e` · `pnpm lint`
 - `sh docs/design/render.sh` — re-render diagrams
 
 ## Rules that must hold
