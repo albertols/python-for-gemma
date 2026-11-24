@@ -206,3 +206,42 @@ test("a day whose label she corrected is marked corrected", () => {
     "2026-11-17",
   ]);
 });
+
+test("a double with one cancelled period is drawn as two cells, and both cancelled stays joined", () => {
+  const f = { w1: "2026-11-23", w2: "2026-11-30", breakBefore: false };
+  const disrupted = (periods: (1 | 2 | 3 | 4 | 5 | 6)[]) =>
+    boardFor(
+      f,
+      days,
+      buildSlots({
+        days,
+        timetables: [SEED_TIMETABLE],
+        groups: SEED_GROUPS,
+        disruptions: [
+          {
+            id: "t:1",
+            scope: { kind: "group", groupId: "11D" },
+            from: "2026-11-24",
+            to: "2026-11-24",
+            periods,
+            effect: "cancelled",
+            reason: "School photos",
+            source: "teacher",
+          },
+        ],
+      }),
+      [SEED_TIMETABLE],
+    );
+  const tuesday = (b: ReturnType<typeof board>) =>
+    b.w1?.days.find((d) => d.date === "2026-11-24")?.cells;
+  const one = tuesday(disrupted([3]));
+  const p3 = one?.find((c) => c.period === 3);
+  const p4 = one?.find((c) => c.period === 4);
+  expect(p3?.slot?.status).toBe("cancelled");
+  expect(p4?.slot?.status).toBe("open");
+  expect(p3?.joinsNext).toBe(false);
+  expect(p3?.doublePartner).toBe(4);
+  expect(p4?.doublePartner).toBe(3);
+  const both = tuesday(disrupted([3, 4]));
+  expect(both?.find((c) => c.period === 3)?.joinsNext).toBe(true);
+});

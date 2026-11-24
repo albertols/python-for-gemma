@@ -19,8 +19,10 @@ export interface BoardCell {
   slot: Slot | null;
   /** The group of a lesson, or the label of a duty. */
   label: string | null;
-  /** The first half of a double: it is drawn joined to the next period. */
+  /** The first half of a double whose two periods are in the same state: it is drawn joined to the next period. */
   joinsNext: boolean;
+  /** The other period of a double, even when the two are drawn apart because one is cancelled. */
+  doublePartner: Period | null;
 }
 export interface BoardDay {
   date: IsoDate;
@@ -39,6 +41,10 @@ export interface BoardWeek {
   /** Its pupil days carry different labels (Monday Week 2, Wednesday Week 1). A holiday with another label does not count. */
   mixed: boolean;
 }
+
+const stateOf = (s: Slot) =>
+  `${s.status}|${s.reasons.map((r) => r.text).join(";")}`;
+const sameState = (a: Slot, b: Slot) => stateOf(a) === stateOf(b);
 
 const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];
 
@@ -65,6 +71,7 @@ function dayOf(
         slot: null,
         label: null,
         joinsNext: false,
+        doublePartner: null,
       })),
     };
   const duties = versionOn(timetables, date)?.duties ?? [];
@@ -75,15 +82,25 @@ function dayOf(
     corrected,
     cells: PERIODS.map((period): BoardCell => {
       const slot = slotsOnDate.find((s) => s.period === period);
-      if (slot)
+      if (slot) {
+        const doublePartner = slot.doubleWith
+          ? ((period % 2 === 1 ? period + 1 : period - 1) as Period)
+          : null;
+        const partner = slotsOnDate.find((s) => s.key === slot.doubleWith);
         return {
           period,
           date,
           kind: "lesson",
           slot,
           label: slot.groupId,
-          joinsNext: slot.doubleWith !== null && period % 2 === 1,
+          // A double with one period cancelled is drawn as two cells, so the one that still runs does not look lost.
+          joinsNext:
+            partner !== undefined &&
+            period % 2 === 1 &&
+            sameState(slot, partner),
+          doublePartner,
         };
+      }
       const duty = duties.find(
         (d) =>
           d.week === day.weekLabel &&
@@ -97,6 +114,7 @@ function dayOf(
         slot: null,
         label: duty?.label ?? null,
         joinsNext: false,
+        doublePartner: null,
       };
     }),
   };

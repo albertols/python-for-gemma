@@ -166,7 +166,7 @@ Then(
 );
 
 Then(
-  "the board shows {word} period {int} on {int} {word} {int} as a lesson again",
+  /^the board shows (\S+) period (\d+) on (\d+) (\w+) (\d+) as a lesson(?: again)?$/,
   async (
     { page },
     group: string,

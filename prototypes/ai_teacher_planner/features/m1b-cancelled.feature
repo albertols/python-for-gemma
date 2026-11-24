@@ -4,6 +4,7 @@ Feature: Lessons were cancelled
     When I record that 11D's period 3 on 24 November 2026 was cancelled for "School photos"
     Then the dialog listed 1 lesson before I confirmed
     And the board shows 11D period 3 on 24 November 2026 as cancelled with "School photos"
+    And the board shows 11D period 4 on 24 November 2026 as a lesson
     And the slot audit counts 1 cancelled lesson for 11D in that half-term
 
   Scenario: Removing it puts the lesson back

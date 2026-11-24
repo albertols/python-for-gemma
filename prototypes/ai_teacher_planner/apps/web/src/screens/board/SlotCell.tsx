@@ -29,8 +29,8 @@ export function SlotCell({
     const why = slot.reasons.map((r) => r.text).join("; ");
     const status =
       slot.status === "open" ? "" : `, ${slot.status}${why ? `: ${why}` : ""}`;
-    const double = cell.joinsNext
-      ? `, double with period ${cell.period + 1}`
+    const double = cell.doublePartner
+      ? `, double with period ${cell.doublePartner}`
       : "";
     return (
       <td
