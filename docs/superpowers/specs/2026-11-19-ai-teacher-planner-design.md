@@ -833,7 +833,7 @@ Her words are in `prototypes/ai_teacher_planner/answers_after_M1.md`. Dates were
 | What | For | Dates |
 |---|---|---|
 | Study leave, Year 13 | 13 1, 13 3, 13 5 | Last lesson Fri 7 May 2027; study leave from Tue 11 May; they do not come back for lessons |
-| Study leave, Year 11 | 11D | Study leave from Wed 5 May 2027; last lesson 4 May (or 30 April; she confirms). They come back on 16 June but not to normal lessons |
+| Study leave, Year 11 | 11D | Last lesson Fri 30 April 2027 (confirmed 25 Nov 2026), so 11D has no lesson on 4 May; study leave from Wed 5 May 2027. They come back on 16 June but not to normal lessons |
 | Internal mocks | Year 11, Year 13 and Year 12 IB | January 2027, the dates the calendar gives; normal lessons resume after |
 | Extended Essay days | Year 12 IB | The dates the calendar gives |
 | Something the calendar does not have | Any group, any periods | Entered by her, for example school photos on 24 Nov 2026 that took 11D's period 3 |
@@ -850,7 +850,7 @@ The last two teaching weeks before a group's study leave are "more or less" revi
 
 Her note said "2st May" for Paper 2; the timetable says Friday 21 May.
 
-**IB Internal Assessment.** The IB groups spend lesson time on their Internal Assessment in Terms 2 and 3, following the task schedule in her `ibdp/IA` folder and the hours in the Business Management guide. This joins the IB plan (M4) as project items. The planner never opens the denied IA subfolders, which hold student work; she names the schedule file, or enters its milestones by hand, and the guide's hours come from the reviewed IB pack.
+**IB Internal Assessment.** The IB groups spend lesson time on their Internal Assessment in Terms 2 and 3, following the task schedule in her `ibdp/IA` folder and the hours in the Business Management guide. This joins the IB plan (M4) as project items. The planner never opens the denied IA subfolders, which hold student work. She named the schedule on 25 Nov 2026: `ibdp/IA/IA Intro & Tasks`. M4 checks that it holds no student names before adding it to the gateway allowlist; the guide's hours come from the reviewed IB pack.
 
 **From her click-through**
 
