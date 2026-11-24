@@ -45,13 +45,13 @@ Look for the five shared pieces every screen reuses; the purple ones are where A
 
 Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import.
 
-![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), derived slots, lessons and placements, plan revisions, provenance](05-domain-model.svg)
+![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, derived slots, lessons and placements, plan revisions, provenance with review state](05-domain-model.svg)
 
 ## 6. Scheduling pipeline
 
 Look for the amber gate: a candidate revision becomes the head revision only when Gemma accepts the diff.
 
-![Scheduling pipeline: calendar workbook to calendar days, slots, sequencing, candidate revision, diff and accept, head revision](06-scheduling-pipeline.svg)
+![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, sequencing, candidate revision, diff and accept, head revision](06-scheduling-pipeline.svg)
 
 ## 7. AI flow
 

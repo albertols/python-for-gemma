@@ -28,6 +28,7 @@ timetable: "Timetable\nWeek 1 | Week 2" {class: win}
 disruptions: "Disruptions\nabsence, closure,\ntrip" {class: win}
 slots: "Slots\nper group,\ndate, period" {class: concept}
 sow: "Scheme of work\norder, counts,\nanchors, pins" {class: win}
+lessons: "Lessons per group\nitem#n, overrides,\nno assessments" {class: concept}
 sequencing: "Sequencing\nfreeze, anchors,\nfill, buffers" {class: concept}
 candidate: "Candidate\nrevision" {class: concept}
 diff: "Diff + accept\nor reject" {class: warn}
@@ -52,7 +53,8 @@ days -> slots: {class: flow}
 timetable -> slots: {class: flow}
 disruptions -> slots: "folded in" {class: flow}
 slots -> sequencing: {class: flow}
-sow -> sequencing: {class: flow}
+sow -> lessons: "expanded" {class: flow}
+lessons -> sequencing: {class: flow}
 sequencing -> candidate: {class: flow}
 candidate -> diff: {class: flow}
 diff -> head: "accepted" {class: flow}

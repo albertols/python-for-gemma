@@ -31,8 +31,9 @@ pack: "Course pack (locked)" {
 decisions: "Her decisions and recorded facts (stored rows)" {
   class: group
 
-  item: "SowItem\norder, kind, lessons, prereqs" {class: win}
-  assessment: "Assessment\ndate, type, status" {class: win}
+  item: "SowItem\norder, kind, track, lessons,\nprereqs, provenance" {class: win}
+  override: "GroupOverride\nlessons for one group" {class: win}
+  assessment: "AssessmentSpec\ndate, type, marks, length,\nwhole slot or in lesson" {class: win}
   pin: "Pin\nlesson, slot or not-after" {class: win}
   labelfix: "LabelCorrection and\nFindingResolution\nher day label, her import decision" {class: win}
   exam: "ExternalExam\ncode, date, session, groups" {class: win}
@@ -45,7 +46,7 @@ derived: "Derived by the engine" {
   class: group
 
   slot: "Slot\ngroup, date, period, status" {class: concept}
-  lesson: "Lesson\nitem + number, shared by groups" {class: concept}
+  lesson: "Lesson\nitem#n, per group;\nassessments are not lessons" {class: concept}
   placement: "Placement\nlesson, slot, state" {class: concept}
 }
 
@@ -53,7 +54,7 @@ revision: "PlanRevision\nimmutable snapshot,\npoints to its parent" {
   class: win
   shape: cylinder
 }
-provenance: "Provenance\norigin, AI details, review state" {class: ai}
+provenance: "Provenance\norigin: engine, AI, teacher, import;\nAI run, sources, review state" {class: ai}
 
 setup.day -> derived.slot: "label and date" {class: flow}
 decisions.labelfix -> setup.day: "overrides the label,\nnever lost on re-import" {class: flow}
@@ -63,6 +64,7 @@ decisions.disruption -> derived.slot: "cancels or covers" {class: flow}
 decisions.eventconfirm -> derived.slot: "cancels only once confirmed" {class: flow}
 pack.course -> decisions.item: "ordered items" {class: flow}
 decisions.item -> derived.lesson: "one per lesson" {class: flow}
+decisions.override -> derived.lesson: "changes the count\nfor one group" {class: flow}
 decisions.item -> pack.speclink: {class: flow}
 pack.speclink -> pack.spec: {class: flow}
 decisions.assessment -> decisions.item: "assesses" {class: flow}

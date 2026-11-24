@@ -49,3 +49,8 @@ test("nothing else reaches the resources folder through its helper", () => {
     .map((f) => relative(workspaceRoot, f).split("\\").join("/"));
   expect(mentioning.filter((rel) => !allowed(rel))).toEqual([]);
 });
+
+test('the string literal "import" is not an import, and a real side-effect import is', () => {
+  expect(importSpecifiers('type O = "import"; const a = "x";')).toEqual([]);
+  expect(importSpecifiers('import "./a.ts";')).toEqual(["./a.ts"]);
+});

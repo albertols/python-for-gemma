@@ -1,6 +1,6 @@
 import type { CalendarDay, CalendarRow, YearGroup } from "./calendar.ts";
 import type { IsoDate } from "./dates.ts";
-import type { Provenance } from "./provenance.ts";
+import type { Origin } from "./provenance.ts";
 import {
   type Disruption,
   type DisruptionScope,
@@ -48,7 +48,7 @@ export interface EventClassification {
   periods: Period[] | null;
   /** Each kept date cancels from that date through this one. */
   until: IsoDate | null;
-  provenance: Provenance;
+  provenance: Origin;
 }
 
 export function wordingKey(text: string): string {

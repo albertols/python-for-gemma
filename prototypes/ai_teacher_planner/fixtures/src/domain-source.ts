@@ -53,7 +53,7 @@ export function read(file: string): string {
 export function importSpecifiers(source: string): string[] {
   const patterns = [
     /\b(?:import|export)\b[^"'`;]*?\bfrom\s*["']([^"']+)["']/g,
-    /\bimport\s*["']([^"']+)["']/g,
+    /(?<!["'])\bimport\s*["']([^"']+)["']/g,
     /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
   ];
   return patterns.flatMap((re) =>
