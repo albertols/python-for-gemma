@@ -1,0 +1,50 @@
+[
+  {
+    "id": "11D",
+    "yearGroup": 11,
+    "programme": "IGCSE",
+    "courseId": "igcse-business",
+    "track": "core",
+    "colour": "g1"
+  },
+  {
+    "id": "IB H",
+    "yearGroup": 12,
+    "programme": "IB",
+    "courseId": "ib-business",
+    "track": "hl",
+    "colour": "g2"
+  },
+  {
+    "id": "IB S",
+    "yearGroup": 12,
+    "programme": "IB",
+    "courseId": "ib-business",
+    "track": "core",
+    "colour": "g3"
+  },
+  {
+    "id": "13 1",
+    "yearGroup": 13,
+    "programme": "A level",
+    "courseId": "ial-business-u4",
+    "track": "core",
+    "colour": "g4"
+  },
+  {
+    "id": "13 3",
+    "yearGroup": 13,
+    "programme": "A level",
+    "courseId": "ial-business-u4",
+    "track": "core",
+    "colour": "g5"
+  },
+  {
+    "id": "13 5",
+    "yearGroup": 13,
+    "programme": "A level",
+    "courseId": "ial-business-u4",
+    "track": "core",
+    "colour": "g6"
+  }
+]
