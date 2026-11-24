@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   CALENDAR_WORKBOOK_PATTERN,
   isAllowedSegments,
+  isDeniedFolderName,
   leadsToAllowed,
   matchesGlob,
   normaliseRelPath,
@@ -33,62 +34,120 @@ export interface ResourceGateway {
   find(pattern: "calendar-workbook" | "timetable-image"): Promise<string[]>;
 }
 
+export const MAX_READ_BYTES = 100 * 1024 * 1024;
+const MAX_WALK_DEPTH = 32;
+
 const byName = (a: { name: string }, b: { name: string }) =>
   a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+
+/**
+ * Root-relative segments of `real`, or null when it is outside `rootReal`.
+ * Both must already be resolved (no symlinks).
+ */
+export function insideRoot(rootReal: string, real: string): string[] | null {
+  const rel = path.relative(rootReal, real);
+  if (rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel))
+    return null;
+  return rel === "" ? [] : rel.split(path.sep);
+}
 
 /**
  * The only code that reads the resources folder. Every call is checked against
  * the allowlist twice: on the requested path, and on the real path after
  * symlinks are resolved, which must also stay inside the root.
  */
-export function createResourceGateway(rootDir: string): ResourceGateway {
+export function createResourceGateway(
+  rootDir: string,
+  options: { maxBytes?: number } = {},
+): ResourceGateway {
+  const maxBytes = options.maxBytes ?? MAX_READ_BYTES;
   const rootReal = () => fs.realpath(rootDir);
 
-  /** Root-relative segments of a resolved path, or null if it escapes the root. */
-  async function realSegments(absolute: string): Promise<string[] | null> {
-    const real = await fs.realpath(absolute);
-    const rel = path.relative(await rootReal(), real);
-    if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
-    return rel === "" ? [] : rel.split(path.sep);
+  /** Resolve a requested path: its real absolute path and root-relative segments, or null if it escapes. */
+  async function resolveReal(
+    requested: string[],
+  ): Promise<{ abs: string; segments: string[] } | null> {
+    const root = await rootReal();
+    const real = await fs.realpath(path.join(root, ...requested));
+    const segments = insideRoot(root, real);
+    return segments === null ? null : { abs: real, segments };
   }
 
-  /** Resolve a directory (root when `segments` is empty) and check it still leads somewhere allowed. */
-  async function checkedDir(segments: string[]): Promise<string[] | null> {
-    if (segments.length > 0 && !leadsToAllowed(segments)) return null;
-    const real = await realSegments(path.join(rootDir, ...segments));
-    if (real === null) return null;
-    if (real.length > 0 && !leadsToAllowed(real)) return null;
-    return real;
+  /** Does the directory hold, at any depth, a file that passes the full read check? */
+  async function hasAllowedFile(
+    requested: string[],
+    abs: string,
+    ancestors: Set<string>,
+  ): Promise<boolean> {
+    if (ancestors.has(abs) || requested.length > MAX_WALK_DEPTH) return false;
+    ancestors.add(abs);
+    try {
+      for (const dirent of await fs.readdir(abs, { withFileTypes: true })) {
+        const childRequested = [...requested, dirent.name];
+        try {
+          const real = await resolveReal(childRequested);
+          if (real === null) continue;
+          const stat = await fs.stat(real.abs);
+          if (stat.isFile()) {
+            if (
+              isAllowedSegments(childRequested) &&
+              isAllowedSegments(real.segments)
+            )
+              return true;
+          } else if (
+            stat.isDirectory() &&
+            leadsToAllowed(childRequested) &&
+            leadsToAllowed(real.segments) &&
+            (await hasAllowedFile(childRequested, real.abs, ancestors))
+          )
+            return true;
+        } catch {
+          // A broken link or a vanished file is simply not counted.
+        }
+      }
+      return false;
+    } finally {
+      ancestors.delete(abs);
+    }
   }
 
   async function list(relDir: string): Promise<ResourceEntry[]> {
     const isRoot = relDir === "" || relDir === ".";
-    const segments = isRoot ? [] : normaliseRelPath(relDir);
-    if (segments === null) throw new ResourceDenied(relDir);
+    const requested = isRoot ? [] : normaliseRelPath(relDir);
+    if (requested === null) throw new ResourceDenied(relDir);
     try {
-      if ((await checkedDir(segments)) === null)
-        throw new ResourceDenied(relDir);
-      const dirPath = path.join(rootDir, ...segments);
+      const dir = await resolveReal(requested);
+      if (dir === null) throw new ResourceDenied(relDir);
+      if (!isRoot) {
+        if (!leadsToAllowed(requested) || !leadsToAllowed(dir.segments))
+          throw new ResourceDenied(relDir);
+        if (!(await hasAllowedFile(requested, dir.abs, new Set())))
+          throw new ResourceDenied(relDir);
+      }
       const entries: ResourceEntry[] = [];
-      for (const dirent of await fs.readdir(dirPath, { withFileTypes: true })) {
-        const childPath = path.join(dirPath, dirent.name);
-        const requested = [...segments, dirent.name];
+      for (const dirent of await fs.readdir(dir.abs, { withFileTypes: true })) {
+        const childRequested = [...requested, dirent.name];
         try {
-          const real = await realSegments(childPath);
+          const real = await resolveReal(childRequested);
           if (real === null) continue;
-          const stat = await fs.stat(childPath);
-          const isDir = stat.isDirectory();
-          const ok = isDir
-            ? leadsToAllowed(requested) && leadsToAllowed(real)
-            : stat.isFile() &&
-              isAllowedSegments(requested) &&
-              isAllowedSegments(real);
-          if (!ok) continue;
+          const stat = await fs.stat(real.abs);
+          let shown = false;
+          if (stat.isFile())
+            shown =
+              isAllowedSegments(childRequested) &&
+              isAllowedSegments(real.segments);
+          else if (stat.isDirectory())
+            shown =
+              !isDeniedFolderName(dirent.name) &&
+              leadsToAllowed(childRequested) &&
+              leadsToAllowed(real.segments) &&
+              (await hasAllowedFile(childRequested, real.abs, new Set()));
+          if (!shown) continue;
           entries.push({
             name: dirent.name,
-            kind: isDir ? "dir" : "file",
+            kind: stat.isDirectory() ? "dir" : "file",
             modifiedAt: stat.mtime.toISOString(),
-            size: isDir ? 0 : stat.size,
+            size: stat.isDirectory() ? 0 : stat.size,
           });
         } catch {
           // A broken link or a vanished file is simply not listed.
@@ -108,18 +167,19 @@ export function createResourceGateway(rootDir: string): ResourceGateway {
     },
 
     async read(relPath) {
-      const segments = normaliseRelPath(relPath);
-      if (segments === null || !isAllowedSegments(segments))
+      const requested = normaliseRelPath(relPath);
+      if (requested === null || !isAllowedSegments(requested))
         throw new ResourceDenied(relPath);
       try {
-        const absolute = path.join(rootDir, ...segments);
-        const real = await realSegments(absolute);
-        if (real === null || !isAllowedSegments(real))
+        const real = await resolveReal(requested);
+        if (real === null || !isAllowedSegments(real.segments))
           throw new ResourceDenied(relPath);
-        const bytes = await fs.readFile(path.join(await rootReal(), ...real));
-        return new Uint8Array(bytes);
+        const stat = await fs.stat(real.abs);
+        if (!stat.isFile() || stat.size > maxBytes)
+          throw new ResourceDenied(relPath);
+        return new Uint8Array(await fs.readFile(real.abs));
       } catch {
-        // Missing, a directory, unreadable: all look the same from outside.
+        // Missing, a directory, too big, unreadable: all look the same from outside.
         throw new ResourceDenied(relPath);
       }
     },

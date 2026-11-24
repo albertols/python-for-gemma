@@ -19,6 +19,37 @@ export const ALLOWLIST: readonly string[] = [
   "igcse/igcse Textbook and Specification/IGCSE spec.pdf",
 ];
 
+/**
+ * Folder names that are never allowed, whatever the patterns say. The
+ * patterns `**\/PP/**`, `**\/Planning/**` and `**\/Exam Practice/**` would
+ * otherwise reach student work filed under assessment, mock, feedback, report,
+ * scanned-paper, extended-essay or internal-assessment folders. Narrowing only.
+ * Applies to directory segments, never to a file's own name (assessment
+ * schedules in Planning folders must stay readable). Compared after NFC and
+ * lower-casing.
+ */
+export const DENIED_FOLDER_NAMES = {
+  contains: [
+    "assessment",
+    "mock",
+    "feedback",
+    "sample answer",
+    "report",
+    "scanned",
+  ],
+  equals: ["ee", "ia"],
+  startsWith: ["ia ", "ias "],
+} as const;
+
+export function isDeniedFolderName(name: string): boolean {
+  const n = fold(name);
+  return (
+    DENIED_FOLDER_NAMES.contains.some((w) => n.includes(w)) ||
+    DENIED_FOLDER_NAMES.equals.some((w) => n === w) ||
+    DENIED_FOLDER_NAMES.startsWith.some((w) => n.startsWith(w))
+  );
+}
+
 export const CALENDAR_WORKBOOK_PATTERN = "*Secondary Calendar*.xlsx";
 export const TIMETABLE_IMAGE_PATTERN = "timetable.png";
 
@@ -88,13 +119,17 @@ export function matchesGlob(pattern: string, segments: string[]): boolean {
 export function isAllowedSegments(segments: string[]): boolean {
   return (
     segments.length > 0 &&
+    !segments.slice(0, -1).some(isDeniedFolderName) &&
     COMPILED.some((p) => matchSegments(p, segments, false))
   );
 }
 
 /** Could something allowed live at or beneath this directory? */
 export function leadsToAllowed(segments: string[]): boolean {
-  return COMPILED.some((p) => matchSegments(p, segments, true));
+  return (
+    !segments.some(isDeniedFolderName) &&
+    COMPILED.some((p) => matchSegments(p, segments, true))
+  );
 }
 
 /**

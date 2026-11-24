@@ -2,9 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { matchesGlob } from "./allowlist.ts";
+import { isDeniedFolderName, matchesGlob } from "./allowlist.ts";
 import {
   createResourceGateway,
+  insideRoot,
   ResourceDenied,
   type ResourceGateway,
 } from "./resource-gateway.ts";
@@ -46,9 +47,25 @@ beforeAll(() => {
     "ibdp/ibdp Textbook & Guide/Business Management Guide.pdf",
     "ibdp/ibdp Textbook & Guide/Textbook.pdf",
     "ibdp/ibdp Textbook & Guide/secret-sibling.txt",
+    "igcse/Planning/Y11 IGCSE Assessment Schedule.docx",
+    "ial/Planning/sub/f.xlsx",
+    `${UNIT}/Unit 4 Assessments/studentA/notes.docx`,
+    `${UNIT}/Unit 4 Assessments/studentB/PP/work.pptx`,
+    `${UNIT}/Mock Exams/PP/a.pptx`,
+    `${UNIT}/Feedback/Planning/a.docx`,
+    `${UNIT}/Sample Answers/PP/a.pptx`,
+    `${UNIT}/Sample Answer/Exam Practice/a.docx`,
+    `${UNIT}/Reports/Planning/a.docx`,
+    `${UNIT}/Scanned/PP/a.pdf`,
+    `${UNIT}/EE/PP/a.pptx`,
+    `${UNIT}/IA/PP/a.pptx`,
+    `${UNIT}/IA 2026/PP/a.pptx`,
+    `${UNIT}/IAs 2026/PP/a.pptx`,
   ])
     put(rel);
-  put("ial/1. Content/Y13 Content/Unit 4 Global Business/PP/real.pptx", "ok");
+  put(`${UNIT}/PP/real.pptx`, "ok");
+  fs.mkdirSync(path.join(root, `${UNIT}/Empty Folder`), { recursive: true });
+  fs.mkdirSync(path.join(root, "ial/Planning/empty-dir"), { recursive: true });
   fs.symlinkSync(
     path.join(base, "secret.txt"),
     path.join(root, `${UNIT}/PP/link`),
@@ -85,6 +102,7 @@ describe("glob matcher", () => {
     ["{x,y}/z", ["Y", "Z"], true],
     ["{x,y}/z", ["w", "z"], false],
     ["a.b+c", ["aXb+c"], false],
+    ["caf\u00e9/*", ["cafe\u0301", "x"], true],
   ])("%s on %j is %s", (pattern, segments, expected) =>
     expect(matchesGlob(pattern, segments)).toBe(expected),
   );
@@ -116,15 +134,90 @@ describe("isAllowed", () => {
     "",
     "ial/Planning",
     "ial/Planning/x\0.txt",
-    "ial\\Planning\\a.xlsx",
-    "C:/Planning/a.xlsx",
+    "/ial/Planning/Y13 Unit 4 Planning.xlsx",
+    "ibdp\\Scanned exams\\2026 Secondary Calendar.xlsx",
+    "C:2026 Secondary Calendar.xlsx",
+    "C:ial/Planning/x.xlsx",
+    "ial/Planning/sub/../Y13 Unit 4 Planning.xlsx",
+    `${UNIT}/Unit 4 Assessments/studentB/PP/work.pptx`,
   ])("refuses %j", async (p) => {
     expect(gw.isAllowed(p)).toBe(false);
     await expect(gw.read(p)).rejects.toBeInstanceOf(ResourceDenied);
   });
 });
 
+describe("deny list on folder names", () => {
+  test("a file named for an assessment in an allowed folder is still allowed", () =>
+    expect(
+      gw.isAllowed("igcse/Planning/Y11 IGCSE Assessment Schedule.docx"),
+    ).toBe(true));
+
+  test.each([
+    ["assessment", `${UNIT}/Unit 4 Assessments/studentB/PP/work.pptx`],
+    ["mock", `${UNIT}/Mock Exams/PP/a.pptx`],
+    ["feedback", `${UNIT}/Feedback/Planning/a.docx`],
+    ["sample answer", `${UNIT}/Sample Answers/PP/a.pptx`],
+    ["report", `${UNIT}/Reports/Planning/a.docx`],
+    ["scanned", `${UNIT}/Scanned/PP/a.pdf`],
+    ["equals ee", `${UNIT}/EE/PP/a.pptx`],
+    ["equals ia", `${UNIT}/IA/PP/a.pptx`],
+    ["starts with ia ", `${UNIT}/IA 2026/PP/a.pptx`],
+    ["starts with ias ", `${UNIT}/IAs 2026/PP/a.pptx`],
+  ])("%s is refused by isAllowed and read", async (_rule, p) => {
+    expect(gw.isAllowed(p)).toBe(false);
+    await expect(gw.read(p)).rejects.toBeInstanceOf(ResourceDenied);
+  });
+
+  test("names near the rules are not caught", () => {
+    for (const ok of ["ial", "IAS", "Eeyore", "iambic", "Planning", "ee2"])
+      expect(isDeniedFolderName(ok), ok).toBe(false);
+  });
+
+  test("a real path through a denied folder is refused", async () => {
+    fs.symlinkSync(
+      path.join(root, `${UNIT}/Mock Exams`),
+      path.join(root, "ial/Planning/via-mock"),
+    );
+    await expect(
+      gw.read("ial/Planning/via-mock/PP/a.pptx"),
+    ).rejects.toBeInstanceOf(ResourceDenied);
+    fs.rmSync(path.join(root, "ial/Planning/via-mock"));
+  });
+});
+
+describe("insideRoot", () => {
+  test("accepts the root and paths beneath it", () => {
+    expect(insideRoot("/r", "/r")).toEqual([]);
+    expect(insideRoot("/r", "/r/a/b")).toEqual(["a", "b"]);
+    expect(insideRoot("/r", "/r/..hidden/x")).toEqual(["..hidden", "x"]);
+  });
+  test("refuses siblings, parents and look-alike prefixes", () => {
+    expect(insideRoot("/r", "/")).toBeNull();
+    expect(insideRoot("/r", "/other")).toBeNull();
+    expect(insideRoot("/r", "/r2/a")).toBeNull();
+    expect(insideRoot("/r/x", "/r")).toBeNull();
+  });
+});
+
 describe("read", () => {
+  test("an allowed directory is refused, not read", async () => {
+    expect(gw.isAllowed("ial/Planning/sub")).toBe(true);
+    await expect(gw.read("ial/Planning/sub")).rejects.toBeInstanceOf(
+      ResourceDenied,
+    );
+  });
+
+  test("a file over the size cap is refused", async () => {
+    const small = createResourceGateway(root, { maxBytes: 1 });
+    expect(
+      await small.read("ial/Planning/Y13 Unit 4 Planning.xlsx"),
+    ).toHaveLength(1);
+    const tiny = createResourceGateway(root, { maxBytes: 0 });
+    await expect(
+      tiny.read("ial/Planning/Y13 Unit 4 Planning.xlsx"),
+    ).rejects.toBeInstanceOf(ResourceDenied);
+  });
+
   test("returns the bytes of an allowed file", async () =>
     expect(
       new TextDecoder().decode(await gw.read(`${UNIT}/PP/real.pptx`)),
@@ -198,11 +291,46 @@ describe("list", () => {
   test("links that leave the root or reach denied files are not listed", async () => {
     expect((await gw.list("ial/Planning")).map((e) => e.name)).toEqual([
       "Y13 Unit 4 Planning.xlsx",
+      "sub",
     ]);
     expect((await gw.list("ibdp/Planning")).map((e) => e.name)).toEqual([
       "plan.docx",
     ]);
   });
+
+  test("folders with nothing allowed beneath them are never shown or listed", async () => {
+    const names = (await gw.list(UNIT)).map((e) => e.name);
+    expect(names).toEqual(["Content", "PLANNING", "PP"]);
+    for (const dir of [
+      `${UNIT}/Unit 4 Assessments`,
+      `${UNIT}/Unit 4 Assessments/studentA`,
+      `${UNIT}/Empty Folder`,
+      "ial/Planning/empty-dir",
+    ])
+      await expect(gw.list(dir)).rejects.toBeInstanceOf(ResourceDenied);
+    expect(
+      (await gw.list("ial/1. Content/Y13 Content")).map((e) => e.name),
+    ).toEqual(["Unit 4 Global Business"]);
+  });
+
+  test("a link from an allowed folder to a denied folder shows nothing", async () => {
+    fs.symlinkSync(
+      path.join(root, "ibdp/IA/IA 2026"),
+      path.join(root, "ial/Planning/to-ia"),
+    );
+    expect((await gw.list("ial/Planning")).map((e) => e.name)).not.toContain(
+      "to-ia",
+    );
+    await expect(gw.list("ial/Planning/to-ia")).rejects.toBeInstanceOf(
+      ResourceDenied,
+    );
+    fs.rmSync(path.join(root, "ial/Planning/to-ia"));
+  });
+
+  test("a folder whose own name is denied is never shown", async () =>
+    expect((await gw.list("ial/Planning")).map((e) => e.name)).not.toContain(
+      "via-mock",
+    ));
 
   test("a denied or escaping directory is refused", async () => {
     for (const dir of ["ibdp/IA", "..", "/etc", "ial/Planning/dir-out"])

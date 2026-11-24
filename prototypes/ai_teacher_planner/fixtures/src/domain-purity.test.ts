@@ -36,3 +36,16 @@ test("only the gateway and the config read the resources folder", () => {
   expect(mentioning.filter((rel) => !allowed(rel))).toEqual([]);
   expect(mentioning).toContain("apps/api/src/config.ts");
 });
+
+test("nothing else reaches the resources folder through its helper", () => {
+  const allowed = (rel: string) =>
+    rel === "packages/importers/src/resources-available.ts";
+  const mentioning = workspaceSourceFiles()
+    .filter((f) =>
+      /calendarWorkbookPath|resourcesAvailable|resources-available/.test(
+        read(f),
+      ),
+    )
+    .map((f) => relative(workspaceRoot, f).split("\\").join("/"));
+  expect(mentioning.filter((rel) => !allowed(rel))).toEqual([]);
+});

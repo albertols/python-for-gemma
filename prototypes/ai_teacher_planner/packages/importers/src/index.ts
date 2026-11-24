@@ -14,8 +14,3 @@ export {
   readParentsEvenings,
   readReportDeadlines,
 } from "./reports/read-reports.ts";
-export {
-  CALENDAR_WORKBOOK_NAME,
-  calendarWorkbookPath,
-  resourcesAvailable,
-} from "./resources-available.ts";
