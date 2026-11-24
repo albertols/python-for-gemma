@@ -3,10 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { AuditView } from "./AuditScreen.tsx";
 
-const counts = (open: number, cancelled: number) => ({
+const counts = (open: number, cancelled: number, cover = 0) => ({
   open,
   cancelled,
-  cover: 0,
+  cover,
 });
 const audit = {
   rows: [
@@ -17,7 +17,7 @@ const audit = {
         from: "2026-09-04",
         to: "2026-10-23",
       },
-      perGroup: { "11D": counts(20, 1), "13 1": counts(10, 0) },
+      perGroup: { "11D": counts(20, 1), "13 1": counts(10, 0, 2) },
     },
     {
       block: {
@@ -60,7 +60,12 @@ test("a cancelled lesson shows as lost in its block and in the year total", () =
   expect(html).toMatch(/>20<span[^>]*> \(1 lost\)<\/span><\/td>/);
   // Year total of 11D: 20 + 18 taught, 1 lost; 13 1 has none lost.
   expect(html).toMatch(/>38<span[^>]*> \(1 lost\)<\/span><\/td>/);
-  expect(html).toMatch(/>19<\/td>/);
+});
+
+test("cover lessons count as taught, in the block cell and the year total", () => {
+  // 13 1, block 1: 10 open + 2 cover. Year: 12 + 9.
+  expect(html).toMatch(/>12<\/td>/);
+  expect(html).toMatch(/>21<\/td>/);
 });
 
 test("the cancelled-lessons list names group, period, date and reason", () => {
