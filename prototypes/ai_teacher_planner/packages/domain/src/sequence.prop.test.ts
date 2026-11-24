@@ -23,17 +23,28 @@ function shuffle<T>(items: readonly T[], seed: number): T[] {
   return keyed.map((k) => k.item);
 }
 
+type A1Mode = "dated" | "undated" | "sat";
+
 interface Scenario {
   counts: [number, number, number, number];
-  positions: { group: string; at: number | null }[];
+  positions: {
+    group: string;
+    at: number | null;
+    unknown: boolean;
+    done: string[];
+  }[];
   pins: {
     group: string;
     lesson: number;
+    unknown: boolean;
+    own: boolean;
     slot: number;
     kind: "slot" | "not-after";
   }[];
   merges: { group: string; at: number }[];
   broken: { slot: number; status: "cancelled" | "cover" }[];
+  a1: A1Mode;
+  a1Use: "whole" | "in-lesson";
   seed: number;
 }
 
@@ -48,6 +59,8 @@ const scenario: fc.Arbitrary<Scenario> = fc.record({
     fc.record({
       group: fc.constantFrom(...GROUPS),
       at: fc.option(fc.nat(80), { nil: null }),
+      unknown: fc.integer({ min: 0, max: 9 }).map((n) => n === 0),
+      done: fc.subarray(["c1", "c2", "c3", "c4", "a1"]),
     }),
     { maxLength: 3 },
   ),
@@ -55,6 +68,8 @@ const scenario: fc.Arbitrary<Scenario> = fc.record({
     fc.record({
       group: fc.constantFrom(...GROUPS),
       lesson: fc.nat(90),
+      unknown: fc.integer({ min: 0, max: 5 }).map((n) => n === 0),
+      own: fc.integer({ min: 0, max: 3 }).map((n) => n > 0),
       slot: fc.nat(slots.length - 1),
       kind: fc.constantFrom("slot" as const, "not-after" as const),
     }),
@@ -71,6 +86,8 @@ const scenario: fc.Arbitrary<Scenario> = fc.record({
     }),
     { maxLength: 25 },
   ),
+  a1: fc.constantFrom<A1Mode>("dated", "dated", "undated", "sat"),
+  a1Use: fc.constantFrom("whole" as const, "in-lesson" as const),
   seed: fc.nat(1000),
 });
 
@@ -79,7 +96,18 @@ function build(s: Scenario): PlanInputs {
   const counts = [...s.counts];
   w.items = w.items.map((i) => {
     const k = ["c1", "c2", "c3", "c4"].indexOf(i.id);
-    return k < 0 ? i : { ...i, lessons: counts[k] ?? i.lessons };
+    if (k >= 0) return { ...i, lessons: counts[k] ?? i.lessons };
+    if (i.id === "a1" && i.assessment)
+      return {
+        ...i,
+        assessment: {
+          ...i.assessment,
+          date: s.a1 === "undated" ? null : i.assessment.date,
+          status: s.a1 === "sat" ? "sat" : "planned",
+          slotUse: s.a1Use,
+        },
+      };
+    return i;
   });
   w.slots = slots.map((x): Slot => ({ ...x }));
   for (const b of s.broken) {
@@ -88,18 +116,22 @@ function build(s: Scenario): PlanInputs {
   }
   const ids = (group: string) =>
     expandLessons(w.items, [], group, "core").map((l) => l.id);
-  const pickLesson = (group: string, n: number) => {
+  const pickLesson = (group: string, n: number, unknown = false) => {
     const all = ids(group);
-    return all.length === 0 ? "c1#1" : (all[n % all.length] ?? "c1#1");
+    if (unknown || all.length === 0) return `zz#${n}`;
+    return all[n % all.length] ?? `zz#${n}`;
   };
   const positions = new Map<string, Position>();
   for (const p of s.positions) {
     const all = ids(p.group);
     positions.set(p.group, {
       groupId: p.group,
-      nextLessonId:
-        p.at === null ? null : (all[p.at % Math.max(all.length, 1)] ?? null),
-      doneItemIds: [],
+      nextLessonId: p.unknown
+        ? "zz#1"
+        : p.at === null
+          ? null
+          : (all[p.at % Math.max(all.length, 1)] ?? null),
+      doneItemIds: p.done,
       asOf: w.today,
     });
   }
@@ -107,14 +139,17 @@ function build(s: Scenario): PlanInputs {
     (g) =>
       positions.get(g) ?? {
         groupId: g,
-        nextLessonId: "c1#1",
+        nextLessonId: ids(g)[0] ?? null,
         doneItemIds: [],
         asOf: w.today,
       },
   );
   w.pins = s.pins.map((p, i): Pin => {
-    const lessonId = pickLesson(p.group, p.lesson);
-    const slot = slots[p.slot] ?? slots[0];
+    const lessonId = pickLesson(p.group, p.lesson, p.unknown);
+    const own = w.slots.filter(
+      (x) => x.groupId === p.group && x.date >= w.today,
+    );
+    const slot = p.own ? own[p.slot % Math.max(own.length, 1)] : slots[p.slot];
     return p.kind === "slot"
       ? {
           id: `p${i}`,
@@ -139,6 +174,14 @@ function build(s: Scenario): PlanInputs {
   });
   return w;
 }
+
+/** Groups whose position names a lesson that is not in the scheme: nothing is planned for them. */
+const unplanned = (snap: ReturnType<typeof sequence>) =>
+  new Set(
+    snap.conflicts.flatMap((c) =>
+      c.kind === "position-unknown" ? [c.groupId] : [],
+    ),
+  );
 
 const isFlex = (id: string) => id.startsWith("flex:");
 const run = { numRuns: 60 };
@@ -194,6 +237,7 @@ describe("sequence properties", () => {
         const w = build(s);
         const snap = sequence(w);
         for (const g of GROUPS) {
+          if (unplanned(snap).has(g)) continue;
           const order = new Map(
             expandLessons(w.items, [], g, "core").map((l, i) => [l.id, i]),
           );
@@ -219,6 +263,10 @@ describe("sequence properties", () => {
         const w = build(s);
         const snap = sequence(w);
         for (const g of GROUPS) {
+          if (unplanned(snap).has(g)) {
+            expect(snap.placements.some((p) => p.groupId === g)).toBe(false);
+            continue;
+          }
           const total = expandLessons(w.items, [], g, "core").length;
           const planned = snap.placements.filter(
             (p) =>
@@ -237,37 +285,57 @@ describe("sequence properties", () => {
       run,
     ));
 
-  test("every pin is honoured or appears in conflicts", () =>
+  test("every pin is honoured or reported", () =>
     fc.assert(
       fc.property(scenario, (s) => {
         const w = build(s);
         const snap = sequence(w);
+        const skipped = unplanned(snap);
         for (const pin of w.pins) {
-          const declared = snap.placements.some(
-            (p) =>
-              p.groupId === pin.groupId &&
-              p.lessonId === pin.lessonId &&
-              p.state === "declared",
+          if (skipped.has(pin.groupId)) continue;
+          const known = expandLessons(w.items, [], pin.groupId, "core").some(
+            (l) => l.id === pin.lessonId,
           );
-          if (declared) continue;
           const placement = snap.placements.find(
             (p) => p.groupId === pin.groupId && p.lessonId === pin.lessonId,
           );
-          const conflicted = snap.conflicts.some(
+          const reported = snap.conflicts.some(
             (c) => "pinId" in c && c.pinId === pin.id,
           );
+          if (!known) {
+            expect(snap.conflicts).toContainEqual(
+              expect.objectContaining({
+                kind: "pin-lesson-unknown",
+                pinId: pin.id,
+              }),
+            );
+            continue;
+          }
+          // A pin on a lesson already taught is moot.
+          if (placement?.state === "declared") continue;
           if (pin.kind === "slot") {
             const honoured =
               placement?.pinned === true && placement.slotKey === pin.slotKey;
-            expect(honoured || conflicted).toBe(true);
+            expect(honoured || reported).toBe(true);
           } else {
             const date =
               w.slots.find((x) => x.key === placement?.slotKey)?.date ?? null;
-            expect((date !== null && date <= pin.date) || conflicted).toBe(
-              true,
-            );
+            expect((date !== null && date <= pin.date) || reported).toBe(true);
           }
         }
+      }),
+      run,
+    ));
+
+  test("no lesson shares a slot with a whole-slot assessment", () =>
+    fc.assert(
+      fc.property(scenario, (s) => {
+        const snap = sequence(build(s));
+        for (const a of snap.assessments)
+          if (a.slotUse === "whole")
+            expect(snap.placements.some((p) => p.slotKey === a.slotKey)).toBe(
+              false,
+            );
       }),
       run,
     ));
@@ -283,7 +351,11 @@ describe("sequence properties", () => {
           slots: shuffle(w.slots, s.seed + 2),
           pins: shuffle(w.pins, s.seed + 3),
           merges: shuffle(w.merges, s.seed + 4),
-          positions: shuffle(w.positions, s.seed + 5),
+          positions: shuffle(w.positions, s.seed + 5).map((p) => ({
+            ...p,
+            doneItemIds: shuffle(p.doneItemIds, s.seed + 6),
+          })),
+          blocks: shuffle(w.blocks, s.seed + 7),
         };
         expect(sequence(shuffled)).toEqual(sequence(w));
       }),

@@ -345,9 +345,11 @@ export type PlacementState = "planned" | "assumed" | "taught" | "cover" | "homew
 export interface Placement { groupId: GroupId; lessonId: LessonId; slotKey: SlotKey | null; state: PlacementState; pinned: boolean; mergedInto: LessonId | null; viaCover: boolean }
 export interface AssessmentPlacement { groupId: GroupId; itemId: string; slotKey: SlotKey; slotUse: "whole" | "in-lesson" }
 export interface Checkpoint { id: string; kind: "assessment" | "block-end" | "revision" | "exam"; date: IsoDate; label: string; itemId: string | null; perGroupDate?: Record<GroupId, IsoDate> /* revision: each group's first revision slot date */ }
-export interface Overflow { checkpointId: string; groupId: GroupId; lessonIds: LessonId[] }
+export interface Overflow { checkpointId: string | null /* null when the plan has no checkpoint */; groupId: GroupId; lessonIds: LessonId[] }
 export type Conflict =
-  | { kind: "assessment-no-slot"; groupId: GroupId; itemId: string; date: IsoDate }
+  | { kind: "assessment-no-slot"; groupId: GroupId; itemId: string; date: IsoDate /* the assessment's date; today for an undated one */ }
+  | { kind: "position-unknown"; groupId: GroupId; lessonId: LessonId }   // her position names a lesson not in the scheme: nothing is planned for the group
+  | { kind: "pin-lesson-unknown"; pinId: string; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey | null }   // slotKey is null for a not-after pin
   | { kind: "pin-slot-unavailable"; pinId: string; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey }
   | { kind: "not-after-missed"; pinId: string; groupId: GroupId; lessonId: LessonId; date: IsoDate; plannedDate: IsoDate | null }
   | { kind: "hl-prerequisite"; groupId: GroupId; lessonId: LessonId; prerequisiteItemId: string; finishesOn: IsoDate | null };   // from M4

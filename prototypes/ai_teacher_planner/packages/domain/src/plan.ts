@@ -98,7 +98,8 @@ export interface Checkpoint {
   perGroupDate?: Record<GroupId, IsoDate>;
 }
 export interface Overflow {
-  checkpointId: string;
+  /** Null when the plan has no checkpoint at all (no teaching block ends on or after today). */
+  checkpointId: string | null;
   groupId: GroupId;
   lessonIds: LessonId[];
 }
@@ -107,7 +108,22 @@ export type Conflict =
       kind: "assessment-no-slot";
       groupId: GroupId;
       itemId: string;
+      /** The assessment's own date. An undated assessment that finds no slot is dated today (the day of the plan). */
       date: IsoDate;
+    }
+  | {
+      /** Her position names a lesson that is not in the group's scheme; nothing is planned for the group. */
+      kind: "position-unknown";
+      groupId: GroupId;
+      lessonId: LessonId;
+    }
+  | {
+      /** A pin names a lesson that is not in the group's scheme. `slotKey` is null for a not-after pin. */
+      kind: "pin-lesson-unknown";
+      pinId: string;
+      groupId: GroupId;
+      lessonId: LessonId;
+      slotKey: SlotKey | null;
     }
   | {
       kind: "pin-slot-unavailable";

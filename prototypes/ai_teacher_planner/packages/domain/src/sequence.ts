@@ -17,8 +17,6 @@ import type { Group } from "./timetable.ts";
 
 /** A dated assessment is anchored at most this many days after its date. */
 const ANCHOR_WINDOW_DAYS = 7;
-/** Used when a plan has no checkpoint at all (no teaching blocks). */
-const NO_CHECKPOINT = "cp:end";
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const byId = (a: { id: string }, b: { id: string }) => cmp(a.id, b.id);
@@ -36,25 +34,32 @@ interface GroupPlan {
 const isUsable = (s: Slot, today: IsoDate) =>
   (s.status === "open" || s.status === "cover") && s.date >= today;
 
-/** Lessons already behind her: everything before her position, and whole items marked done. */
+/**
+ * Lessons already behind her: everything before her position, and whole items marked done.
+ * Null when her position names a lesson that is not in the scheme: we never guess where she is.
+ */
 function declaredLessons(
   lessons: readonly Lesson[],
   position: PlanInputs["positions"][number] | undefined,
-): Set<LessonId> {
+): Set<LessonId> | null {
   const declared = new Set<LessonId>();
   if (!position) return declared;
   if (position.nextLessonId === null)
     for (const l of lessons) declared.add(l.id);
   else {
     const at = lessons.findIndex((l) => l.id === position.nextLessonId);
-    for (const l of lessons.slice(0, Math.max(at, 0))) declared.add(l.id);
+    if (at < 0) return null;
+    for (const l of lessons.slice(0, at)) declared.add(l.id);
   }
   const done = new Set(position.doneItemIds);
   for (const l of lessons) if (done.has(l.itemId)) declared.add(l.id);
   return declared;
 }
 
-/** Merges that can be honoured: both lessons are in the stream and neither is in another merge. */
+/**
+ * Merges that can be honoured: both lessons are in the stream and neither is in another merge.
+ * An invalid merge moves nothing, so ignoring it is safe; Task 2.12 refuses such merges on save.
+ */
 function usableMerges(
   merges: readonly Merge[],
   inStream: ReadonlySet<LessonId>,
@@ -79,7 +84,7 @@ type Entry =
 function sequenceGroup(
   g: Group,
   inputs: PlanInputs,
-  checkpointId: string,
+  checkpointId: string | null,
 ): GroupPlan {
   const out: GroupPlan = {
     placements: [],
@@ -91,6 +96,14 @@ function sequenceGroup(
   const lessons = expandLessons(inputs.items, inputs.overrides, g.id, g.track);
   const position = inputs.positions.find((p) => p.groupId === g.id);
   const declared = declaredLessons(lessons, position);
+  if (declared === null) {
+    out.conflicts.push({
+      kind: "position-unknown",
+      groupId: g.id,
+      lessonId: position?.nextLessonId ?? "",
+    });
+    return out;
+  }
   const doneItems = new Set(position?.doneItemIds ?? []);
   const usable = inputs.slots
     .filter((s) => s.groupId === g.id && isUsable(s, today))
@@ -130,12 +143,25 @@ function sequenceGroup(
   const undeclared = new Set(
     lessons.filter((l) => !declared.has(l.id)).map((l) => l.id),
   );
+  const known = new Set(lessons.map((l) => l.id));
   const pinnedLessons = new Set<LessonId>();
   const slotPins = inputs.pins
     .filter((p) => p.groupId === g.id && p.kind === "slot")
     .sort(byId);
   for (const pin of slotPins) {
-    if (pin.kind !== "slot" || !undeclared.has(pin.lessonId)) continue;
+    if (pin.kind !== "slot") continue;
+    if (!known.has(pin.lessonId)) {
+      out.conflicts.push({
+        kind: "pin-lesson-unknown",
+        pinId: pin.id,
+        groupId: g.id,
+        lessonId: pin.lessonId,
+        slotKey: pin.slotKey,
+      });
+      continue;
+    }
+    // A pin on a lesson already taught is moot.
+    if (!undeclared.has(pin.lessonId)) continue;
     const slot = usableByKey.get(pin.slotKey);
     if (!slot || reserved.has(slot.key) || pinnedLessons.has(pin.lessonId)) {
       out.conflicts.push({
@@ -173,47 +199,49 @@ function sequenceGroup(
     )
     .sort(byOrder);
   const markers = new Map<string, "whole" | "in-lesson">();
-  for (const item of assessmentItems) {
-    const spec = item.assessment;
-    if (!spec) continue;
-    if (spec.date === null) {
-      markers.set(item.id, spec.slotUse);
-      continue;
-    }
-    const date = spec.date;
-    const noSlot = () =>
-      out.conflicts.push({
-        kind: "assessment-no-slot",
+  const dated = assessmentItems.filter((i) => i.assessment?.date != null);
+  for (const i of assessmentItems)
+    if (i.assessment && i.assessment.date === null)
+      markers.set(i.id, i.assessment.slotUse);
+  // Whole-slot anchors first, so an in-lesson anchor never lands on a slot a whole assessment takes.
+  for (const use of ["whole", "in-lesson"] as const)
+    for (const item of dated) {
+      const spec = item.assessment;
+      if (!spec || spec.date === null || spec.slotUse !== use) continue;
+      const date = spec.date;
+      const noSlot = () =>
+        out.conflicts.push({
+          kind: "assessment-no-slot",
+          groupId: g.id,
+          itemId: item.id,
+          date,
+        });
+      if (date < today) {
+        noSlot();
+        continue;
+      }
+      const slot = usable.find(
+        (s) =>
+          s.date >= date &&
+          (use === "in-lesson"
+            ? !wholeReserved.has(s.key)
+            : !reserved.has(s.key)),
+      );
+      if (!slot || daysBetween(date, slot.date) > ANCHOR_WINDOW_DAYS) {
+        noSlot();
+        continue;
+      }
+      out.assessments.push({
         groupId: g.id,
         itemId: item.id,
-        date,
+        slotKey: slot.key,
+        slotUse: use,
       });
-    if (date < today) {
-      noSlot();
-      continue;
+      if (use === "whole") {
+        reserved.add(slot.key);
+        wholeReserved.add(slot.key);
+      }
     }
-    const slot = usable.find(
-      (s) =>
-        s.date >= date &&
-        (spec.slotUse === "in-lesson"
-          ? !wholeReserved.has(s.key)
-          : !reserved.has(s.key)),
-    );
-    if (!slot || daysBetween(date, slot.date) > ANCHOR_WINDOW_DAYS) {
-      noSlot();
-      continue;
-    }
-    out.assessments.push({
-      groupId: g.id,
-      itemId: item.id,
-      slotKey: slot.key,
-      slotUse: spec.slotUse,
-    });
-    if (spec.slotUse === "whole") {
-      reserved.add(slot.key);
-      wholeReserved.add(slot.key);
-    }
-  }
 
   // The stream, in scheme order, with undated assessments where the scheme puts them.
   const entries: Entry[] = [];
@@ -221,19 +249,14 @@ function sequenceGroup(
     .filter((i) => i.track === g.track)
     .sort(byOrder);
   const streamIds = new Set(stream.map((l) => l.id));
-  let lessonsBefore = 0;
-  let undeclaredBefore = 0;
   for (const item of itemsInOrder) {
     if (item.kind === "assessment") {
       const use = markers.get(item.id);
-      // Everything before it is already taught: it is behind her, not ahead.
-      if (use && (lessonsBefore === 0 || undeclaredBefore > 0))
-        entries.push({ kind: "marker", item, use });
+      // Planned and undated: it is ahead of her, wherever the scheme puts it.
+      if (use) entries.push({ kind: "marker", item, use });
       continue;
     }
     for (const l of lessons.filter((x) => x.itemId === item.id)) {
-      lessonsBefore++;
-      if (!declared.has(l.id)) undeclaredBefore++;
       if (streamIds.has(l.id) && !seconds.has(l.id))
         entries.push({ kind: "lesson", lesson: l });
     }
@@ -283,6 +306,9 @@ function sequenceGroup(
         slotKey: slot.key,
         slotUse: "whole",
       });
+    } else if (overflowIds.length > 0) {
+      // Content before it did not fit, so the lesson it would sit in is not before it.
+      noSlotToday(e.item);
     } else if (lastSlot) {
       out.assessments.push({
         groupId: g.id,
@@ -304,7 +330,19 @@ function sequenceGroup(
     .filter((p) => p.groupId === g.id && p.kind === "not-after")
     .sort(byId);
   for (const pin of notAfter) {
-    if (pin.kind !== "not-after" || !undeclared.has(pin.lessonId)) continue;
+    if (pin.kind !== "not-after") continue;
+    if (!known.has(pin.lessonId)) {
+      out.conflicts.push({
+        kind: "pin-lesson-unknown",
+        pinId: pin.id,
+        groupId: g.id,
+        lessonId: pin.lessonId,
+        slotKey: null,
+      });
+      continue;
+    }
+    // A deadline on a lesson already taught is moot.
+    if (!undeclared.has(pin.lessonId)) continue;
     const plannedDate = dateOf.get(pin.lessonId) ?? null;
     if (plannedDate === null || plannedDate > pin.date)
       out.conflicts.push({
@@ -318,8 +356,9 @@ function sequenceGroup(
   }
 
   // What is left: slots become spare lessons, lessons become overflow.
-  for (const [i, slot] of free.slice(cursor).entries())
-    place(`flex:${g.id}:${checkpointId}#${i + 1}`, slot);
+  if (checkpointId !== null)
+    for (const [i, slot] of free.slice(cursor).entries())
+      place(`flex:${g.id}:${checkpointId}#${i + 1}`, slot);
   if (overflowIds.length > 0)
     out.overflow.push({
       checkpointId,
@@ -384,7 +423,7 @@ const byKeys = (a: string[], b: string[]) => {
  */
 export function sequence(inputs: PlanInputs): PlanSnapshot {
   const checkpoints = checkpointsOf(inputs.items, inputs.blocks, inputs.today);
-  const checkpointId = checkpoints.at(-1)?.id ?? NO_CHECKPOINT;
+  const checkpointId = checkpoints.at(-1)?.id ?? null;
   const plans = [...inputs.groups]
     .filter((g) => g.courseId === inputs.courseId)
     .sort(byId)
@@ -408,7 +447,8 @@ export function sequence(inputs: PlanInputs): PlanSnapshot {
       .flatMap((p) => p.overflow)
       .sort(
         (a, b) =>
-          cmp(a.groupId, b.groupId) || cmp(a.checkpointId, b.checkpointId),
+          cmp(a.groupId, b.groupId) ||
+          cmp(a.checkpointId ?? "", b.checkpointId ?? ""),
       ),
     absorbed: [],
     conflicts: plans

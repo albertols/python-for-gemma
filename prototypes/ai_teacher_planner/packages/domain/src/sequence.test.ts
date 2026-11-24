@@ -265,19 +265,19 @@ describe("pins and merges", () => {
 
   test("a pin to another group's slot is a conflict", () => {
     const w = world(["13 1", "13 3"]);
-    w.pins = [slotPin("c2#1", "13 3|2026-11-10|2")];
+    const other = slotOn(w, "13 3", "2026-11-10").key;
+    expect(other).toBe("13 3|2026-11-10|5"); // a slot that really exists, for the other group
+    w.pins = [slotPin("c2#1", other)];
     const snap = sequence(w);
     expect(snap.conflicts).toContainEqual(
       expect.objectContaining({
         kind: "pin-slot-unavailable",
         groupId: "13 1",
         lessonId: "c2#1",
-        slotKey: "13 3|2026-11-10|2",
+        slotKey: other,
       }),
     );
-    expect(placementOf(snap, "13 1", "c2#1")?.slotKey).not.toBe(
-      "13 3|2026-11-10|2",
-    );
+    expect(placementOf(snap, "13 1", "c2#1")?.slotKey).not.toBe(other);
   });
 
   test("a not-after deadline that is met changes nothing", () => {
@@ -399,13 +399,192 @@ describe("slots", () => {
     expect(
       spare.every((p) => p.state === "planned" && p.slotKey !== null),
     ).toBe(true);
+    const last = snap.checkpoints.at(-1)?.id ?? "";
+    expect(last).toMatch(/^cp:block:T3/);
+    expect(spare[0]?.lessonId).toBe(`flex:13 1:${last}#1`);
     const lastLesson = placementOf(snap, "13 1", "c4#2")?.slotKey ?? "";
     expect(spare.every((p) => (p.slotKey ?? "") > lastLesson)).toBe(true);
     expect(new Set(spare.map((p) => p.lessonId)).size).toBe(spare.length);
   });
 });
 
+describe("bad references are reported, never guessed", () => {
+  test("a position naming a lesson that is not in the scheme plans nothing for that group", () => {
+    const w = world(["13 1", "13 3"]);
+    w.positions = [
+      { groupId: "13 1", nextLessonId: "c3#9", doneItemIds: [], asOf: w.today },
+      { groupId: "13 3", nextLessonId: "c1#1", doneItemIds: [], asOf: w.today },
+    ];
+    const snap = sequence(w);
+    expect(snap.conflicts).toContainEqual({
+      kind: "position-unknown",
+      groupId: "13 1",
+      lessonId: "c3#9",
+    });
+    expect(snap.placements.filter((p) => p.groupId === "13 1")).toEqual([]);
+    expect(snap.assessments.filter((a) => a.groupId === "13 1")).toEqual([]);
+    expect(snap.overflow.filter((o) => o.groupId === "13 1")).toEqual([]);
+    // the other group is planned as usual
+    expect(placementOf(snap, "13 3", "c1#1")?.slotKey).not.toBeNull();
+  });
+
+  test("a slot pin on a lesson that is not in the scheme is a conflict", () => {
+    const w = world();
+    const key = slotOn(w, "13 1", "2026-11-18").key;
+    w.pins = [
+      {
+        id: "p1",
+        groupId: "13 1",
+        lessonId: "c3#9",
+        kind: "slot",
+        slotKey: key,
+      },
+    ];
+    const snap = sequence(w);
+    expect(snap.conflicts).toContainEqual({
+      kind: "pin-lesson-unknown",
+      pinId: "p1",
+      groupId: "13 1",
+      lessonId: "c3#9",
+      slotKey: key,
+    });
+    expect(lessonAt(snap, key)).not.toBe("c3#9");
+  });
+
+  test("a not-after pin on a lesson that is not in the scheme is a conflict", () => {
+    const w = world();
+    w.pins = [
+      {
+        id: "n1",
+        groupId: "13 1",
+        lessonId: "c3#9",
+        kind: "not-after",
+        date: "2026-12-01",
+      },
+    ];
+    expect(sequence(w).conflicts).toContainEqual({
+      kind: "pin-lesson-unknown",
+      pinId: "n1",
+      groupId: "13 1",
+      lessonId: "c3#9",
+      slotKey: null,
+    });
+  });
+
+  test("a pin on a lesson already taught is moot, not a conflict", () => {
+    const w = world();
+    w.positions = [
+      { groupId: "13 1", nextLessonId: "c1#3", doneItemIds: [], asOf: w.today },
+    ];
+    w.pins = [
+      {
+        id: "p1",
+        groupId: "13 1",
+        lessonId: "c1#1",
+        kind: "slot",
+        slotKey: slotOn(w, "13 1", "2026-11-18").key,
+      },
+    ];
+    expect(sequence(w).conflicts).toEqual([]);
+  });
+
+  test("an undated assessment right at her position is the next thing to do", () => {
+    const w = world();
+    setA1(w, { date: null });
+    w.positions = [
+      { groupId: "13 1", nextLessonId: "c3#1", doneItemIds: [], asOf: w.today },
+    ];
+    const snap = sequence(w);
+    expect(snap.assessments).toEqual([
+      {
+        groupId: "13 1",
+        itemId: "a1",
+        slotKey: "13 1|2026-11-09|5",
+        slotUse: "whole",
+      },
+    ]);
+    expect(placementOf(snap, "13 1", "c3#1")?.slotKey).toBe(
+      "13 1|2026-11-11|2",
+    );
+  });
+
+  test("doneItemIds is how she says an undated assessment is done", () => {
+    const w = world();
+    setA1(w, { date: null });
+    w.positions = [
+      {
+        groupId: "13 1",
+        nextLessonId: "c3#1",
+        doneItemIds: ["a1"],
+        asOf: w.today,
+      },
+    ];
+    const snap = sequence(w);
+    expect(snap.assessments).toEqual([]);
+    expect(placementOf(snap, "13 1", "c3#1")?.slotKey).toBe(
+      "13 1|2026-11-09|5",
+    );
+  });
+
+  test("an undated in-lesson assessment after overflowed content is a conflict, not attached to an earlier lesson", () => {
+    const w = world();
+    setA1(w, { date: null, slotUse: "in-lesson", durationMinutes: 18 });
+    const c2 = w.items.find((i) => i.id === "c2");
+    if (c2) c2.lessons = 400;
+    const snap = sequence(w);
+    expect(snap.assessments).toEqual([]);
+    expect(snap.conflicts).toContainEqual({
+      kind: "assessment-no-slot",
+      groupId: "13 1",
+      itemId: "a1",
+      date: w.today,
+    });
+  });
+});
+
+describe("anchors", () => {
+  test("a dated in-lesson anchor does not land on a slot a later whole-slot assessment takes", () => {
+    const w = world();
+    setA1(w, { slotUse: "in-lesson", durationMinutes: 18 });
+    const a1 = w.items.find((i) => i.id === "a1");
+    if (!a1?.assessment) throw new Error("no a1");
+    w.items.push({
+      ...a1,
+      id: "a2",
+      order: 4,
+      title: "a2",
+      assessment: { ...a1.assessment, slotUse: "whole", durationMinutes: 45 },
+    });
+    const snap = sequence(w);
+    const whole = snap.assessments.find((a) => a.itemId === "a2");
+    const chip = snap.assessments.find((a) => a.itemId === "a1");
+    expect(whole).toMatchObject({
+      slotKey: "13 1|2026-11-27|6",
+      slotUse: "whole",
+    });
+    expect(chip?.slotKey).not.toBe(whole?.slotKey);
+    expect(lessonAt(snap, whole?.slotKey ?? "")).toBeUndefined();
+    expect(lessonAt(snap, chip?.slotKey ?? "")).toBeDefined();
+  });
+});
+
 describe("checkpoints and order", () => {
+  test("with no checkpoint there are no spare lessons and overflow has no checkpoint", () => {
+    const w = world();
+    w.blocks = [];
+    setA1(w, { status: "sat" });
+    const c4 = w.items.find((i) => i.id === "c4");
+    if (c4) c4.lessons = 400;
+    const snap = sequence(w);
+    expect(snap.checkpoints).toEqual([]);
+    expect(snap.placements.some((p) => p.lessonId.startsWith("flex:"))).toBe(
+      false,
+    );
+    expect(snap.overflow).toEqual([
+      expect.objectContaining({ groupId: "13 1", checkpointId: null }),
+    ]);
+  });
+
   test("checkpoints hold the dated assessments and each block end from today, by date", () => {
     const snap = sequence(world());
     const cps = snap.checkpoints;
