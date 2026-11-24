@@ -48,7 +48,7 @@ test("import reports labelled holidays and possible days off, and the days API s
   const app = await buildTestApp();
   const res = await send(app, "POST", "/api/calendar/import", undefined);
   const dates = (kind: string) =>
-    res.body.findings
+    res.body.shown
       .filter((f: { kind: string }) => f.kind === kind)
       .map((f: { date: string }) => f.date);
   expect(dates("labelled-holiday")).toEqual(["2026-12-08"]);
@@ -211,7 +211,7 @@ test("importing a workbook with a renamed header stores nothing", async () => {
   const res = await send(app, "POST", "/api/calendar/import", undefined);
   expect(res.status).toBe(200);
   expect(res.body.ok).toBe(false);
-  expect(res.body.findings.length).toBeGreaterThan(0);
+  expect(res.body.shown.length).toBeGreaterThan(0);
   expect((await get(app, "/api/calendar/import")).body).toBeNull();
 });
 

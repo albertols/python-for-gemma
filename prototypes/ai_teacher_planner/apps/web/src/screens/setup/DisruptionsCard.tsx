@@ -71,7 +71,10 @@ export function DisruptionsCard() {
   const remove = useRemoveDisruptionBatch();
   const [removed, setRemoved] = useState<string | null>(null);
   const batches = batchesOf(
-    (disruptions.data ?? []).filter((d) => d.source === "teacher"),
+    // A "no lessons" decision from the import report is undone there, not here.
+    (disruptions.data ?? []).filter(
+      (d) => d.source === "teacher" && !d.batchId.startsWith("day:"),
+    ),
   );
   /** A lesson cancelled by two cancellations counts in each, so the sum can exceed the audit's. */
   const lessonsIn = (b: Batch) =>

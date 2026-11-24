@@ -3,7 +3,7 @@ Feature: Setup
   Scenario: Importing the calendar shows the report
     When I import the school calendar
     Then I see the Week 1 and Week 2 day counts
-    And the report lists the stray "x" on 31 October 2026 as a warning
+    And the report folds the stray "x" on 31 October 2026 away as outside the school year
     And the report says the wrong weekday on 11 July 2026 is outside the school year
 
   Scenario: Editing the timetable updates the totals

@@ -20,6 +20,12 @@ async function auditTotal(
 }
 let auditBefore = 0;
 
+/** Opens a closed details element; an open one stays open. */
+async function openFold(details: import("@playwright/test").Locator) {
+  if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open)))
+    await details.getByText("Outside the school year").click();
+}
+
 When("I import the school calendar", async ({ page }) => {
   await page.goto("/setup");
   const posted = page.waitForResponse(
@@ -40,13 +46,21 @@ Then("I see the Week 1 and Week 2 day counts", async ({ page }) => {
 });
 
 Then(
-  "the report lists the stray {string} on 31 October 2026 as a warning",
+  "the report folds the stray {string} on 31 October 2026 away as outside the school year",
   async ({ page }, _stray: string) => {
-    const warnings = page.getByRole("region", { name: "Warnings" });
-    const item = warnings.getByRole("listitem").filter({
-      hasText: "31 October 2026",
-    });
-    await expect(item).toContainText("is not Week 1 or Week 2");
+    // A Saturday: not needed for planning, so it is not a warning.
+    await expect(
+      page
+        .getByRole("region", { name: "Warnings" })
+        .getByText("31 October 2026"),
+    ).toHaveCount(0);
+    const outside = page
+      .locator("details")
+      .filter({ hasText: "Outside the school year" });
+    await openFold(outside);
+    await expect(
+      outside.getByRole("listitem").filter({ hasText: "31 October 2026" }),
+    ).toContainText("is not Week 1 or Week 2");
   },
 );
 
@@ -56,7 +70,7 @@ Then(
     const outside = page
       .locator("details")
       .filter({ hasText: "Outside the school year" });
-    await outside.getByText("Outside the school year").click();
+    await openFold(outside);
     await expect(
       outside.getByRole("listitem").filter({ hasText: "11 July 2026" }).first(),
     ).toContainText("weekday does not match");

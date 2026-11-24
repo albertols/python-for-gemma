@@ -1,7 +1,9 @@
 import type {
   CalendarRow,
   Disruption,
+  FindingResolution,
   Group,
+  LabelCorrection,
   ParentsEvening,
   ReportWindow,
   Term,
@@ -82,11 +84,28 @@ export interface DisruptionRepo {
   removeBatch(batchId: string): number;
 }
 
+/** Her corrections to the calendar. A new import never touches them. */
+export interface CorrectionRepo {
+  /** Sorted by date. */
+  labels(): LabelCorrection[];
+  /** Replaces any correction already on that date. */
+  setLabel(correction: LabelCorrection, createdAt: string): void;
+  /** False when there was none. */
+  removeLabel(date: string): boolean;
+  /** Sorted by date. */
+  resolutions(): FindingResolution[];
+  /** Replaces any resolution already on that date. */
+  setResolution(resolution: FindingResolution, createdAt: string): void;
+  /** False when there was none. */
+  removeResolution(date: string): boolean;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
   settings: SettingsRepo;
   disruptions: DisruptionRepo;
+  corrections: CorrectionRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }

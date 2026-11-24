@@ -50,7 +50,9 @@ describe("the synthetic calendar", () => {
       rawLabel: "x",
       weekLabel: null,
     });
+    // The August one is before the first labelled day, so it is only a mention.
     expect(findings("unknown-label")).toEqual([
+      expect.objectContaining({ date: "2026-08-17", severity: "info" }),
       expect.objectContaining({ date: "2026-10-31", severity: "warning" }),
     ]);
   });

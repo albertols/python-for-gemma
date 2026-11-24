@@ -27,7 +27,6 @@ function WeekPanel({
         <h2 id={id} className="text-lg font-semibold">
           {heading}
         </h2>
-        {week?.shortWeek ? <span className={chip}>Short week</span> : null}
         {week?.mixed ? <span className={chip}>Mixed week</span> : null}
         {week?.monday ? (
           <p className="text-sm text-muted-foreground">

@@ -1,9 +1,17 @@
 import {
+  checkLabels,
+  type IsoDate,
+  termSpanning,
+  toCalendarDays,
+} from "@planner/domain";
+import {
   dayOffFindings,
   type ImportFinding,
   readCalendarWorkbook,
   readParentsEvenings,
   readReportDeadlines,
+  type TidyReport,
+  tidyFindings,
 } from "@planner/importers";
 import { ApiError } from "../errors.ts";
 import {
@@ -24,9 +32,14 @@ export interface ReportIssue {
   field: "dataDeadline" | "hodReview" | "sentHome" | "date";
   raw: string;
 }
-export interface ImportSummary {
+/** A correction or decision whose date the calendar no longer has. Kept until she removes it. */
+export interface StaleCorrection {
+  type: "label" | "resolution";
+  date: IsoDate;
+}
+export interface ImportSummary extends TidyReport {
   ok: boolean;
-  findings: ImportFinding[];
+  staleCorrections: StaleCorrection[];
   counts: { W1: number; W2: number };
   reportIssues: ReportIssue[];
   importedAt: string | null;
@@ -67,16 +80,57 @@ function reportIssuesOf(
   );
 }
 
-/** The latest stored import, or null when nothing has been imported. */
+const staleMessage = (date: IsoDate) =>
+  `Your correction for ${date} no longer matches a day in the calendar`;
+
+/**
+ * The latest stored import, tidied with her decisions, or null when nothing has
+ * been imported. The stored findings are the importer's own; her corrections
+ * and decisions are applied here, so they survive a new import.
+ */
 export function importSummary(repos: Repos): ImportSummary | null {
   const latest = repos.calendar.latestImport();
   if (latest === null) return null;
+  const rows = repos.calendar.rows();
+  const labels = repos.corrections.labels();
+  const resolutions = repos.corrections.resolutions();
+  const days = toCalendarDays(rows, repos.settings.terms(), labels);
   const counts = { W1: 0, W2: 0 };
-  for (const r of repos.calendar.rows())
-    if (r.weekLabel !== null) counts[r.weekLabel] += 1;
+  for (const d of days) if (d.weekLabel !== null) counts[d.weekLabel] += 1;
+
+  // A week she has fixed is no longer mixed: keep only the label issues that still hold.
+  const stillMixed = new Set(
+    checkLabels(toCalendarDays(rows, termSpanning(rows), labels)).map(
+      (i) => `${i.weekOf} ${i.detail}`,
+    ),
+  );
+  const current = latest.findings.filter(
+    (f) => f.kind !== "label-issue" || stillMixed.has(`${f.date} ${f.message}`),
+  );
+  const tidy = tidyFindings(current, repos.settings.terms(), resolutions);
+
+  const known = new Set(rows.map((r) => r.date));
+  const staleCorrections: StaleCorrection[] = [
+    ...labels.map((c) => ({ type: "label" as const, date: c.date })),
+    ...resolutions.map((r) => ({ type: "resolution" as const, date: r.date })),
+  ].filter((s) => !known.has(s.date));
+  const stale = [...new Set(staleCorrections.map((s) => s.date))].sort();
+  const staleFindings = stale.map(
+    (date): ImportFinding => ({
+      kind: "orphaned-correction",
+      severity: "error",
+      sheetRow: null,
+      date,
+      message: staleMessage(date),
+    }),
+  );
+  const shown = [...tidy.shown, ...staleFindings];
   return {
     ok: true,
-    findings: latest.findings,
+    shown,
+    outsideYear: tidy.outsideYear,
+    resolved: tidy.resolved,
+    staleCorrections,
     counts,
     reportIssues: reportIssuesOf(
       repos.calendar.windows(),
@@ -138,7 +192,10 @@ export async function importCalendar(deps: {
   if (!read.ok || read.academicYear === null)
     return {
       ok: false,
-      findings: read.findings,
+      shown: read.findings,
+      outsideYear: [],
+      resolved: [],
+      staleCorrections: [],
       counts: { W1: 0, W2: 0 },
       reportIssues: [],
       importedAt: null,

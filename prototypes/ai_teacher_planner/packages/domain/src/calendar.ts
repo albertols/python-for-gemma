@@ -1,3 +1,4 @@
+import type { LabelCorrection } from "./corrections.ts";
 import {
   addDays,
   daysBetween,
@@ -39,18 +40,24 @@ export type DayKind =
 export interface CalendarDay {
   date: IsoDate;
   weekLabel: WeekLabel | null;
+  /** Whose label this is: the calendar's, or one she corrected. */
+  labelSource: "calendar" | "teacher";
   kind: DayKind;
   pupilDay: boolean;
   text: string | null;
 }
 
-function kindOf(row: CalendarRow, terms: readonly Term[]): DayKind {
+const inAnyTerm = (date: IsoDate, terms: readonly Term[]) =>
+  terms.some((t) => date >= t.firstPupilDay && date <= t.lastPupilDay);
+
+function kindOf(
+  row: CalendarRow,
+  weekLabel: WeekLabel | null,
+  terms: readonly Term[],
+): DayKind {
   if (weekdayOf(row.date) >= 6) return "weekend";
-  const inTerm = terms.some(
-    (t) => row.date >= t.firstPupilDay && row.date <= t.lastPupilDay,
-  );
-  if (!inTerm) return "outside-term";
-  if (row.weekLabel === null) return "unlabelled";
+  if (!inAnyTerm(row.date, terms)) return "outside-term";
+  if (weekLabel === null) return "unlabelled";
   return isHolidayText(row.secondaryEvent) ? "holiday" : "pupil";
 }
 
@@ -63,16 +70,40 @@ function isHolidayText(text: string | null): boolean {
 const byDate = (a: { date: IsoDate }, b: { date: IsoDate }) =>
   a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
 
+/**
+ * One term from the first row to the last. For checks that run on the sheet
+ * alone, before the real terms are known: a labelled holiday is then a holiday.
+ */
+export function termSpanning(rows: readonly CalendarRow[]): Term[] {
+  const first = rows[0]?.date;
+  const last = rows[rows.length - 1]?.date;
+  return first && last
+    ? [{ id: "T1", firstPupilDay: first, lastPupilDay: last }]
+    : [];
+}
+
+/**
+ * One day per row. A correction replaces its date's label, but only on a
+ * weekday in term; anywhere else it is ignored here (the API never stores one).
+ */
 export function toCalendarDays(
   rows: readonly CalendarRow[],
   terms: readonly Term[],
+  corrections: readonly LabelCorrection[] = [],
 ): CalendarDay[] {
+  const corrected = new Map(corrections.map((c) => [c.date, c.weekLabel]));
   return rows
     .map((row): CalendarDay => {
-      const kind = kindOf(row, terms);
+      const fix =
+        weekdayOf(row.date) <= 5 && inAnyTerm(row.date, terms)
+          ? corrected.get(row.date)
+          : undefined;
+      const weekLabel = fix ?? row.weekLabel;
+      const kind = kindOf(row, weekLabel, terms);
       return {
         date: row.date,
-        weekLabel: row.weekLabel,
+        weekLabel,
+        labelSource: fix === undefined ? "calendar" : "teacher",
         kind,
         pupilDay: kind === "pupil",
         text: row.secondaryEvent ?? row.datesOfImportance ?? null,
@@ -87,13 +118,13 @@ export interface LabelIssue {
   detail: string;
 }
 
-/** Labelled weekdays grouped by the Monday of their week, in date order. */
+/** Labelled pupil days grouped by the Monday of their week. Holidays and other non-teaching days do not count. */
 function labelsByWeek(
   days: readonly CalendarDay[],
 ): Map<IsoDate, Set<WeekLabel>> {
   const weeks = new Map<IsoDate, Set<WeekLabel>>();
   for (const d of [...days].sort(byDate)) {
-    if (d.weekLabel === null || weekdayOf(d.date) >= 6) continue;
+    if (d.weekLabel === null || !d.pupilDay) continue;
     const monday = mondayOf(d.date);
     const set = weeks.get(monday) ?? new Set<WeekLabel>();
     set.add(d.weekLabel);

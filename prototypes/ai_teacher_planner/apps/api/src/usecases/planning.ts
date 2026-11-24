@@ -18,10 +18,14 @@ export interface Planning {
   slots: Slot[];
 }
 
-/** The stored inputs, including the lessons she cancelled, and what the engine derives from them. */
+/** The stored inputs, including her label corrections and the lessons she cancelled, and what the engine derives from them. */
 export function loadPlanning(repos: Repos): Planning {
   const terms = repos.settings.terms();
-  const days = toCalendarDays(repos.calendar.rows(), terms);
+  const days = toCalendarDays(
+    repos.calendar.rows(),
+    terms,
+    repos.corrections.labels(),
+  );
   const timetables = repos.timetable.versions();
   const groups = repos.timetable.groups();
   return {

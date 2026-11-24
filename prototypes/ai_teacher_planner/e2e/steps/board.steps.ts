@@ -62,19 +62,6 @@ Then(
   },
 );
 
-Then("Week 2 shows lessons on Monday and Tuesday only", async ({ page }) => {
-  const lessons = week(page, 2).locator('td[data-kind="lesson"]');
-  await expect(lessons.first()).toBeVisible();
-  const dates = await lessons.evaluateAll((cells) => [
-    ...new Set(cells.map((c) => c.getAttribute("data-date"))),
-  ]);
-  expect(dates.sort()).toEqual(["2026-12-21", "2026-12-22"]);
-});
-
-Then("Week 2 is marked {string}", async ({ page }, chip: string) => {
-  await expect(week(page, 2).getByText(chip, { exact: true })).toBeVisible();
-});
-
 // The steps of features/01-cycle-from-calendar.feature in the browser.
 Given(
   "12 Feb 2027 is labelled Week 2 and 15 to 19 Feb are school holidays",

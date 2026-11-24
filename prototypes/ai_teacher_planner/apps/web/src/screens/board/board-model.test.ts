@@ -28,8 +28,6 @@ const cellsOf = (week: ReturnType<typeof board>["w1"]) =>
 
 test("the fortnight of 14 December has a two-day Week 2", () => {
   const b = board({ w1: "2026-12-14", w2: "2026-12-21", breakBefore: false });
-  expect(b.w2?.shortWeek).toBe(true);
-  expect(b.w1?.shortWeek).toBe(false);
   expect(
     b.w2?.days.filter((d) => d.dayKind === "pupil").map((d) => d.date),
   ).toEqual(["2026-12-21", "2026-12-22"]);
@@ -46,7 +44,6 @@ test("a day that is not a pupil day has no-school cells", () => {
 
 test("the lone Friday is a short Week 1 with one lesson", () => {
   const b = board({ w1: "2027-01-04", w2: "2027-01-11", breakBefore: true });
-  expect(b.w1?.shortWeek).toBe(true);
   const lessons = cellsOf(b.w1).filter((c) => c.kind === "lesson");
   expect(lessons.map((c) => [c.label, c.date, c.period])).toEqual([
     ["13 1", "2027-01-08", 6],
@@ -114,6 +111,7 @@ test("a mixed week takes each day's cells from that day's own label", () => {
     date,
     weekLabel: labelOf(date),
     kind: "pupil",
+    labelSource: "calendar",
     pupilDay: true,
     text: null,
   }));
@@ -134,7 +132,6 @@ test("a mixed week takes each day's cells from that day's own label", () => {
   );
   expect(b.w2?.mixed).toBe(true);
   expect(b.w2?.labels).toEqual(["W2", "W1"]);
-  expect(b.w2?.shortWeek).toBe(false);
   const lessonsOn = (date: string) =>
     b.w2?.days
       .find((d) => d.date === date)
@@ -170,5 +167,42 @@ test("a labelled holiday is a no-school day with its text and no lessons", () =>
     text: "Official holiday",
   });
   expect(tuesday?.cells.every((c) => c.kind === "no-school")).toBe(true);
-  expect(b.w2?.shortWeek).toBe(false);
+});
+
+test("a week whose holiday has another label is not mixed", () => {
+  // Monday is an official holiday labelled Week 2; Tuesday to Friday are Week 1.
+  const week = [
+    "2027-05-03",
+    "2027-05-04",
+    "2027-05-05",
+    "2027-05-06",
+    "2027-05-07",
+  ];
+  const mine: CalendarDay[] = week.map((date) => ({
+    date,
+    weekLabel: date === "2027-05-03" ? "W2" : "W1",
+    labelSource: "calendar",
+    kind: date === "2027-05-03" ? "holiday" : "pupil",
+    pupilDay: date !== "2027-05-03",
+    text: null,
+  }));
+  const f: Fortnight = { w1: "2027-05-03", w2: null, breakBefore: false };
+  const b = boardFor(f, mine, [], [SEED_TIMETABLE]);
+  expect(b.w1?.mixed).toBe(false);
+  expect(b.w1?.labels).toEqual(["W1"]);
+});
+
+test("a day whose label she corrected is marked corrected", () => {
+  const fixed = toCalendarDays(syntheticRows(), SYNTHETIC_TERMS, [
+    { date: "2026-11-17", weekLabel: "W1", note: null },
+  ]);
+  const b = boardFor(
+    { w1: "2026-11-16", w2: "2026-11-23", breakBefore: false },
+    fixed,
+    slots,
+    [SEED_TIMETABLE],
+  );
+  expect(b.w1?.days.filter((d) => d.corrected).map((d) => d.date)).toEqual([
+    "2026-11-17",
+  ]);
 });

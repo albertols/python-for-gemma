@@ -46,6 +46,11 @@ export function WeekGrid({
                 <span className="block text-xs font-normal text-muted-foreground">
                   {h.date}
                 </span>
+                {day.corrected ? (
+                  <span className="mt-0.5 block rounded-full border border-border bg-muted px-1.5 text-xs font-medium">
+                    corrected
+                  </span>
+                ) : null}
               </th>
             );
           })}

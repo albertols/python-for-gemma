@@ -27,6 +27,8 @@ export interface BoardDay {
   dayKind: DayKind;
   /** Why a day is not a pupil day, or what the calendar says about it. */
   text: string | null;
+  /** She changed this day's week label. */
+  corrected: boolean;
   cells: BoardCell[];
 }
 export interface BoardWeek {
@@ -34,8 +36,7 @@ export interface BoardWeek {
   /** The distinct labels of the pupil days, in date order. */
   labels: WeekLabel[];
   days: BoardDay[];
-  shortWeek: boolean;
-  /** Its pupil days carry different labels (Monday Week 2, Wednesday Week 1). */
+  /** Its pupil days carry different labels (Monday Week 2, Wednesday Week 1). A holiday with another label does not count. */
   mixed: boolean;
 }
 
@@ -50,11 +51,13 @@ function dayOf(
 ): BoardDay {
   const dayKind: DayKind = day?.kind ?? "outside-term";
   const text = day?.text ?? null;
+  const corrected = day?.labelSource === "teacher";
   if (!day?.pupilDay || day.weekLabel === null)
     return {
       date,
       dayKind,
       text,
+      corrected,
       cells: PERIODS.map((period) => ({
         period,
         date,
@@ -69,6 +72,7 @@ function dayOf(
     date,
     dayKind,
     text,
+    corrected,
     cells: PERIODS.map((period): BoardCell => {
       const slot = slotsOnDate.find((s) => s.period === period);
       if (slot)
@@ -116,18 +120,15 @@ function weekOf(
     );
   });
   const labels: WeekLabel[] = [];
-  let pupilDays = 0;
   for (const b of boardDays) {
     const day = days.find((d) => d.date === b.date);
     if (!day?.pupilDay || day.weekLabel === null) continue;
-    pupilDays += 1;
     if (!labels.includes(day.weekLabel)) labels.push(day.weekLabel);
   }
   return {
     monday,
     labels,
     days: boardDays,
-    shortWeek: pupilDays >= 1 && pupilDays <= 2,
     mixed: labels.length > 1,
   };
 }

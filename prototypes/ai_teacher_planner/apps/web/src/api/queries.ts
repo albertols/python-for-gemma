@@ -292,3 +292,94 @@ export function useRemoveDisruptionBatch() {
     onSuccess: () => invalidateLessons(qc),
   });
 }
+
+export type Corrections = InferResponseType<
+  typeof api.api.calendar.corrections.$get,
+  200
+>;
+export type LabelCorrectionBody = InferRequestType<
+  (typeof api.api.calendar.corrections.labels)[":date"]["$put"]
+>["json"];
+export type ResolutionBody = InferRequestType<
+  (typeof api.api.calendar.corrections.resolutions)[":date"]["$put"]
+>["json"];
+
+export function useCorrections() {
+  return useQuery({
+    queryKey: ["corrections"],
+    queryFn: () => call<Corrections>(() => api.api.calendar.corrections.$get()),
+  });
+}
+
+/** One day as the calendar and her corrections make it. */
+export function useDay(date: string) {
+  return useQuery({
+    queryKey: ["board", "days", date, date],
+    queryFn: () =>
+      call<BoardDays>(() =>
+        api.api.calendar.days.$get({ query: { from: date, to: date } }),
+      ),
+    select: (days) => days[0] ?? null,
+  });
+}
+
+/** A correction or decision changes the report, the board, Today, the audit and the cancelled lessons. */
+function invalidateCorrections(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["calendar-import"] });
+  void qc.invalidateQueries({ queryKey: ["corrections"] });
+  invalidateLessons(qc);
+}
+
+export function useSetLabel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ date, ...json }: { date: string } & LabelCorrectionBody) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.labels[":date"].$put({
+          param: { date },
+          json,
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export function useRemoveLabel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.labels[":date"].$delete({
+          param: { date },
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export function useSetResolution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ date, ...json }: { date: string } & ResolutionBody) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.resolutions[":date"].$put({
+          param: { date },
+          json,
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export function useRemoveResolution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.resolutions[":date"].$delete({
+          param: { date },
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}

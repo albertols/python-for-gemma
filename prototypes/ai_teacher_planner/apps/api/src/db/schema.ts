@@ -1,6 +1,6 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-// Mirrors migrations/0001 and 0002. The SQL file is the source of truth.
+// Mirrors migrations/0001, 0002 and 0004 (0003's disruptions table is only used through its repository). The SQL file is the source of truth.
 
 export const settings = sqliteTable("settings", {
   key: text().primaryKey(),
@@ -71,4 +71,18 @@ export const parentsEvenings = sqliteTable("parents_evenings", {
   label: text().notNull(),
   date: text(),
   dateRaw: text("date_raw"),
+});
+
+export const labelCorrections = sqliteTable("label_corrections", {
+  date: text().primaryKey(),
+  weekLabel: text("week_label", { enum: ["W1", "W2"] }).notNull(),
+  note: text(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const findingResolutions = sqliteTable("finding_resolutions", {
+  date: text().primaryKey(),
+  decision: text({ enum: ["teaching-day", "no-lessons"] }).notNull(),
+  reason: text(),
+  createdAt: text("created_at").notNull(),
 });

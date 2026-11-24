@@ -5,6 +5,8 @@ export type {
   ImportFinding,
 } from "./calendar/read-calendar.ts";
 export { readCalendarWorkbook } from "./calendar/read-calendar.ts";
+export type { TidyReport } from "./calendar/tidy-findings.ts";
+export { isSettleable, tidyFindings } from "./calendar/tidy-findings.ts";
 export type { LooseDate, LooseDateIssue } from "./loose-date.ts";
 export { parseLooseDate } from "./loose-date.ts";
 export type {

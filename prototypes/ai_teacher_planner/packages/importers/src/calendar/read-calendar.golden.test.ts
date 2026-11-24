@@ -2,7 +2,12 @@ import { readFile } from "node:fs/promises";
 import {
   auditSlots,
   buildSlots,
+  checkLabels,
+  type Disruption,
+  type FindingResolution,
+  type LabelCorrection,
   teachingBlocks,
+  termSpanning,
   toCalendarDays,
 } from "@planner/domain";
 import { SEED_GROUPS, SEED_TERMS, SEED_TIMETABLE } from "@planner/fixtures";
@@ -11,6 +16,7 @@ import {
   type CalendarImport,
   dayOffFindings,
   readCalendarWorkbook,
+  tidyFindings,
 } from "../index.ts";
 import {
   calendarWorkbookPath,
@@ -158,5 +164,91 @@ describe.skipIf(!resourcesAvailable())("the school's real calendar", () => {
       "2026-12-08",
       "2027-05-03",
     ]);
+  });
+
+  describe("with her corrections applied in memory", () => {
+    // Nothing is written anywhere: the corrections only exist inside this test.
+    const labels: LabelCorrection[] = [
+      { date: "2027-05-04", weekLabel: "W1", note: null },
+    ];
+    const resolutions: FindingResolution[] = [
+      { date: "2027-03-19", decision: "no-lessons", reason: null },
+      { date: "2027-06-29", decision: "no-lessons", reason: null },
+      { date: "2027-05-04", decision: "teaching-day", reason: null },
+    ];
+    const fixed = () => toCalendarDays(need().rows, SEED_TERMS, labels);
+    const school = (date: string): Disruption => ({
+      id: `day:${date}`,
+      scope: { kind: "school" },
+      from: date,
+      to: date,
+      periods: null,
+      effect: "cancelled",
+      reason: "No lessons (your correction)",
+      source: "teacher",
+    });
+
+    test("W1 has 92 labels and W2 has 93", () => {
+      const n = (l: "W1" | "W2") =>
+        fixed().filter((d) => d.weekLabel === l).length;
+      expect([n("W1"), n("W2")]).toEqual([92, 93]);
+      expect(
+        fixed()
+          .filter((d) => d.labelSource === "teacher")
+          .map((d) => d.date),
+      ).toEqual(["2027-05-04"]);
+    });
+
+    test("the week of 3 May 2027 is not mixed", () => {
+      const issues = checkLabels(
+        toCalendarDays(need().rows, termSpanning(need().rows), labels),
+      );
+      expect(issues.map((i) => i.weekOf)).not.toContain("2027-05-03");
+    });
+
+    test("no possible-day-off warning remains, and the August and weekend notes are folded away", () => {
+      const report = tidyFindings(
+        [...need().findings, ...dayOffFindings(need().rows, SEED_TERMS)],
+        SEED_TERMS,
+        resolutions,
+      );
+      expect(report.shown.filter((f) => f.kind === "possible-day-off")).toEqual(
+        [],
+      );
+      expect(report.resolved.map((r) => r.finding.date)).toEqual([
+        "2027-03-19",
+        "2027-05-04",
+        "2027-06-29",
+      ]);
+      const outside = report.outsideYear.map((f) => f.date);
+      expect(outside).toEqual(
+        expect.arrayContaining(["2026-07-11", "2026-10-31"]),
+      );
+      expect(report.shown.map((f) => f.date)).not.toContain("2026-10-31");
+    });
+
+    test("all of 13 1's slots on 19 March 2027 are cancelled", () => {
+      const slots = buildSlots({
+        days: fixed(),
+        timetables: [SEED_TIMETABLE],
+        groups: SEED_GROUPS,
+        disruptions: [school("2027-03-19"), school("2027-06-29")],
+      }).filter((s) => s.date === "2027-03-19" && s.groupId === "13 1");
+      expect(slots.length).toBeGreaterThan(0);
+      expect(slots.every((s) => s.status === "cancelled")).toBe(true);
+    });
+
+    test("the fortnight of 16 November 2026 still gives 5, 4, 6, 6, 6, 6", () => {
+      const slots = buildSlots({
+        days: fixed(),
+        timetables: [SEED_TIMETABLE],
+        groups: SEED_GROUPS,
+        disruptions: [school("2027-03-19"), school("2027-06-29")],
+      }).filter((s) => s.date >= "2026-11-16" && s.date <= "2026-11-27");
+      const per = (id: string) => slots.filter((s) => s.groupId === id).length;
+      expect(["11D", "IB H", "IB S", "13 1", "13 3", "13 5"].map(per)).toEqual([
+        5, 4, 6, 6, 6, 6,
+      ]);
+    });
   });
 });

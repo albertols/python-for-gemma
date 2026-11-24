@@ -3,6 +3,12 @@ import type { Config } from "../config.ts";
 import { ApiError } from "../errors.ts";
 import type { ResourceGateway } from "../gateway/resource-gateway.ts";
 import type { Repos } from "../repos/ports.ts";
+import {
+  removeLabelCorrection,
+  removeResolution,
+  setLabelCorrection,
+  setResolution,
+} from "../usecases/corrections.ts";
 import { importCalendar, importSummary } from "../usecases/import-calendar.ts";
 import { loadPlanning } from "../usecases/planning.ts";
 import { guard } from "./require-access.ts";
@@ -13,6 +19,7 @@ import {
   errorResponse,
   isoDate,
   term,
+  weekLabel,
 } from "./schemas.ts";
 
 const finding = z.object({
@@ -22,9 +29,26 @@ const finding = z.object({
   date: isoDate.nullable(),
   message: z.string(),
 });
+const resolution = z.object({
+  date: isoDate,
+  decision: z.enum(["teaching-day", "no-lessons"]),
+  reason: z.string().nullable(),
+});
+const labelCorrection = z.object({
+  date: isoDate,
+  weekLabel: weekLabel,
+  note: z.string().nullable(),
+});
 const summary = z.object({
   ok: z.boolean(),
-  findings: z.array(finding),
+  /** What she still has to look at. */
+  shown: z.array(finding),
+  /** Notes on weekends or outside every term, not needed for planning. */
+  outsideYear: z.array(finding),
+  resolved: z.array(z.object({ finding, resolution })),
+  staleCorrections: z.array(
+    z.object({ type: z.enum(["label", "resolution"]), date: isoDate }),
+  ),
   counts: z.object({ W1: z.number(), W2: z.number() }),
   reportIssues: z.array(
     z.object({
@@ -128,6 +152,92 @@ const putEveningDate = createRoute({
   },
 });
 
+const dateParam = z.object({ date: isoDate });
+const corrections = z.object({
+  labels: z.array(labelCorrection),
+  resolutions: z.array(resolution),
+});
+const getCorrections = createRoute({
+  method: "get",
+  path: "/api/calendar/corrections",
+  responses: {
+    200: {
+      description: "Her label corrections and her decisions on import notes",
+      content: json(corrections),
+    },
+  },
+});
+const putLabel = createRoute({
+  method: "put",
+  path: "/api/calendar/corrections/labels/{date}",
+  ...guard("report-calendar", "edit"),
+  request: {
+    params: dateParam,
+    body: {
+      content: json(
+        z.object({ weekLabel, note: z.string().nullable().default(null) }),
+      ),
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "The stored correction",
+      content: json(labelCorrection),
+    },
+    422: errorResponse("Not a weekday in term, or the note is too long"),
+  },
+});
+const deleteLabel = createRoute({
+  method: "delete",
+  path: "/api/calendar/corrections/labels/{date}",
+  ...guard("report-calendar", "edit"),
+  request: { params: dateParam },
+  responses: {
+    200: {
+      description: "Removed",
+      content: json(z.object({ ok: z.literal(true) })),
+    },
+    404: errorResponse("There is no correction on that date"),
+  },
+});
+const putResolution = createRoute({
+  method: "put",
+  path: "/api/calendar/corrections/resolutions/{date}",
+  ...guard("report-calendar", "edit"),
+  request: {
+    params: dateParam,
+    body: {
+      content: json(
+        z.object({
+          decision: z.enum(["teaching-day", "no-lessons"]),
+          reason: z.string().nullable().default(null),
+        }),
+      ),
+      required: true,
+    },
+  },
+  responses: {
+    200: { description: "The stored decision", content: json(resolution) },
+    422: errorResponse(
+      "There is nothing to settle on that date, or the reason is too long",
+    ),
+  },
+});
+const deleteResolution = createRoute({
+  method: "delete",
+  path: "/api/calendar/corrections/resolutions/{date}",
+  ...guard("report-calendar", "edit"),
+  request: { params: dateParam },
+  responses: {
+    200: {
+      description: "Removed, and the lessons are back",
+      content: json(z.object({ ok: z.literal(true) })),
+    },
+    404: errorResponse("There is no decision on that date"),
+  },
+});
+
 const byFirstDay = (
   a: { firstPupilDay: string },
   b: { firstPupilDay: string },
@@ -178,6 +288,39 @@ export function calendarRoutes(deps: {
           `There is no parents' evening "${id}".`,
         );
       return c.json(summaryOrThrow(repos), 200);
+    })
+    .openapi(getCorrections, (c) =>
+      c.json(
+        {
+          labels: repos.corrections.labels(),
+          resolutions: repos.corrections.resolutions(),
+        },
+        200,
+      ),
+    )
+    .openapi(putLabel, (c) => {
+      const { date } = c.req.valid("param");
+      const { weekLabel, note } = c.req.valid("json");
+      return c.json(
+        setLabelCorrection(repos, { date, weekLabel, note }, now()),
+        200,
+      );
+    })
+    .openapi(deleteLabel, (c) => {
+      removeLabelCorrection(repos, c.req.valid("param").date);
+      return c.json({ ok: true as const }, 200);
+    })
+    .openapi(putResolution, (c) => {
+      const { date } = c.req.valid("param");
+      const { decision, reason } = c.req.valid("json");
+      return c.json(
+        setResolution(repos, { date, decision, reason }, now()),
+        200,
+      );
+    })
+    .openapi(deleteResolution, (c) => {
+      removeResolution(repos, c.req.valid("param").date);
+      return c.json({ ok: true as const }, 200);
     })
     .openapi(getDays, (c) => {
       const { from, to } = c.req.valid("query");

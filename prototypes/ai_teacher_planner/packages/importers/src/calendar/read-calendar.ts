@@ -5,6 +5,7 @@ import {
   type IsoDate,
   isIsoDate,
   mondayOf,
+  termSpanning,
   toCalendarDays,
   type WeekLabel,
   weekdayOf,
@@ -27,7 +28,8 @@ export type FindingKind =
   | "label-issue"
   | "assrep-mismatch"
   | "labelled-holiday"
-  | "possible-day-off";
+  | "possible-day-off"
+  | "orphaned-correction";
 export interface ImportFinding {
   kind: FindingKind;
   severity: "error" | "warning" | "info";
@@ -469,7 +471,8 @@ export async function readCalendarWorkbook(
   for (const p of sorted) rows.push({ ...p.row, hash: await rowHash(p.row) });
   const rowOf = new Map(parsed.map((p) => [p.row.date, p.sheetRow]));
 
-  for (const issue of checkLabels(toCalendarDays(rows, [])))
+  // The terms are not known here, so the whole sheet counts as one term.
+  for (const issue of checkLabels(toCalendarDays(rows, termSpanning(rows))))
     findings.push({
       kind: "label-issue",
       severity: "warning",

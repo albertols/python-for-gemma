@@ -42,6 +42,9 @@ const OTHER_EVENTS: [string, string, string][] = [
   ["2027-06-29", "2027-06-29", "Staff only"],
 ];
 
+/** Stray "x" in the label column: a Saturday in October, and a Monday in August before the school year. */
+const STRAY_X = ["2026-10-31", "2026-08-17"];
+
 function eventOn(
   table: [string, string, string][],
   date: string,
@@ -90,7 +93,7 @@ export function syntheticRows(): CalendarRow[] {
       : null;
     return {
       date,
-      rawLabel: date === "2026-10-31" ? "x" : weekLabel,
+      rawLabel: STRAY_X.includes(date) ? "x" : weekLabel,
       weekLabel,
       afterSchool: null,
       datesOfImportance: null,
