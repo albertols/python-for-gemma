@@ -25,3 +25,18 @@ jobs:
         with:
           install_args: d2
       - run: sh docs/design/render.sh --check
+
+  planner:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototypes/ai_teacher_planner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: node pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/fixtures/deny-canary",
+      "!**/pnpm-lock.yaml",
+      "!**/*.md",
+      "!**/coverage",
+      "!data",
+      "!src",
+      "!tests",
+      "!mock_data"
+    ]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "javascript": { "formatter": { "quoteStyle": "double" } },
+  "assist": {
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/domain/**"],
+      "linter": { "rules": { "correctness": { "noNodejsModules": "error" } } }
+    }
+  ]
+}

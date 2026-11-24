@@ -1,0 +1,20 @@
+{
+  "name": "ai-teacher-planner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "build": "pnpm -r --if-present build"
+  },
+  "devDependencies": {
+    "@amiceli/vitest-cucumber": "8.0.1",
+    "@biomejs/biome": "2.6.8",
+    "@planner/fixtures": "workspace:*",
+    "@types/node": "26.6.6",
+    "fast-check": "4.10.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
