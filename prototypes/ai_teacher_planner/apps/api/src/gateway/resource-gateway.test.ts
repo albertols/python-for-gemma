@@ -60,6 +60,7 @@ beforeAll(() => {
     `${UNIT}/EE/PP/a.pptx`,
     `${UNIT}/IA/PP/a.pptx`,
     `${UNIT}/IA 2026/PP/a.pptx`,
+    `${UNIT}/IAs/PP/a.pptx`,
     `${UNIT}/IAs 2026/PP/a.pptx`,
   ])
     put(rel);
@@ -162,6 +163,7 @@ describe("deny list on folder names", () => {
     ["equals ee", `${UNIT}/EE/PP/a.pptx`],
     ["equals ia", `${UNIT}/IA/PP/a.pptx`],
     ["starts with ia ", `${UNIT}/IA 2026/PP/a.pptx`],
+    ["equals ias", `${UNIT}/IAs/PP/a.pptx`],
     ["starts with ias ", `${UNIT}/IAs 2026/PP/a.pptx`],
   ])("%s is refused by isAllowed and read", async (_rule, p) => {
     expect(gw.isAllowed(p)).toBe(false);
@@ -169,7 +171,7 @@ describe("deny list on folder names", () => {
   });
 
   test("names near the rules are not caught", () => {
-    for (const ok of ["ial", "IAS", "Eeyore", "iambic", "Planning", "ee2"])
+    for (const ok of ["ial", "iasi", "Eeyore", "iambic", "Planning", "ee2"])
       expect(isDeniedFolderName(ok), ok).toBe(false);
   });
 

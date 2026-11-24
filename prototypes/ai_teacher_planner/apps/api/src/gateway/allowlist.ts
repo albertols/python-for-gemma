@@ -37,7 +37,7 @@ export const DENIED_FOLDER_NAMES = {
     "report",
     "scanned",
   ],
-  equals: ["ee", "ia"],
+  equals: ["ee", "ia", "ias"],
   startsWith: ["ia ", "ias "],
 } as const;
 
