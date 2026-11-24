@@ -14,7 +14,7 @@ import {
   ErrorState,
   Loading,
 } from "../../components/ui/states.tsx";
-import { longDate } from "../setup/dates.ts";
+import { longDate } from "../../lib/dates.ts";
 import { boardFor, fortnightContaining } from "./board-model.ts";
 import { FortnightGrid } from "./FortnightGrid.tsx";
 

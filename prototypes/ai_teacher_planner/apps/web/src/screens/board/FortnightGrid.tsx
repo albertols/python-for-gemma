@@ -1,5 +1,5 @@
 import type { WeekLabel } from "@planner/domain";
-import { longDate } from "../setup/dates.ts";
+import { longDate } from "../../lib/dates.ts";
 import type { BoardWeek } from "./board-model.ts";
 import { WeekGrid } from "./WeekGrid.tsx";
 

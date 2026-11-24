@@ -18,7 +18,7 @@ import {
 } from "../../api/queries.ts";
 import { Button } from "../../components/ui/button.tsx";
 import { ErrorState, Loading } from "../../components/ui/states.tsx";
-import { longDate } from "./dates.ts";
+import { longDate } from "../../lib/dates.ts";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] as const;
 const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];

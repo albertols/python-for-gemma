@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { ImportSummary, ReportIssue } from "../../api/queries.ts";
 import { useSaveReportDate } from "../../api/queries.ts";
 import { Button } from "../../components/ui/button.tsx";
-import { longDate } from "./dates.ts";
+import { longDate } from "../../lib/dates.ts";
 
 type Finding = ImportSummary["findings"][number];
 

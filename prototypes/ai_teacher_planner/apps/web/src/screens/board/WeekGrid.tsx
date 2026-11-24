@@ -1,5 +1,5 @@
 import { PERIOD_TIMES, type Period } from "@planner/domain";
-import { dayHeading } from "./board-dates.ts";
+import { dayHeading } from "../../lib/dates.ts";
 import type { BoardWeek } from "./board-model.ts";
 import { SlotCell } from "./SlotCell.tsx";
 

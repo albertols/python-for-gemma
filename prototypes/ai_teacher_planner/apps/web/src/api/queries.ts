@@ -186,3 +186,35 @@ export function useBoardSlots(from: string | null, to: string | null) {
       ),
   });
 }
+
+export type TodayData = InferResponseType<typeof api.api.today.$get, 200>;
+export type AuditData = InferResponseType<typeof api.api.audit.$get, 200>;
+
+export function useToday() {
+  return useQuery({
+    queryKey: ["today"],
+    queryFn: () => call<TodayData>(() => api.api.today.$get()),
+  });
+}
+
+export function useAudit() {
+  return useQuery({
+    queryKey: ["audit"],
+    queryFn: () => call<AuditData>(() => api.api.audit.$get()),
+  });
+}
+
+/** The calendar's own words for one day (a holiday's name), if it has any. */
+export function useDayText(date: string | null) {
+  return useQuery({
+    queryKey: ["board", "days", date, date],
+    enabled: date !== null,
+    queryFn: () =>
+      call<BoardDays>(() =>
+        api.api.calendar.days.$get({
+          query: { from: date ?? "", to: date ?? "" },
+        }),
+      ),
+    select: (days) => days[0]?.text ?? null,
+  });
+}

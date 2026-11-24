@@ -1,5 +1,5 @@
+import { fullDay } from "../../lib/dates.ts";
 import { groupColour } from "../../theme/group-colours.ts";
-import { fullDay } from "./board-dates.ts";
 import type { BoardCell } from "./board-model.ts";
 
 const PERIODS_PER_DAY = 6;
