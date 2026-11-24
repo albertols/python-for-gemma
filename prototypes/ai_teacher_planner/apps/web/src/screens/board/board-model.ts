@@ -10,6 +10,7 @@ import {
   versionOn,
   type Weekday,
   type WeekLabel,
+  weekdayOf,
 } from "@planner/domain";
 
 export interface BoardCell {
@@ -33,6 +34,8 @@ export interface BoardDay {
   text: string | null;
   /** She changed this day's week label. */
   corrected: boolean;
+  /** The last pupil day before a break of a week or more. */
+  lastBeforeBreak: boolean;
   cells: BoardCell[];
 }
 export interface BoardWeek {
@@ -55,6 +58,13 @@ export type PossibleOf = (slot: Slot) => string[];
 
 const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];
 
+/** What the board shows: some groups only, and which days end before a break. */
+export interface BoardOptions {
+  /** Only these groups' lessons are drawn; null or absent means all. */
+  groups?: ReadonlySet<string> | null;
+  lastDays?: ReadonlySet<IsoDate> | undefined;
+}
+
 function dayOf(
   date: IsoDate,
   weekday: Weekday,
@@ -62,7 +72,9 @@ function dayOf(
   slotsOnDate: readonly Slot[],
   timetables: readonly TimetableVersion[],
   possibleOf: PossibleOf,
+  options: BoardOptions,
 ): BoardDay {
+  const lastBeforeBreak = options.lastDays?.has(date) ?? false;
   const dayKind: DayKind = day?.kind ?? "outside-term";
   const text = day?.text ?? null;
   const corrected = day?.labelSource === "teacher";
@@ -72,6 +84,7 @@ function dayOf(
       dayKind,
       text,
       corrected,
+      lastBeforeBreak,
       cells: PERIODS.map((period) => ({
         period,
         date,
@@ -89,8 +102,15 @@ function dayOf(
     dayKind,
     text,
     corrected,
+    lastBeforeBreak,
     cells: PERIODS.map((period): BoardCell => {
-      const slot = slotsOnDate.find((s) => s.period === period);
+      const found = slotsOnDate.find((s) => s.period === period);
+      // A lesson of a group she filtered out leaves its cell empty, so the grid keeps its shape.
+      const hidden =
+        found !== undefined &&
+        options.groups != null &&
+        !options.groups.has(found.groupId);
+      const slot = hidden ? undefined : found;
       if (slot) {
         const doublePartner = slot.doubleWith
           ? ((period % 2 === 1 ? period + 1 : period - 1) as Period)
@@ -120,9 +140,9 @@ function dayOf(
       return {
         period,
         date,
-        kind: duty ? "duty" : "empty",
+        kind: found ? "empty" : duty ? "duty" : "empty",
         slot: null,
-        label: duty?.label ?? null,
+        label: found ? null : (duty?.label ?? null),
         joinsNext: false,
         doublePartner: null,
         possible: [],
@@ -137,6 +157,7 @@ function weekOf(
   slots: readonly Slot[],
   timetables: readonly TimetableVersion[],
   possibleOf: PossibleOf,
+  options: BoardOptions,
 ): BoardWeek | null {
   if (monday === null) return null;
   const boardDays = ([1, 2, 3, 4, 5] as const).map((weekday) => {
@@ -148,6 +169,7 @@ function weekOf(
       slots.filter((s) => s.date === date),
       timetables,
       possibleOf,
+      options,
     );
   });
   const labels: WeekLabel[] = [];
@@ -174,11 +196,53 @@ export function boardFor(
   slots: readonly Slot[],
   timetables: readonly TimetableVersion[],
   possibleOf: PossibleOf = () => [],
+  options: BoardOptions = {},
 ): { w1: BoardWeek | null; w2: BoardWeek | null } {
   return {
-    w1: weekOf(fortnight.w1, days, slots, timetables, possibleOf),
-    w2: weekOf(fortnight.w2, days, slots, timetables, possibleOf),
+    w1: weekOf(fortnight.w1, days, slots, timetables, possibleOf, options),
+    w2: weekOf(fortnight.w2, days, slots, timetables, possibleOf, options),
   };
+}
+
+/** One week laid out like a fortnight's weeks. */
+export function weekFor(
+  monday: IsoDate,
+  days: readonly CalendarDay[],
+  slots: readonly Slot[],
+  timetables: readonly TimetableVersion[],
+  possibleOf: PossibleOf = () => [],
+  options: BoardOptions = {},
+): BoardWeek | null {
+  return weekOf(monday, days, slots, timetables, possibleOf, options);
+}
+
+/** The Mondays of every week that has pupil days, in date order. */
+export function weeksOf(fortnights: readonly Fortnight[]): IsoDate[] {
+  return fortnights
+    .flatMap((f) => [f.w1, f.w2])
+    .filter((m): m is IsoDate => m !== null)
+    .sort();
+}
+
+/** The week holding the date (Monday to Sunday), else the next one after it, else null. */
+export function weekContaining(
+  mondays: readonly IsoDate[],
+  date: IsoDate,
+): IsoDate | null {
+  return (
+    mondays.find((m) => m <= date && date <= addDays(m, 6)) ??
+    mondays.find((m) => m > date) ??
+    null
+  );
+}
+
+/** Today's week; on a weekend, the coming one. */
+export function weekToShow(
+  mondays: readonly IsoDate[],
+  today: IsoDate,
+): IsoDate | null {
+  const day = weekdayOf(today);
+  return weekContaining(mondays, day >= 6 ? addDays(today, 8 - day) : today);
 }
 
 /** The fortnight holding the date, else the next one after it, else null. */

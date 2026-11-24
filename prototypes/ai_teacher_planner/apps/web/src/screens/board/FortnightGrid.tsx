@@ -7,7 +7,7 @@ const NAME: Record<WeekLabel, string> = { W1: "Week 1", W2: "Week 2" };
 const chip =
   "rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium";
 
-function WeekPanel({
+export function WeekPanel({
   side,
   week,
   colours,

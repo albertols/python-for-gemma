@@ -1,3 +1,4 @@
+import { lastDaysBeforeBreaks } from "@planner/domain";
 import {
   QueryClient,
   useMutation,
@@ -177,6 +178,19 @@ export function useBoardDays(from: string | null, to: string | null) {
           query: { from: from ?? "", to: to ?? "" },
         }),
       ),
+  });
+}
+
+const breakDaysOf = (days: BoardDays): ReadonlySet<string> =>
+  new Set(lastDaysBeforeBreaks(days));
+
+/** The days that end before a break of a week or more, found in the whole calendar. */
+export function useLastDaysBeforeBreaks() {
+  return useQuery({
+    queryKey: ["board", "days", "all"],
+    queryFn: () =>
+      call<BoardDays>(() => api.api.calendar.days.$get({ query: {} })),
+    select: breakDaysOf,
   });
 }
 

@@ -6,6 +6,7 @@ import {
   useDayText,
   useEvents,
   useFortnights,
+  useLastDaysBeforeBreaks,
   useTimetable,
   useToday,
 } from "../../api/queries.ts";
@@ -176,6 +177,7 @@ function CancelLessons({ today }: { today: string }) {
 
 export function TodayScreen() {
   const today = useToday();
+  const lastDays = useLastDaysBeforeBreaks();
   if (today.isPending) return <Loading what="today" />;
   if (today.isError) return <ErrorState message={today.error.message} />;
   const data = today.data;
@@ -205,6 +207,9 @@ export function TodayScreen() {
       <h1 id="today-title" className="text-2xl font-semibold">
         {fullDayWithYear(data.date)}
       </h1>
+      {lastDays.data?.has(data.date) ? (
+        <p className="mt-1">Last day before the holiday</p>
+      ) : null}
       {data.weekLabel ? (
         <p className="mt-1 text-lg">Week {data.weekLabel.slice(1)}</p>
       ) : null}

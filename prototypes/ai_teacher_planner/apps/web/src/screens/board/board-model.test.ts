@@ -12,7 +12,13 @@ import {
   syntheticRows,
 } from "@planner/fixtures";
 import { expect, test } from "vitest";
-import { boardFor, fortnightContaining } from "./board-model.ts";
+import {
+  boardFor,
+  fortnightContaining,
+  weekContaining,
+  weeksOf,
+  weekToShow,
+} from "./board-model.ts";
 
 const days = toCalendarDays(syntheticRows(), SYNTHETIC_TERMS);
 const slots = buildSlots({
@@ -244,4 +250,86 @@ test("a double with one cancelled period is drawn as two cells, and both cancell
   expect(p4?.doublePartner).toBe(3);
   const both = tuesday(disrupted([3, 4]));
   expect(both?.find((c) => c.period === 3)?.joinsNext).toBe(true);
+});
+
+// Filtering, one week, and the holiday marker (task 1b.5).
+const FORTNIGHT = {
+  w1: "2026-11-16",
+  w2: "2026-11-23",
+  breakBefore: false,
+} satisfies Fortnight;
+const lessonsOf = (week: ReturnType<typeof board>["w1"]) =>
+  cellsOf(week).filter((c) => c.kind === "lesson");
+
+test("a group filter empties other groups' cells and keeps the shape", () => {
+  const plain = boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE]);
+  const only = boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE], () => [], {
+    groups: new Set(["13 1"]),
+  });
+  expect(cellsOf(only.w1)).toHaveLength(cellsOf(plain.w1).length);
+  const kept = lessonsOf(only.w1);
+  expect(kept.length).toBeGreaterThan(0);
+  expect(kept.every((c) => c.label === "13 1")).toBe(true);
+  expect(kept.length).toBeLessThan(lessonsOf(plain.w1).length);
+});
+
+test("a filtered-out double leaves two empty cells, and duties still show", () => {
+  const plain = boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE]);
+  const only = boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE], () => [], {
+    groups: new Set(["13 1"]),
+  });
+  const doubles = lessonsOf(only.w1).filter((c) => c.joinsNext);
+  expect(doubles.every((c) => c.label === "13 1")).toBe(true);
+  const dutiesPlain = cellsOf(plain.w1).filter((c) => c.kind === "duty");
+  const dutiesOnly = cellsOf(only.w1).filter((c) => c.kind === "duty");
+  expect(dutiesOnly).toEqual(dutiesPlain);
+});
+
+test("no filter, or an empty one, shows every group", () => {
+  const plain = boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE]);
+  const none = boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE], () => [], {
+    groups: null,
+  });
+  expect(none).toEqual(plain);
+});
+
+test("a day in the last-days set says so", () => {
+  const b = boardFor(
+    { w1: "2026-12-14", w2: "2026-12-21", breakBefore: false },
+    days,
+    slots,
+    [SEED_TIMETABLE],
+    () => [],
+    { lastDays: new Set(["2026-12-22"]) },
+  );
+  expect(
+    b.w2?.days.filter((d) => d.lastBeforeBreak).map((d) => d.date),
+  ).toEqual(["2026-12-22"]);
+  expect(b.w1?.days.some((d) => d.lastBeforeBreak)).toBe(false);
+});
+
+test("weekContaining finds the Monday-to-Friday week, else the next, else null", () => {
+  const mondays = ["2026-11-16", "2026-11-23", "2026-12-21", "2027-01-11"];
+  expect(weekContaining(mondays, "2026-11-18")).toBe("2026-11-16");
+  expect(weekContaining(mondays, "2026-11-22")).toBe("2026-11-16");
+  expect(weekContaining(mondays, "2026-12-01")).toBe("2026-12-21");
+  expect(weekContaining(mondays, "2027-02-01")).toBeNull();
+});
+
+test("weeksOf lists every week of every fortnight in date order", () => {
+  expect(
+    weeksOf([
+      { w1: null, w2: "2026-12-21", breakBefore: false },
+      { w1: "2027-01-08", w2: "2027-01-11", breakBefore: true },
+    ]),
+  ).toEqual(["2026-12-21", "2027-01-08", "2027-01-11"]);
+});
+
+test("today's week on a weekend is the next week", () => {
+  expect(weekToShow(["2026-11-16", "2026-11-23"], "2026-11-21")).toBe(
+    "2026-11-23",
+  );
+  expect(weekToShow(["2026-11-16", "2026-11-23"], "2026-11-20")).toBe(
+    "2026-11-16",
+  );
 });
