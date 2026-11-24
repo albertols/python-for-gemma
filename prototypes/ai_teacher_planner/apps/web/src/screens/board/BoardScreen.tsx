@@ -1,4 +1,4 @@
-import { addDays, type Fortnight } from "@planner/domain";
+import { addDays, type Fortnight, isIsoDate } from "@planner/domain";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import {
@@ -23,10 +23,9 @@ const startOf = (f: Fortnight) => f.w1 ?? f.w2 ?? "";
 const rangeOf = (f: Fortnight | undefined) =>
   f ? { from: startOf(f), to: addDays(f.w2 ?? f.w1 ?? "", 6) } : null;
 
-/** "2026-12-21" and no other shape; "2026-02-30" is not a day. */
-const isIsoDate = (s: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
-  new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
+/** Shown when no fortnight holds or follows a date (the address or the date field). */
+const noFortnightOn = (iso: string) =>
+  `There is no fortnight on or after ${longDate(iso)}.`;
 
 export function BoardScreen() {
   const [params, setParams] = useSearchParams();
@@ -37,6 +36,12 @@ export function BoardScreen() {
 
   const list = fortnights.data;
   const asked = params.get("w1");
+  // A new address (Back, a pasted link) must not keep an old date-field message.
+  const [seenAsked, setSeenAsked] = useState(asked);
+  if (seenAsked !== asked) {
+    setSeenAsked(asked);
+    setNotice(null);
+  }
   const askedDate = asked && isIsoDate(asked) ? asked : null;
   const index = useMemo(() => {
     if (!list || list.length === 0) return -1;
@@ -52,7 +57,7 @@ export function BoardScreen() {
   const current = index >= 0 ? list?.[index] : undefined;
   const noFortnight =
     askedDate !== null && list !== undefined && index < 0
-      ? `There is no fortnight on or after ${longDate(askedDate)}.`
+      ? noFortnightOn(askedDate)
       : null;
   const message = notice ?? noFortnight;
   const range = rangeOf(current);
@@ -129,10 +134,7 @@ export function BoardScreen() {
               if (!e.target.value) return;
               const found = fortnightContaining(list, e.target.value);
               if (found) open(found);
-              else
-                setNotice(
-                  `There is no fortnight on or after ${longDate(e.target.value)}.`,
-                );
+              else setNotice(noFortnightOn(e.target.value));
             }}
           />
         </label>

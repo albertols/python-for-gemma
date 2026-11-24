@@ -23,6 +23,18 @@ Feature: Fortnight board
     When I open the board at "/board?w1=2026-12-08"
     Then Week 1 starts on 30 November 2026 and Week 2 on 7 December 2026
 
+  Scenario: An address that is not a date opens this fortnight
+    When I open the board at "/board?w1=tomorrow"
+    Then Week 1 starts on 16 November 2026 and Week 2 on 23 November 2026
+
+  Scenario: An impossible day in the address opens this fortnight
+    When I open the board at "/board?w1=2026-02-30"
+    Then Week 1 starts on 16 November 2026 and Week 2 on 23 November 2026
+
+  Scenario: An impossible month in the address opens this fortnight
+    When I open the board at "/board?w1=2026-13-01"
+    Then Week 1 starts on 16 November 2026 and Week 2 on 23 November 2026
+
   Scenario: An address date with no fortnight on or after it says so
     When I open the board at "/board?w1=2030-01-01"
     Then the board says "There is no fortnight on or after 1 January 2030."
