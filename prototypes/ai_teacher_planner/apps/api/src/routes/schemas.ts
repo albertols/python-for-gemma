@@ -53,7 +53,7 @@ export const term = z.object({
 export const calendarDay = z.object({
   date: isoDate,
   weekLabel: weekLabel.nullable(),
-  kind: z.enum(["pupil", "weekend", "outside-term", "unlabelled"]),
+  kind: z.enum(["pupil", "weekend", "outside-term", "unlabelled", "holiday"]),
   pupilDay: z.boolean(),
   text: z.string().nullable(),
 });

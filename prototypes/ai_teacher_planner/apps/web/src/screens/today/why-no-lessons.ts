@@ -13,6 +13,8 @@ export function whyNoLessons(
       return "It's the weekend.";
     case "outside-term":
       return calendarText ?? "It's outside term time.";
+    case "holiday":
+      return `${calendarText ?? "Holiday"} — no lessons`;
     case "unlabelled":
       return calendarText ?? "There is no school today.";
     default:

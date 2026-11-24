@@ -44,6 +44,30 @@ test("first run seeds the timetable, groups and terms", async () => {
   ).toEqual(["T1", "T2", "T3"]);
 });
 
+test("import reports labelled holidays and possible days off, and the days API says holiday", async () => {
+  const app = await buildTestApp();
+  const res = await send(app, "POST", "/api/calendar/import", undefined);
+  const dates = (kind: string) =>
+    res.body.findings
+      .filter((f: { kind: string }) => f.kind === kind)
+      .map((f: { date: string }) => f.date);
+  expect(dates("labelled-holiday")).toEqual(["2026-12-08"]);
+  expect(dates("possible-day-off")).toEqual([
+    "2027-03-19",
+    "2027-05-04",
+    "2027-06-29",
+  ]);
+  const days = await get(
+    app,
+    "/api/calendar/days?from=2026-12-08&to=2026-12-08",
+  );
+  expect(days.body[0]).toMatchObject({
+    kind: "holiday",
+    pupilDay: false,
+    weekLabel: "W2",
+  });
+});
+
 test("import stores the rows and returns the counts", async () => {
   const app = await buildTestApp();
   const res = await send(app, "POST", "/api/calendar/import", undefined);

@@ -8,6 +8,7 @@ const NO_SCHOOL: Record<string, string> = {
   weekend: "Weekend",
   "outside-term": "No school",
   unlabelled: "Not labelled",
+  holiday: "Holiday",
 };
 
 /** The reason a day is greyed: what the calendar says, else its kind. */

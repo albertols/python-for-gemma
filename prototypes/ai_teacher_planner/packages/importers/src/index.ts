@@ -1,3 +1,4 @@
+export { dayOffFindings } from "./calendar/day-off-findings.ts";
 export type {
   CalendarImport,
   FindingKind,

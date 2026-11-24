@@ -25,7 +25,9 @@ export type FindingKind =
   | "merged-cells"
   | "year-block-mismatch"
   | "label-issue"
-  | "assrep-mismatch";
+  | "assrep-mismatch"
+  | "labelled-holiday"
+  | "possible-day-off";
 export interface ImportFinding {
   kind: FindingKind;
   severity: "error" | "warning" | "info";

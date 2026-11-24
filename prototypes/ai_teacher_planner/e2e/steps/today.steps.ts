@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import { Given, Then, When } from "../support/fixtures.ts";
 
 /** Today's date is fixed by the harness, so a different "today" is answered by the page's own request. */
@@ -17,6 +17,18 @@ Given("the planner says today is Monday 12 October 2026", async ({ page }) => {
     nextTeachingDay: "2026-10-13",
   });
 });
+
+Given(
+  "the planner says today is Tuesday 8 December 2026, a labelled holiday",
+  async ({ page }) => {
+    await sayTodayIs(page, {
+      date: "2026-12-08",
+      kind: "holiday",
+      weekLabel: "W2",
+      nextTeachingDay: "2026-12-09",
+    });
+  },
+);
 
 Given("the planner has no calendar yet", async ({ page }) => {
   await sayTodayIs(page, {
@@ -165,24 +177,37 @@ Then("I see the audit's guiding sentence", async ({ page }) => {
   );
 });
 
+async function seeDayOff(
+  page: Page,
+  request: APIRequestContext,
+  iso: string,
+  heading: string,
+  text: string,
+) {
+  const audit = (await (await request.get("/api/audit")).json()) as {
+    daysOff: {
+      date: string;
+      wouldHaveHad: { groupId: string; period: number }[];
+    }[];
+  };
+  const off = audit.daysOff.find((d) => d.date === iso);
+  expect(off?.wouldHaveHad.length).toBeGreaterThan(0);
+  const item = page.getByRole("listitem").filter({ hasText: heading });
+  await expect(item).toContainText(text);
+  for (const m of off?.wouldHaveHad ?? [])
+    await expect(item).toContainText(`${m.groupId}, period ${m.period}`);
+}
+
 Then(
   "I see that Monday 12 October 2026 was {string} and what each group missed",
-  async ({ page, request }, text: string) => {
-    const audit = (await (await request.get("/api/audit")).json()) as {
-      daysOff: {
-        date: string;
-        wouldHaveHad: { groupId: string; period: number }[];
-      }[];
-    };
-    const off = audit.daysOff.find((d) => d.date === "2026-10-12");
-    expect(off?.wouldHaveHad.length).toBeGreaterThan(0);
-    const item = page
-      .getByRole("listitem")
-      .filter({ hasText: "Monday 12 October 2026" });
-    await expect(item).toContainText(text);
-    for (const m of off?.wouldHaveHad ?? [])
-      await expect(item).toContainText(`${m.groupId}, period ${m.period}`);
-  },
+  ({ page, request }, text: string) =>
+    seeDayOff(page, request, "2026-10-12", "Monday 12 October 2026", text),
+);
+
+Then(
+  "I see that Tuesday 8 December 2026 was {string} and what each group missed",
+  ({ page, request }, text: string) =>
+    seeDayOff(page, request, "2026-12-08", "Tuesday 8 December 2026", text),
 );
 
 Then("I see that no lessons have been lost", async ({ page }) => {

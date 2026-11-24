@@ -149,3 +149,13 @@ Then("both week tables cover five days in every row", async ({ page }) => {
 Then("there is a cell named {string}", async ({ page }, name: string) => {
   await expect(page.getByRole("cell", { name, exact: true })).toBeVisible();
 });
+
+Then(
+  "Tuesday 8 December 2026 is a day without lessons that says {string}",
+  async ({ page }, text: string) => {
+    const cells = page.locator('td[data-date="2026-12-08"]');
+    await expect(cells).toHaveCount(1);
+    await expect(cells).toHaveAttribute("data-kind", "no-school");
+    await expect(cells).toContainText(text);
+  },
+);

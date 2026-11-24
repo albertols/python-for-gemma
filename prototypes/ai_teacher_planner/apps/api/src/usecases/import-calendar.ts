@@ -1,4 +1,5 @@
 import {
+  dayOffFindings,
   type ImportFinding,
   readCalendarWorkbook,
   readParentsEvenings,
@@ -144,6 +145,11 @@ export async function importCalendar(deps: {
     };
 
   const year = read.academicYear;
+  // Needs the terms, which the workbook reader does not know.
+  const findings = [
+    ...read.findings,
+    ...dayOffFindings(read.rows, repos.settings.terms()),
+  ];
   const windows = (await readReportDeadlines(bytes, year)).map(
     (w, i): StoredReportWindow => ({
       id: `rw-${String(i + 1).padStart(3, "0")}`,
@@ -175,7 +181,7 @@ export async function importCalendar(deps: {
       fileName: name,
       fileHash: read.fileHash,
       importedAt: now().toISOString(),
-      findings: read.findings,
+      findings,
     },
     rows: read.rows,
     windows,

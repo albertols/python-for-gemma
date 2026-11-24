@@ -34,6 +34,10 @@ const OTHER_EVENTS: [string, string, string][] = [
   ["2026-08-31", "2026-08-31", "New staff induction"],
   ["2026-09-01", "2026-09-03", "Staff training"],
   ["2026-09-04", "2026-09-04", "First day of term for students"],
+  // Labelled single-day holidays, as on the real calendar.
+  ["2026-12-08", "2026-12-08", "Official holiday"],
+  // Wording the engine does not act on: she confirms it in Milestone 3.
+  ["2027-03-19", "2027-03-19", "HOLIDAY?????"],
   ["2027-05-04", "2027-05-04", "Staff training day"],
   ["2027-06-29", "2027-06-29", "Staff only"],
 ];

@@ -120,3 +120,51 @@ test("the week functions do not depend on the order of days or terms", () => {
   const changed = relabel("2026-09-14", "2026-09-18", "W2");
   expect(checkLabels(shuffle(changed))).toEqual(checkLabels(changed));
 });
+
+test("a labelled official holiday is a holiday: no pupils, but it keeps its label and text", () =>
+  expect(day("2026-12-08")).toMatchObject({
+    weekLabel: "W2",
+    kind: "holiday",
+    pupilDay: false,
+    text: "Official holiday",
+  }));
+test("uncertain wording on a labelled day is not acted on", () =>
+  expect(day("2027-03-19")).toMatchObject({
+    weekLabel: "W2",
+    kind: "pupil",
+    pupilDay: true,
+  }));
+
+const withEvent = (secondaryEvent: string | null) =>
+  toCalendarDays(
+    syntheticRows().map((r) =>
+      r.date === "2026-11-24" ? { ...r, secondaryEvent } : r,
+    ),
+    SYNTHETIC_TERMS,
+  ).find((x) => x.date === "2026-11-24");
+test.each([
+  ["Official holiday", "holiday"],
+  ["OFFICIAL   HOLIDAY", "holiday"],
+  ["Inset day / school holiday", "holiday"],
+  ["School\nHoliday (Eid)", "holiday"],
+  ["Unofficial holidays", "pupil"],
+  ["Holiday club", "pupil"],
+  ["HOLIDAY?????", "pupil"],
+  ["Staff only", "pupil"],
+])("labelled day with %j is %s", (text, kind) =>
+  expect(withEvent(text)?.kind).toBe(kind),
+);
+
+test("a holiday does not disturb labels, blocks or fortnights", () => {
+  expect(checkLabels(days)).toEqual([]);
+  expect(
+    teachingBlocks(days, SYNTHETIC_TERMS).some(
+      (b) => b.from <= "2026-12-08" && b.to >= "2026-12-08",
+    ),
+  ).toBe(true);
+  expect(
+    fortnights(days).filter(
+      (f) => f.w2 === "2026-12-07" || f.w1 === "2026-11-30",
+    ),
+  ).toEqual([{ w1: "2026-11-30", w2: "2026-12-07", breakBefore: false }]);
+});

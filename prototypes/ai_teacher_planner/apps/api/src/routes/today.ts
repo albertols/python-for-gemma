@@ -21,6 +21,7 @@ const getToday = createRoute({
               "weekend",
               "outside-term",
               "unlabelled",
+              "holiday",
               "no-calendar",
             ]),
             weekLabel: weekLabel.nullable(),

@@ -71,13 +71,17 @@ export function auditSlots(input: {
   const offDays = [...input.days]
     .filter(
       (d) =>
-        d.kind === "unlabelled" &&
+        (d.kind === "unlabelled" || d.kind === "holiday") &&
         weekdayOf(d.date) < 6 &&
         blocks.some((b) => d.date >= b.from && d.date <= b.to),
     )
     .sort((a, b) => compare(a.date, b.date));
   for (const day of offDays) {
-    const label = labelOfWeek(input.days, mondayOf(day.date));
+    // A holiday carries its own label; an unlabelled day takes its week's.
+    const label =
+      day.kind === "holiday"
+        ? day.weekLabel
+        : labelOfWeek(input.days, mondayOf(day.date));
     if (label === null) continue;
     const weekday = weekdayOf(day.date);
     const wouldHaveHad = (versionOn(input.timetables, day.date)?.entries ?? [])

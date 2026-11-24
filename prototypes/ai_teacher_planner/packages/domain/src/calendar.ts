@@ -30,7 +30,12 @@ export interface Term {
   firstPupilDay: IsoDate;
   lastPupilDay: IsoDate;
 }
-export type DayKind = "pupil" | "weekend" | "outside-term" | "unlabelled";
+export type DayKind =
+  | "pupil"
+  | "weekend"
+  | "outside-term"
+  | "unlabelled"
+  | "holiday";
 export interface CalendarDay {
   date: IsoDate;
   weekLabel: WeekLabel | null;
@@ -45,7 +50,14 @@ function kindOf(row: CalendarRow, terms: readonly Term[]): DayKind {
     (t) => row.date >= t.firstPupilDay && row.date <= t.lastPupilDay,
   );
   if (!inTerm) return "outside-term";
-  return row.weekLabel === null ? "unlabelled" : "pupil";
+  if (row.weekLabel === null) return "unlabelled";
+  return isHolidayText(row.secondaryEvent) ? "holiday" : "pupil";
+}
+
+/** The two phrases that make a labelled day a holiday; nothing else is inferred. */
+const HOLIDAY_PHRASE = /\b(?:official|school) holiday\b/i;
+function isHolidayText(text: string | null): boolean {
+  return text !== null && HOLIDAY_PHRASE.test(text.replace(/\s+/g, " "));
 }
 
 const byDate = (a: { date: IsoDate }, b: { date: IsoDate }) =>

@@ -37,3 +37,11 @@ test("a pupil day where every lesson is cancelled", () => {
     ),
   ).toBe("Every lesson today is cancelled.");
 });
+test("a holiday gives the calendar's words and says there are no lessons", () => {
+  expect(
+    whyNoLessons({ kind: "holiday", lessons: none }, "Official holiday"),
+  ).toBe("Official holiday — no lessons");
+  expect(whyNoLessons({ kind: "holiday", lessons: none }, null)).toBe(
+    "Holiday — no lessons",
+  );
+});

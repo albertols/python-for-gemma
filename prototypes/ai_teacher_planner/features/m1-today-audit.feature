@@ -12,6 +12,11 @@ Feature: Today and slot audit
     And I see "No lessons today"
     And the next teaching day, Tuesday 13 October 2026, links to its fortnight on the board
 
+  Scenario: Today on a labelled official holiday says there are no lessons
+    Given the planner says today is Tuesday 8 December 2026, a labelled holiday
+    When I open the app
+    Then I see "Official holiday — no lessons"
+
   Scenario: Before any import Today offers the import
     Given the planner has no calendar yet
     When I open the app
@@ -22,6 +27,7 @@ Feature: Today and slot audit
     Then I see the audit's guiding sentence
     And I see lessons per group for each teaching block
     And I see that Monday 12 October 2026 was "Official Holiday" and what each group missed
+    And I see that Tuesday 8 December 2026 was "Official holiday" and what each group missed
     And I see that no lessons have been lost
 
   Scenario: Today is accessible

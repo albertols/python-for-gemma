@@ -92,3 +92,22 @@ test("cancelled slots are listed as lost, with their reasons", () => {
   ]);
   expect(auditWithSnow.lost[0]?.reasons[0]?.text).toBe("Snow");
 });
+
+test("a labelled holiday is a day off, with what that day's own label would have had", () => {
+  const off = plain.daysOff.find((d) => d.date === "2026-12-08");
+  expect(off).toMatchObject({ text: "Official holiday" });
+  expect(off?.wouldHaveHad.length).toBeGreaterThan(0);
+  const tuesdayW2 = SEED_TIMETABLE.entries.filter(
+    (e) => e.week === "W2" && e.weekday === 2,
+  );
+  expect(off?.wouldHaveHad).toHaveLength(tuesdayW2.length);
+});
+test("no slot is built on a labelled holiday", () =>
+  expect(
+    buildSlots({
+      days,
+      timetables: [SEED_TIMETABLE],
+      groups: SEED_GROUPS,
+      disruptions: [],
+    }).filter((s) => s.date === "2026-12-08"),
+  ).toEqual([]));

@@ -160,3 +160,15 @@ test("fortnightContaining falls forward from a holiday", () =>
 
 test("fortnightContaining after the last fortnight is null", () =>
   expect(fortnightContaining(all, "2027-08-01")).toBeNull());
+
+test("a labelled holiday is a no-school day with its text and no lessons", () => {
+  const b = board({ w1: "2026-11-30", w2: "2026-12-07", breakBefore: false });
+  const tuesday = b.w2?.days[1];
+  expect(tuesday).toMatchObject({
+    date: "2026-12-08",
+    dayKind: "holiday",
+    text: "Official holiday",
+  });
+  expect(tuesday?.cells.every((c) => c.kind === "no-school")).toBe(true);
+  expect(b.w2?.shortWeek).toBe(false);
+});

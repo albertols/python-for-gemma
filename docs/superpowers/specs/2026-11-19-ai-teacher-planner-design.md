@@ -778,6 +778,7 @@ Alberto approved the spec on 24 Nov 2026 and passed on Gemma's answers. These ar
 | "Hold the leading groups" is a choice she makes, not something the engine does by itself | It defers one lesson until after the assessment for every group, so they stay together; the others gain a spare lesson | 10.7 |
 | Speaker notes in a PowerPoint are never sent to a model | Notes are where a teacher writes reminders about students | 11, 14 |
 | A "not after" deadline is checked and reported, never enforced by reordering | Reordering lessons silently would break her teaching order | 10.5 |
+| Labelled days the calendar marks "Official holiday" or "School holiday" are holidays with no lessons; uncertain wording and staff days are flagged in the import report for her to confirm in M3 | Checked on the real calendar: five official holidays carry a week label, which the original reading would have filled with lessons | 8, 10.1 |
 
 **A correction to the data in section 8.** Her IAL Unit 4 sheet lists 70 classes across chapters 22 to 37 and states a total of 65. The difference is chapter 22, marked "5 (started in Y12)". Imports keep both numbers and show the difference; scenario 5 now says so.
 

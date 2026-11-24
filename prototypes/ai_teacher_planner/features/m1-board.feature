@@ -15,6 +15,11 @@ Feature: Fortnight board
     And I press "Next fortnight"
     Then Week 1 starts on 30 November 2026 and Week 2 on 7 December 2026
 
+  Scenario: A labelled official holiday has no lessons
+    When I open the board
+    And I go to the fortnight of 30 November 2026
+    Then Tuesday 8 December 2026 is a day without lessons that says "Official holiday"
+
   Scenario: The board is accessible
     When I open the board
     Then the page has no serious accessibility violations
