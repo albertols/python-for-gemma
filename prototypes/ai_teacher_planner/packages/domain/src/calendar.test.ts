@@ -147,6 +147,7 @@ test.each([
   ["OFFICIAL   HOLIDAY", "holiday"],
   ["Inset day / school holiday", "holiday"],
   ["School\nHoliday (Eid)", "holiday"],
+  ["Unofficial holiday", "pupil"],
   ["Unofficial holidays", "pupil"],
   ["Holiday club", "pupil"],
   ["HOLIDAY?????", "pupil"],

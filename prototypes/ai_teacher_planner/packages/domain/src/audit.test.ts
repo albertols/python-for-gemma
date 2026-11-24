@@ -111,3 +111,24 @@ test("no slot is built on a labelled holiday", () =>
       disruptions: [],
     }).filter((s) => s.date === "2026-12-08"),
   ).toEqual([]));
+
+test("a holiday on the first day of a block is still a day off", () => {
+  const edge = days.map((d) =>
+    d.date === "2026-11-09"
+      ? { ...d, kind: "holiday" as const, pupilDay: false }
+      : d,
+  );
+  const edgeBlocks = teachingBlocks(edge, SYNTHETIC_TERMS);
+  expect(edgeBlocks.some((b) => b.from === "2026-11-09")).toBe(false);
+  const result = auditSlots({
+    slots: [],
+    days: edge,
+    blocks: edgeBlocks,
+    timetables: [SEED_TIMETABLE],
+    groups: SEED_GROUPS,
+  });
+  const off = result.daysOff.find((d) => d.date === "2026-11-09");
+  expect(off?.wouldHaveHad.length).toBeGreaterThan(0);
+});
+test("a week off with no pupil day lists no days off", () =>
+  expect(plain.daysOff.map((d) => d.date)).not.toContain("2026-11-02"));

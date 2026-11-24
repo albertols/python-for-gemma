@@ -68,12 +68,17 @@ export function auditSlots(input: {
     .sort(bySlotOrder);
 
   const daysOff: DayOff[] = [];
+  // A day off counts when its week has a pupil day, so a holiday at the edge
+  // of a block (the Monday after half term) is listed too.
+  const pupilWeeks = new Set(
+    input.days.filter((d) => d.pupilDay).map((d) => mondayOf(d.date)),
+  );
   const offDays = [...input.days]
     .filter(
       (d) =>
         (d.kind === "unlabelled" || d.kind === "holiday") &&
         weekdayOf(d.date) < 6 &&
-        blocks.some((b) => d.date >= b.from && d.date <= b.to),
+        pupilWeeks.has(mondayOf(d.date)),
     )
     .sort((a, b) => compare(a.date, b.date));
   for (const day of offDays) {

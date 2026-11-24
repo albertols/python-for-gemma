@@ -468,3 +468,20 @@ test("the OpenAPI document lists every route above", async () => {
     ]),
   );
 });
+
+test("today on a labelled holiday has kind holiday, no lessons and the calendar's text", async () => {
+  const app = await imported("2026-12-08");
+  const today = await get(app, "/api/today");
+  expect(today.body).toMatchObject({
+    date: "2026-12-08",
+    kind: "holiday",
+    weekLabel: "W2",
+    lessons: [],
+    nextTeachingDay: "2026-12-09",
+  });
+  const days = await get(
+    app,
+    "/api/calendar/days?from=2026-12-08&to=2026-12-08",
+  );
+  expect(days.body[0].text).toBe("Official holiday");
+});

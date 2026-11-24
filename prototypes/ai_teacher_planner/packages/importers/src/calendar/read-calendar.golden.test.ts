@@ -1,5 +1,10 @@
 import { readFile } from "node:fs/promises";
-import { buildSlots, toCalendarDays } from "@planner/domain";
+import {
+  auditSlots,
+  buildSlots,
+  teachingBlocks,
+  toCalendarDays,
+} from "@planner/domain";
 import { SEED_GROUPS, SEED_TERMS, SEED_TIMETABLE } from "@planner/fixtures";
 import { describe, expect, test } from "vitest";
 import {
@@ -129,5 +134,29 @@ describe.skipIf(!resourcesAvailable())("the school's real calendar", () => {
       "13 3": 6,
       "13 5": 6,
     });
+  });
+
+  test("the slot audit's days off are exactly the five official holidays", () => {
+    const d = days();
+    const slots = buildSlots({
+      days: d,
+      timetables: [SEED_TIMETABLE],
+      groups: SEED_GROUPS,
+      disruptions: [],
+    });
+    const audit = auditSlots({
+      slots,
+      days: d,
+      blocks: teachingBlocks(d, SEED_TERMS),
+      timetables: [SEED_TIMETABLE],
+      groups: SEED_GROUPS,
+    });
+    expect(audit.daysOff.map((x) => x.date)).toEqual([
+      "2026-10-12",
+      "2026-11-09",
+      "2026-12-07",
+      "2026-12-08",
+      "2027-05-03",
+    ]);
   });
 });
