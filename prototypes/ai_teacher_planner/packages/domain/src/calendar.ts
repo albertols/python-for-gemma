@@ -48,6 +48,9 @@ function kindOf(row: CalendarRow, terms: readonly Term[]): DayKind {
   return row.weekLabel === null ? "unlabelled" : "pupil";
 }
 
+const byDate = (a: { date: IsoDate }, b: { date: IsoDate }) =>
+  a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+
 export function toCalendarDays(
   rows: readonly CalendarRow[],
   terms: readonly Term[],
@@ -63,7 +66,7 @@ export function toCalendarDays(
         text: row.secondaryEvent ?? row.datesOfImportance ?? null,
       };
     })
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    .sort(byDate);
 }
 
 export interface LabelIssue {
@@ -77,7 +80,7 @@ function labelsByWeek(
   days: readonly CalendarDay[],
 ): Map<IsoDate, Set<WeekLabel>> {
   const weeks = new Map<IsoDate, Set<WeekLabel>>();
-  for (const d of days) {
+  for (const d of [...days].sort(byDate)) {
     if (d.weekLabel === null || weekdayOf(d.date) >= 6) continue;
     const monday = mondayOf(d.date);
     const set = weeks.get(monday) ?? new Set<WeekLabel>();
@@ -123,7 +126,7 @@ export interface TeachingBlock {
 /** Mondays of the weeks that contain at least one pupil day, in order. */
 function pupilWeeks(days: readonly CalendarDay[]): Map<IsoDate, CalendarDay[]> {
   const weeks = new Map<IsoDate, CalendarDay[]>();
-  for (const d of days) {
+  for (const d of [...days].sort(byDate)) {
     if (!d.pupilDay) continue;
     const monday = mondayOf(d.date);
     weeks.set(monday, [...(weeks.get(monday) ?? []), d]);
@@ -136,7 +139,13 @@ export function teachingBlocks(
   terms: readonly Term[],
 ): TeachingBlock[] {
   const blocks: TeachingBlock[] = [];
-  for (const term of terms) {
+  for (const term of [...terms].sort((a, b) =>
+    a.firstPupilDay < b.firstPupilDay
+      ? -1
+      : a.firstPupilDay > b.firstPupilDay
+        ? 1
+        : 0,
+  )) {
     const inTerm = days.filter(
       (d) =>
         d.pupilDay &&

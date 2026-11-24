@@ -100,3 +100,22 @@ test("a Week 2 week with no Week 1 before it stands alone", () => {
   const fromW2 = days.filter((x) => x.date >= "2026-09-07");
   expect(fortnights(fromW2)[0]).toMatchObject({ w1: null });
 });
+
+// A fixed shuffle: reverse the halves and interleave, no randomness.
+const shuffle = <T>(xs: readonly T[]): T[] =>
+  [...xs].sort(
+    (a, b) => ((xs.indexOf(a) * 7919) % 101) - ((xs.indexOf(b) * 7919) % 101),
+  );
+
+test("the week functions do not depend on the order of days or terms", () => {
+  const shuffled = shuffle(days);
+  const terms = shuffle(SYNTHETIC_TERMS);
+  expect(shuffled).not.toEqual(days);
+  expect(teachingBlocks(shuffled, terms)).toEqual(
+    teachingBlocks(days, SYNTHETIC_TERMS),
+  );
+  expect(fortnights(shuffled)).toEqual(fortnights(days));
+  expect(checkLabels(shuffled)).toEqual(checkLabels(days));
+  const changed = relabel("2026-09-14", "2026-09-18", "W2");
+  expect(checkLabels(shuffle(changed))).toEqual(checkLabels(changed));
+});
