@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { type IsoDate, isIsoDate } from "@planner/domain";
 
@@ -15,6 +17,35 @@ export interface Config {
 
 const APP_ROOT = path.resolve(import.meta.dirname, "../../..");
 const AI_MODES = ["claude", "fake", "off"] as const;
+
+/** The seed script writes this into a data folder made for the browser tests. */
+export const E2E_MARKER = ".e2e-seeded";
+
+const realPath = (p: string) => {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return path.resolve(p);
+  }
+};
+
+/**
+ * The test reset wipes the database, so it is allowed only on a folder that the
+ * browser-test seed made (it holds the marker) and that lives under the system
+ * temporary folder. Anything else, such as her real data, refuses to start.
+ */
+function checkTestRoutesAllowed(dataDir: string): void {
+  const refusal = (why: string) =>
+    new Error(
+      `PLANNER_TEST_ROUTES=1 is refused: ${why}. It is only for the browser tests, on a temporary seeded folder.`,
+    );
+  if (!fs.existsSync(path.join(dataDir, E2E_MARKER)))
+    throw refusal(`${dataDir} was not seeded for the browser tests`);
+  const tmp = realPath(os.tmpdir());
+  const dir = realPath(dataDir);
+  if (dir !== tmp && !dir.startsWith(tmp + path.sep))
+    throw refusal(`${dataDir} is not under the temporary folder`);
+}
 
 function checkedTimeZone(name: string): string {
   try {
@@ -39,15 +70,18 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   if (fixed !== undefined && !isIsoDate(fixed)) {
     throw new Error("PLANNER_FIXED_TODAY must look like 2026-11-20");
   }
+  const dataDir = env.PLANNER_DATA_DIR ?? path.join(APP_ROOT, "data");
+  const testRoutes = env.PLANNER_TEST_ROUTES === "1";
+  if (testRoutes) checkTestRoutesAllowed(dataDir);
   return {
-    dataDir: env.PLANNER_DATA_DIR ?? path.join(APP_ROOT, "data"),
+    dataDir,
     resourcesDir:
       env.PLANNER_RESOURCES_DIR ?? path.resolve(APP_ROOT, "../resources"),
     port,
     host: "127.0.0.1",
     ai: ai as Config["ai"],
     fixedToday: fixed ?? null,
-    testRoutes: env.PLANNER_TEST_ROUTES === "1",
+    testRoutes,
     timeZone: checkedTimeZone(
       env.PLANNER_TIME_ZONE ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     ),

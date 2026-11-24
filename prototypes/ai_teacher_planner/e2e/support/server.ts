@@ -35,6 +35,7 @@ const api = spawn(process.execPath, ["apps/api/src/main.ts"], {
     PLANNER_PORT: port,
     PLANNER_DATA_DIR: dataDir,
     PLANNER_RESOURCES_DIR: resourcesDir,
+    PLANNER_TIME_ZONE: "Europe/Madrid",
     PLANNER_AI: "fake",
     PLANNER_FIXED_TODAY: "2026-11-20",
     PLANNER_TEST_ROUTES: "1",

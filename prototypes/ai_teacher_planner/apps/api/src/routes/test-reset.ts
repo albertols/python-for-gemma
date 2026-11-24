@@ -8,6 +8,16 @@ const reset = createRoute({
   method: "post",
   path: "/api/test/reset",
   responses: {
+    403: {
+      description: "The x-planner-test header is missing",
+      content: {
+        "application/json": {
+          schema: z.object({
+            error: z.object({ code: z.string(), message: z.string() }),
+          }),
+        },
+      },
+    },
     200: {
       description: "The database is empty and seeded again",
       content: {
@@ -24,6 +34,17 @@ export function testRoutes(deps: {
   now: () => Date;
 }) {
   return createRouter().openapi(reset, async (c) => {
+    // A custom header cannot be set by a cross-site form post.
+    if (c.req.header("x-planner-test") !== "1")
+      return c.json(
+        {
+          error: {
+            code: "forbidden",
+            message: "The test reset needs the x-planner-test header.",
+          },
+        },
+        403,
+      );
     await resetToSeed(deps.db, deps.repos, deps.now);
     return c.json({ ok: true as const }, 200);
   });

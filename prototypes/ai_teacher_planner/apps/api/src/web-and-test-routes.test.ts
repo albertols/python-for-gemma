@@ -3,14 +3,20 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, expect, test } from "vitest";
 import { createApp } from "./app.ts";
-import { loadConfig } from "./config.ts";
+import { E2E_MARKER, loadConfig } from "./config.ts";
 import { fakeGateway, migratedDb, testConfig } from "./test-support.ts";
 
 const webDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-web-"));
 fs.writeFileSync(path.join(webDir, "index.html"), "<title>shell</title>");
 fs.mkdirSync(path.join(webDir, "assets"));
 fs.writeFileSync(path.join(webDir, "assets", "app.js"), "console.log(1)");
-afterAll(() => fs.rmSync(webDir, { recursive: true, force: true }));
+const seededDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-seeded-"));
+fs.writeFileSync(path.join(seededDir, E2E_MARKER), "");
+afterAll(() => {
+  fs.rmSync(webDir, { recursive: true, force: true });
+  fs.rmSync(seededDir, { recursive: true, force: true });
+});
+const HEADER = { "x-planner-test": "1" };
 
 const build = (over: Parameters<typeof loadConfig>[0] = {}, web?: string) =>
   createApp({
@@ -56,18 +62,31 @@ test("POST /api/test/reset is a 404 unless PLANNER_TEST_ROUTES=1", async () => {
   );
 });
 
+test("the reset answers 403 without the x-planner-test header", async () => {
+  const app = build({
+    PLANNER_TEST_ROUTES: "1",
+    PLANNER_DATA_DIR: seededDir,
+  });
+  const res = await app.request("/api/test/reset", { method: "POST" });
+  expect(res.status).toBe(403);
+});
+
 test("with PLANNER_TEST_ROUTES=1 reset empties the database and seeds it again", async () => {
-  const app = build({ PLANNER_TEST_ROUTES: "1" });
+  const app = build({ PLANNER_TEST_ROUTES: "1", PLANNER_DATA_DIR: seededDir });
   const days = async () =>
     (await (await app.request("/api/calendar/days")).json()) as unknown[];
   expect(await days()).toHaveLength(0);
-  const first = await app.request("/api/test/reset", { method: "POST" });
+  const first = await app.request("/api/test/reset", {
+    method: "POST",
+    headers: HEADER,
+  });
   expect(first.status).toBe(200);
   const seeded = (await days()).length;
   expect(seeded).toBeGreaterThan(100);
   // A second reset gives the same seeded state, not a doubled one.
   expect(
-    (await app.request("/api/test/reset", { method: "POST" })).status,
+    (await app.request("/api/test/reset", { method: "POST", headers: HEADER }))
+      .status,
   ).toBe(200);
   expect(await days()).toHaveLength(seeded);
   const groups = (await (await app.request("/api/timetable")).json()) as {

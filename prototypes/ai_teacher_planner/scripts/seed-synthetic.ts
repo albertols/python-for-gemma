@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { buildSyntheticWorkbook } from "@planner/fixtures";
-import { loadConfig } from "../apps/api/src/config.ts";
+import { E2E_MARKER, loadConfig } from "../apps/api/src/config.ts";
 import { writeBackup } from "../apps/api/src/db/backup.ts";
 import { openDatabase } from "../apps/api/src/db/connection.ts";
 import { migrate } from "../apps/api/src/db/migrate.ts";
@@ -32,6 +32,8 @@ export async function seedSynthetic(options: {
       `${dataDir} is where the real planner keeps its data. Choose another folder with --data-dir, or pass --force if you really mean it.`,
     );
   fs.mkdirSync(dataDir, { recursive: true });
+  // Marks the folder as made for the browser tests; the test reset checks for it.
+  fs.writeFileSync(path.join(dataDir, E2E_MARKER), "");
   const resources = fs.mkdtempSync(path.join(os.tmpdir(), "planner-synth-"));
   const db = openDatabase(path.join(dataDir, "planner.sqlite"));
   try {

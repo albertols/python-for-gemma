@@ -11,6 +11,7 @@ Feature: The app opens
     Then the theme is dark
     When I switch to the light theme and reload
     Then the theme is light
+    And the page has no serious accessibility violations
 
   Scenario: The API is not running
     Given the API does not answer

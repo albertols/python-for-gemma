@@ -36,54 +36,81 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Every text-on-surface pair the app uses, and every group card, in both themes. */
-const TEXT_PAIRS = [
-  ["foreground", "background"],
-  ["muted-foreground", "background"],
-  ["card-foreground", "card"],
-  ["muted-foreground", "card"],
-  ["foreground", "muted"],
-  ["muted-foreground", "muted"],
-  ["primary-foreground", "primary"],
-  ["link", "background"],
-  ["link", "card"],
-  ["danger", "background"],
-  ["danger", "card"],
-  ["ai", "background"],
-  ["ai", "card"],
-] as const;
-const GROUPS = ["g1", "g2", "g3", "g4", "g5", "g6"] as const;
+const PAGE_SURFACES = ["background", "card", "muted"];
+const NON_TEXT = ["border"];
+const isGroup = (name: string) => /^g\d+-(bg|fg)$/.test(name);
 
-function allColourPairs(): [string, string, string][] {
-  const out: [string, string, string][] = [];
-  for (const theme of ["dark", "light"] as const) {
-    const t = tokens(theme);
-    const get = (name: string) => {
-      const v = t[name];
-      if (!v) throw new Error(`${theme} theme has no --${name}`);
-      return v;
-    };
-    for (const [fg, bg] of TEXT_PAIRS)
-      out.push([`${theme}: ${fg} on ${bg}`, get(fg), get(bg)]);
-    for (const g of GROUPS)
-      out.push([
-        `${theme}: ${g}-fg on ${g}-bg`,
-        get(`${g}-fg`),
-        get(`${g}-bg`),
-      ]);
+/** The colour the focus outline uses, read from tokens.css so it is checked too. */
+const focusColour = /outline:\s*\d+px solid var\(--([a-z0-9-]+)\)/.exec(
+  css,
+)?.[1];
+
+/**
+ * The pairs come from the token names, so a new token is checked without
+ * editing this test:
+ * - a text colour (any token that is not a surface, border or group colour) must
+ *   reach 4.5:1 on every page surface;
+ * - X-foreground must reach 4.5:1 on the surface X (primary is a button surface);
+ * - the border and the focus outline must reach 3:1 on every page surface;
+ * - each group's fg on its bg must reach 4.5:1.
+ */
+function pairsFor(theme: Theme) {
+  const t = tokens(theme);
+  const names = Object.keys(t);
+  const surfaces = [...PAGE_SURFACES, "primary"];
+  const textColours = names.filter(
+    (n) =>
+      !surfaces.includes(n) &&
+      !NON_TEXT.includes(n) &&
+      !isGroup(n) &&
+      n !== "primary-foreground",
+  );
+  const text: [string, string, string, number][] = [];
+  const need = (name: string) => {
+    const v = t[name];
+    if (!v) throw new Error(`${theme} theme has no --${name}`);
+    return v;
+  };
+  for (const fg of textColours)
+    for (const bg of PAGE_SURFACES)
+      text.push([`${theme}: ${fg} on ${bg}`, need(fg), need(bg), 4.5]);
+  for (const s of surfaces) {
+    const fg = s === "background" ? "foreground" : `${s}-foreground`;
+    text.push([`${theme}: ${fg} on ${s}`, need(fg), need(s), 4.5]);
   }
-  return out;
+  for (const g of new Set(names.filter(isGroup).map((n) => n.split("-")[0]))) {
+    text.push([
+      `${theme}: ${g}-fg on ${g}-bg`,
+      need(`${g}-fg`),
+      need(`${g}-bg`),
+      4.5,
+    ]);
+  }
+  const nonText = [...NON_TEXT, ...(focusColour ? [focusColour] : [])];
+  for (const n of nonText)
+    for (const bg of PAGE_SURFACES)
+      text.push([`${theme}: ${n} (non-text) on ${bg}`, need(n), need(bg), 3]);
+  return text;
 }
 
-test.each(allColourPairs())(
-  "%s has contrast of at least 4.5 to 1",
-  (_name, fg, bg) => expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(4.5),
+const allPairs = (["dark", "light"] as const).flatMap(pairsFor);
+
+test("the focus outline colour was found in tokens.css", () =>
+  expect(focusColour).toBeDefined());
+
+test("there are at least the pairs we expect", () =>
+  expect(allPairs.length).toBeGreaterThan(40));
+
+test.each(allPairs)("%s reaches its contrast", (_name, fg, bg, min) =>
+  expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(min),
 );
 
 test("the six group backgrounds differ from each other in both themes", () => {
   for (const theme of ["dark", "light"] as const) {
     const t = tokens(theme);
-    const values = GROUPS.map((g) => t[`${g}-bg`]);
+    const values = ["g1", "g2", "g3", "g4", "g5", "g6"].map(
+      (g) => t[`${g}-bg`],
+    );
     expect(new Set(values).size).toBe(6);
   }
 });

@@ -4,7 +4,9 @@ import { test as base, createBdd } from "playwright-bdd";
 export const test = base.extend<{ fromSeed: undefined }>({
   fromSeed: [
     async ({ request }, use) => {
-      const res = await request.post("/api/test/reset");
+      const res = await request.post("/api/test/reset", {
+        headers: { "x-planner-test": "1" },
+      });
       if (!res.ok())
         throw new Error(`POST /api/test/reset gave ${res.status()}`);
       await use(undefined);
