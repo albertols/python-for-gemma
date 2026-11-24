@@ -17,7 +17,10 @@ fs.mkdirSync(resourcesDir);
 // The one calendar workbook the import button can find: synthetic, in a throwaway folder.
 fs.writeFileSync(
   path.join(resourcesDir, "Synthetic Secondary Calendar 2026-27.xlsx"),
-  await buildSyntheticWorkbook(),
+  // One unreadable Year 7 report date and one unreadable Year 11 parents' evening,
+  // so the import report has something to show. Year 11 Report 2 and the Year 13
+  // evening stay readable.
+  await buildSyntheticWorkbook({ reportDates: "unreadable" }),
 );
 
 function cleanUp() {

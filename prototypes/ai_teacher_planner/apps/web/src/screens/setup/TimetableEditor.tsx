@@ -188,15 +188,20 @@ function WeekGrid({
 function VersionEditor({
   version,
   groups,
+  save,
 }: {
   version: TimetableVersionData;
   groups: TimetableData["groups"];
+  save: ReturnType<typeof useSaveTimetable>;
 }) {
+  // Starts from the server's version; the editor is keyed on the version id only,
+  // so a save and its refetch neither reset the draft nor the "saved" message.
   const [draft, setDraft] = useState(() => draftOf(version));
-  const save = useSaveTimetable();
   const current: TimetableVersionData = { ...version, ...entriesOf(draft) };
-  const change = (key: string, patch: Partial<Cell>) =>
+  const change = (key: string, patch: Partial<Cell>) => {
+    save.reset();
     setDraft((d) => ({ ...d, [key]: { ...(d[key] ?? EMPTY), ...patch } }));
+  };
   return (
     <div className="mt-4 flex flex-col gap-6 lg:flex-row">
       <div className="min-w-0 flex-1 space-y-6">
@@ -289,6 +294,7 @@ function NewVersion({
 export function TimetableEditor() {
   const timetable = useTimetable();
   const [chosen, setChosen] = useState<string | null>(null);
+  const save = useSaveTimetable();
   const data = timetable.data;
   const versions = data?.versions ?? [];
   const version =
@@ -315,7 +321,10 @@ export function TimetableEditor() {
               Timetable version
               <select
                 value={version.id}
-                onChange={(e) => setChosen(e.target.value)}
+                onChange={(e) => {
+                  save.reset();
+                  setChosen(e.target.value);
+                }}
                 className="rounded-md border border-border bg-card px-2 py-1"
               >
                 {versions.map((v) => (
@@ -331,9 +340,10 @@ export function TimetableEditor() {
             </p>
           )}
           <VersionEditor
-            key={`${version.id}:${timetable.dataUpdatedAt}`}
+            key={version.id}
             version={version}
             groups={data.groups}
+            save={save}
           />
           <NewVersion copyOf={version.id} onCreated={setChosen} />
         </>

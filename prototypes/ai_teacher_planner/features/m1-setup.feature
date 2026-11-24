@@ -12,10 +12,25 @@ Feature: Setup
     When I save the timetable
     Then the slot audit shows 11D with fewer lessons
 
-  Scenario: A clash is refused
-    When I put 13 1 where 13 5 already is and save
+  Scenario: A lesson and a duty in one period are refused
+    When I put the duty 400 in the period where 13 5 already is and save
     Then I see why the timetable was not saved
     And the timetable is unchanged after a reload
+
+  Scenario: Saving the terms says so
+    When I save the terms without changing them
+    Then I am told the terms were saved
+
+  Scenario: The populated import report is accessible
+    When I import the school calendar
+    And I open the outside the school year notes
+    Then the page has no serious accessibility violations
+
+  Scenario: Correcting a report date
+    When I import the school calendar
+    And I correct the Year 7 report date
+    Then the Year 7 report date no longer needs her
+    And focus is on the report dates heading
 
   Scenario: Setup is usable by keyboard and accessible
     Then I can reach every timetable cell with the keyboard

@@ -71,12 +71,20 @@ When("I clear 11D from Week 1 Monday period 3", async ({ page, request }) => {
 
 Then("the fortnight total for 11D is {int}", async ({ page }, n: number) => {
   await expect(
-    page.getByRole("listitem").filter({ hasText: /^11D:/ }),
-  ).toContainText(`${n} lessons`);
+    page
+      .getByRole("listitem")
+      .filter({ hasText: new RegExp(`^11D: ${n} lessons`) }),
+  ).toBeVisible();
 });
 
 When("I save the timetable", async ({ page }) => {
   await page.getByRole("button", { name: "Save the timetable" }).click();
+  await expect(page.getByText("Timetable saved.")).toBeVisible();
+  // The save refetches the timetable; the message must outlive that refetch.
+  await expect(
+    page.getByRole("listitem").filter({ hasText: /^11D: 4 lessons/ }),
+  ).toBeVisible();
+  await page.waitForLoadState("networkidle");
   await expect(page.getByText("Timetable saved.")).toBeVisible();
 });
 
@@ -84,16 +92,20 @@ Then("the slot audit shows 11D with fewer lessons", async ({ request }) => {
   expect(await auditTotal(request, "11D")).toBeLessThan(auditBefore);
 });
 
-When("I put 13 1 where 13 5 already is and save", async ({ page }) => {
-  await page.goto("/setup");
-  // Week 1 Tuesday period 1 holds 13 5. A cell has one lesson control, so the
-  // second occupant goes in as a duty label: the engine's one-period clash.
-  await expect(page.getByLabel(cell(1, 2, 1), { exact: true })).toHaveValue(
-    "13 5",
-  );
-  await page.getByLabel(`${cell(1, 2, 1)}, duty`, { exact: true }).fill("13 1");
-  await page.getByRole("button", { name: "Save the timetable" }).click();
-});
+When(
+  "I put the duty 400 in the period where 13 5 already is and save",
+  async ({ page }) => {
+    await page.goto("/setup");
+    // Week 1 Tuesday period 1 holds 13 5; a duty label in the same cell is a clash.
+    await expect(page.getByLabel(cell(1, 2, 1), { exact: true })).toHaveValue(
+      "13 5",
+    );
+    await page
+      .getByLabel(`${cell(1, 2, 1)}, duty`, { exact: true })
+      .fill("400");
+    await page.getByRole("button", { name: "Save the timetable" }).click();
+  },
+);
 
 Then("I see why the timetable was not saved", async ({ page }) => {
   const alert = page
@@ -128,4 +140,46 @@ Then("I can reach every timetable cell with the keyboard", async ({ page }) => {
   for (const week of [1, 2] as const)
     for (let day = 1; day <= 5; day++)
       for (let p = 1; p <= 6; p++) expect(seen).toContain(cell(week, day, p));
+});
+
+When("I save the terms without changing them", async ({ page }) => {
+  await page.goto("/setup");
+  await expect(page.getByLabel("T1 first pupil day")).not.toHaveValue("");
+  await page.getByRole("button", { name: "Save the terms" }).click();
+});
+
+Then("I am told the terms were saved", async ({ page }) => {
+  await expect(page.getByText("Terms saved.")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByText("Terms saved.")).toBeVisible();
+});
+
+When("I open the outside the school year notes", async ({ page }) => {
+  await page.getByText(/^Outside the school year/).click();
+  await expect(page.getByText(/weekday does not match/)).toBeVisible();
+});
+
+When("I correct the Year 7 report date", async ({ page }) => {
+  const row = page
+    .getByRole("listitem")
+    .filter({ hasText: "Year 7 Report 1: Short" });
+  await row.getByLabel(/^Date for Year 7/).fill("2027-03-10");
+  await row.getByRole("button", { name: "Save this date" }).click();
+});
+
+Then("the Year 7 report date no longer needs her", async ({ page }) => {
+  await expect(page.getByText("Date saved.")).toBeVisible();
+  await expect(
+    page.getByText(/Year 7 Report 1: Short.*the sheet says/),
+  ).toHaveCount(0);
+  // The other unreadable date is still listed.
+  await expect(
+    page.getByText(/Year 11 Parent Meeting.*the sheet says/),
+  ).toBeVisible();
+});
+
+Then("focus is on the report dates heading", async ({ page }) => {
+  await expect(
+    page.getByRole("heading", { name: "Report dates that need her" }),
+  ).toBeFocused();
 });

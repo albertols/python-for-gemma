@@ -10,15 +10,22 @@ import {
 
 const field = "rounded-md border border-border bg-card px-2 py-1";
 
-function TermsForm({ initial }: { initial: Term[] }) {
+function TermsForm({
+  initial,
+  save,
+}: {
+  initial: Term[];
+  save: ReturnType<typeof useSaveTerms>;
+}) {
   const [terms, setTerms] = useState(initial);
-  const save = useSaveTerms();
   const set = (
     id: Term["id"],
     key: "firstPupilDay" | "lastPupilDay",
     v: string,
-  ) =>
+  ) => {
+    save.reset();
     setTerms((all) => all.map((t) => (t.id === id ? { ...t, [key]: v } : t)));
+  };
   return (
     <form
       onSubmit={(e) => {
@@ -81,6 +88,8 @@ function TermsForm({ initial }: { initial: Term[] }) {
 
 export function TermsCard() {
   const terms = useTerms();
+  // The save lives here so its "saved" message survives the form being re-rendered.
+  const save = useSaveTerms();
   return (
     <section
       aria-labelledby="terms-title"
@@ -95,7 +104,7 @@ export function TermsCard() {
         <EmptyState title="No terms yet" />
       ) : null}
       {terms.data && terms.data.length > 0 ? (
-        <TermsForm key={JSON.stringify(terms.data)} initial={terms.data} />
+        <TermsForm initial={terms.data} save={save} />
       ) : null}
     </section>
   );

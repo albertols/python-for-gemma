@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ImportSummary, ReportIssue } from "../../api/queries.ts";
 import { useSaveReportDate } from "../../api/queries.ts";
 import { Button } from "../../components/ui/button.tsx";
@@ -70,9 +70,16 @@ export function ImportReport({ summary }: { summary: ImportSummary }) {
   );
 }
 
-function IssueRow({ issue }: { issue: ReportIssue }) {
+function IssueRow({
+  issue,
+  disabled,
+  onSave,
+}: {
+  issue: ReportIssue;
+  disabled: boolean;
+  onSave: (issue: ReportIssue, date: string) => void;
+}) {
   const [date, setDate] = useState("");
-  const save = useSaveReportDate();
   const what =
     issue.kind === "report-window"
       ? `${issue.label}, ${issue.field}`
@@ -91,31 +98,55 @@ function IssueRow({ issue }: { issue: ReportIssue }) {
       />
       <Button
         type="button"
-        disabled={date === "" || save.isPending}
-        onClick={() => save.mutate({ issue, date })}
+        disabled={date === "" || disabled}
+        onClick={() => onSave(issue, date)}
       >
         Save this date
       </Button>
-      {save.isError ? (
-        <span role="alert" className="text-danger">
-          {save.error.message}
-        </span>
-      ) : null}
     </li>
   );
 }
 
 /** Report and parents' evening dates the importer could not read. */
 export function ReportDates({ issues }: { issues: ReportIssue[] }) {
-  if (issues.length === 0) return null;
+  // The save lives here, not in a row: the row disappears when its date is saved.
+  const save = useSaveReportDate();
+  const heading = useRef<HTMLHeadingElement>(null);
+  if (issues.length === 0 && !save.isSuccess) return null;
   return (
     <section aria-labelledby="report-dates" className="mt-6">
-      <h3 id="report-dates" className="font-semibold">
+      <h3
+        id="report-dates"
+        ref={heading}
+        tabIndex={-1}
+        className="font-semibold"
+      >
         Report dates that need her
       </h3>
+      {save.isSuccess ? (
+        <p role="status">
+          Date saved.{" "}
+          {issues.length === 0 ? "Every report date is now readable." : ""}
+        </p>
+      ) : null}
+      {save.isError ? (
+        <p role="alert" className="text-danger">
+          {save.error.message}
+        </p>
+      ) : null}
       <ul className="mt-2 space-y-2">
         {issues.map((i) => (
-          <IssueRow key={`${i.id}-${i.field}`} issue={i} />
+          <IssueRow
+            key={`${i.id}-${i.field}`}
+            issue={i}
+            disabled={save.isPending}
+            onSave={(issue, date) =>
+              save.mutate(
+                { issue, date },
+                { onSuccess: () => heading.current?.focus() },
+              )
+            }
+          />
         ))}
       </ul>
       <p className="mt-2 text-muted-foreground">
