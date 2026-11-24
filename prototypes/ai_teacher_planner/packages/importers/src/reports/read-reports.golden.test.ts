@@ -38,8 +38,8 @@ describe.skipIf(!resourcesAvailable())(
       ).toBe(true));
     test("every Year 12 and 13 window has a programme", () =>
       expect(
-        windows.filter((w) => w.yearGroup >= 12 && w.programme === null),
-      ).toHaveLength(0));
+        windows.filter((w) => w.yearGroup >= 12 && w.programme === null).length,
+      ).toBe(0));
     test("Years 12 and 13 each have A level and IB windows", () => {
       for (const y of [12, 13])
         for (const p of ["A level", "IB"])
