@@ -35,13 +35,24 @@ export function SlotCell({
     const double = cell.doublePartner
       ? `, double with period ${cell.doublePartner}`
       : "";
+    const cancelled = slot.status === "cancelled";
+    // A cancelled lesson is muted and striped, with the group's colour kept as a left bar.
+    const look = cancelled
+      ? {
+          background:
+            "repeating-linear-gradient(135deg, var(--muted) 0 8px, var(--card) 8px 16px)",
+          color: "var(--foreground)",
+          borderLeft: `6px solid ${bg}`,
+        }
+      : { background: bg, color: fg };
     return (
       <td
         {...common}
+        data-status={slot.status}
         rowSpan={cell.joinsNext ? 2 : 1}
         aria-label={`${slot.groupId}, ${when}${slot.room ? `, room ${slot.room}` : ""}${double}${status}${possible ? `, ${possible}` : ""}`}
         className={`${base} align-top ${cell.joinsNext ? "border-b-0" : ""}`}
-        style={{ background: bg, color: fg }}
+        style={look}
       >
         <span aria-hidden="true" className="block font-semibold">
           {slot.groupId}
@@ -53,7 +64,13 @@ export function SlotCell({
         ) : null}
         {slot.status === "open" ? null : (
           <span aria-hidden="true" className="block text-xs italic">
-            {slot.status}
+            {cancelled ? (
+              <strong className="font-semibold not-italic uppercase">
+                Cancelled
+              </strong>
+            ) : (
+              slot.status
+            )}
             {why ? `: ${why}` : ""}
           </span>
         )}

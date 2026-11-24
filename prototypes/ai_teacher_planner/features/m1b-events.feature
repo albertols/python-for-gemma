@@ -32,3 +32,15 @@ Feature: Calendar events
   Scenario: The confirmation details are accessible
     When I open the details for "Study leave starts"
     Then the page has no serious accessibility violations
+
+  Scenario: The board with cancelled lessons is accessible
+    Given I have confirmed that "Mock exams" cancels my Year 13 lessons
+    When I open the board at the mock week
+    Then the page has no serious accessibility violations
+
+  Scenario: The board with cancelled lessons is accessible in the light theme
+    Given I have confirmed that "Mock exams" cancels my Year 13 lessons
+    When I open the board at the mock week
+    And I switch to the light theme and reload
+    Then the theme is light
+    And the page has no serious accessibility violations

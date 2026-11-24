@@ -112,6 +112,8 @@ Then(
       await expect(cell).toContainText(text);
       await expect(cell).toHaveAttribute("aria-label", new RegExp(text));
       await expect(cell).not.toHaveAttribute("aria-label", /cancelled/);
+      // A lesson that is only possibly disrupted keeps its full colour.
+      await expect(cell).toHaveAttribute("data-status", "open");
     }
   },
 );
@@ -140,6 +142,9 @@ Then(
         new RegExp(`, cancelled: ${reason}`),
       );
       await expect(cell).not.toContainText("Possible disruption");
+      // Cancelled cells are marked, and say so in words on the page.
+      await expect(cell).toHaveAttribute("data-status", "cancelled");
+      await expect(cell).toContainText("Cancelled");
     }
   },
 );
@@ -147,8 +152,10 @@ Then(
 Then("IB S lessons that week are unchanged", async ({ page }) => {
   const cells = lessonCells(page, /^IB S/);
   expect(await cells.count()).toBeGreaterThan(0);
-  for (const cell of await cells.all())
+  for (const cell of await cells.all()) {
     await expect(cell).not.toHaveAttribute("aria-label", /cancelled/);
+    await expect(cell).toHaveAttribute("data-status", "open");
+  }
 });
 
 Then(
@@ -159,10 +166,21 @@ Then(
     };
     const slots = (await (
       await request.get("/api/slots?from=2027-05-08&to=2027-06-30")
-    ).json()) as { groupId: string; status: string }[];
+    ).json()) as {
+      groupId: string;
+      status: string;
+      reasons: { text: string }[];
+    }[];
     const y13 = slots.filter((s) => s.groupId.startsWith("13 "));
     expect(y13.length).toBeGreaterThan(0);
     expect(y13.every((s) => s.status === "cancelled")).toBe(true);
+    // The reason is the event's words, shown once.
+    expect(
+      y13.every(
+        (s) =>
+          s.reasons.length === 1 && s.reasons[0]?.text === "Study leave starts",
+      ),
+    ).toBe(true);
     expect(
       audit.lost.filter(
         (s) => s.groupId.startsWith("13 ") && s.date > "2027-05-07",
@@ -181,4 +199,8 @@ Then(
       );
     }
   },
+);
+
+When("I open the board at the mock week", async ({ page }) =>
+  board(page, MOCK_FIRST),
 );

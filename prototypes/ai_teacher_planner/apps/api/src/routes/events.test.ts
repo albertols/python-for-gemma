@@ -35,7 +35,7 @@ const MOCK_WEEK = [
 const mocks13 = {
   wordingKey: "mock exams",
   yearGroup: 13,
-  onlyDates: null,
+  onlyDates: MOCK_WEEK,
   decision: "cancels",
   groupIds: null,
   periods: null,
@@ -130,7 +130,7 @@ test("study leave for chosen groups lasts until the end date and leaves other gr
   const res = await put(app, "sl", {
     wordingKey: "study leave starts",
     yearGroup: null,
-    onlyDates: null,
+    onlyDates: ["2027-05-05", "2027-05-11"],
     decision: "cancels",
     groupIds: ["13 1", "13 3", "13 5"],
     periods: null,
@@ -141,6 +141,9 @@ test("study leave for chosen groups lasts until the end date and leaves other gr
     s.groupId.startsWith("13"),
   );
   expect(after.every((s) => s.status === "cancelled")).toBe(true);
+  // The two kept dates overlap in range, yet the reason shows once.
+  expect(after.every((s) => s.reasons.length === 1)).toBe(true);
+  expect(after[0].reasons[0].text).toBe("Study leave starts");
   const before = (await slotsOn(app, "2027-05-04")).filter((s) =>
     s.groupId.startsWith("13"),
   );
@@ -184,6 +187,7 @@ test.each([
   ["an unknown wording", { wordingKey: "nothing like this" }],
   ["a date the event does not have", { onlyDates: ["2027-02-01"] }],
   ["no dates chosen", { onlyDates: [] }],
+  ["'every date' sent as null, which could grow later", { onlyDates: null }],
   ["an end date before a kept date", { until: "2027-01-12" }],
   ["an unknown group", { groupIds: ["9Z"] }],
   ["a group from another year", { groupIds: ["11D"] }],
@@ -277,6 +281,84 @@ test("a confirmation the calendar no longer matches is listed as stale, keeps it
     (await send(app, "DELETE", "/api/events/classifications/gone")).status,
   ).toBe(200);
   expect((await send(app, "GET", "/api/events/stale")).body).toHaveLength(1);
+});
+
+test("saving under an id that belongs to another wording is refused with 409 and changes nothing", async () => {
+  const app = await imported();
+  await put(app, "a", mocks13);
+  const res = await put(app, "a", {
+    ...mocks13,
+    yearGroup: 11,
+    onlyDates: ["2027-01-12"],
+  });
+  expect(res.status).toBe(409);
+  expect(
+    find(await events(app), "mock exams", 13).classifications,
+  ).toHaveLength(1);
+  expect(find(await events(app), "mock exams", 11).classifications).toEqual([]);
+});
+
+test("the import report lists stale confirmations as error findings, and removing one clears it", async () => {
+  const db = migratedDb();
+  const app = createApp({
+    config: { ...testConfig, fixedToday: "2026-11-24" },
+    db,
+    now: () => new Date("2026-11-24T10:00:00Z"),
+    gateway: await syntheticGateway(),
+    principal: TEACHER_PRINCIPAL,
+  });
+  await send(app, "POST", "/api/calendar/import");
+  const repos = createRepos(db);
+  const base = {
+    yearGroup: 13 as const,
+    decision: "cancels" as const,
+    groupIds: null,
+    periods: null,
+    until: null,
+    provenance: "teacher" as const,
+  };
+  repos.events.upsert(
+    {
+      ...base,
+      id: "gone",
+      wordingKey: "mock exams (p1-4)",
+      onlyDates: ["2027-01-11"],
+    },
+    "t",
+  );
+  repos.events.upsert(
+    {
+      ...base,
+      id: "part",
+      wordingKey: "mock exams",
+      onlyDates: ["2027-01-11", "2027-02-02"],
+    },
+    "t",
+  );
+  const imp = (await send(app, "POST", "/api/calendar/import")).body;
+  expect(imp.staleEvents).toEqual([
+    expect.objectContaining({
+      id: "gone",
+      message: expect.stringContaining("mock exams (p1-4)"),
+    }),
+    expect.objectContaining({
+      id: "part",
+      message: expect.stringContaining("2 February 2027"),
+    }),
+  ]);
+  const findings = imp.shown.filter(
+    (f: Json) => f.kind === "orphaned-correction",
+  );
+  expect(findings).toHaveLength(2);
+  expect(findings.every((f: Json) => f.severity === "error")).toBe(true);
+  expect(
+    (await send(app, "GET", "/api/calendar/import")).body.staleEvents,
+  ).toHaveLength(2);
+  await send(app, "DELETE", "/api/events/classifications/gone");
+  await send(app, "DELETE", "/api/events/classifications/part");
+  expect(
+    (await send(app, "GET", "/api/calendar/import")).body.staleEvents,
+  ).toEqual([]);
 });
 
 test("an id of 65 characters and hostile ids are refused", async () => {

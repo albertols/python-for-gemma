@@ -333,7 +333,11 @@ export interface StaleClassification {
   missingDates: IsoDate[];
 }
 
-/** Confirmations that no longer fit the calendar. They keep their effect until she removes them, and are reported. */
+/**
+ * Confirmations that no longer fit the calendar: the wording is gone (it
+ * cancels nothing) or some confirmed dates are gone (those dates cancel
+ * nothing; the rest still do). They are reported until she removes them.
+ */
 export function staleClassifications(
   candidates: readonly EventCandidate[],
   classifications: readonly EventClassification[],

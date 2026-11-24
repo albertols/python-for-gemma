@@ -500,3 +500,37 @@ test("a lesson already cancelled for an event is not also called possible", () =
   ]);
   expect(possibleTextsFor(slot, yearOf, again)).toEqual([]);
 });
+
+test("a date a later import adds under a confirmed wording stays possible and is not cancelled", () => {
+  const confirmed = classification({ onlyDates: MOCK_WEEK });
+  const extra = "2027-01-18"; // a Monday on which she has a Year 13 lesson
+  const row = rows.find((r) => r.date === extra) as CalendarRow;
+  const cell = {
+    events: "Mock exams",
+    communication: null,
+    assessments: null,
+    assessmentsALevel: null,
+    assessmentsIb: null,
+  };
+  const later = rows.map((r) =>
+    r.date === extra ? { ...row, byYear: { 13: cell } } : r,
+  );
+  const grown = eventCandidates({
+    rows: later,
+    days,
+    groups: SEED_GROUPS,
+    slots: plain,
+  });
+  const mock = grown.find(
+    (c) => c.wordingKey === "mock exams" && c.yearGroup === 13,
+  );
+  expect(mock?.dates).toEqual([...MOCK_WEEK, extra]);
+  expect(
+    possibleDisruptions(grown, [confirmed])
+      .filter((p) => p.yearGroup === 13)
+      .map((p) => p.date),
+  ).toEqual([extra]);
+  expect(
+    disruptionsFromEvents(grown, [confirmed], SEED_GROUPS).map((d) => d.from),
+  ).toEqual(MOCK_WEEK);
+});

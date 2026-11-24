@@ -157,3 +157,24 @@ test("the output does not depend on input order", () => {
   });
   expect(reversed).toEqual(slots);
 });
+
+test("two calendar disruptions with the same reason show it once; two of hers with the same words show twice", () => {
+  const cal = (id: string, to: string) =>
+    disruption({
+      id,
+      source: "calendar",
+      reason: "Study leave",
+      from: "2026-11-19",
+      to,
+    });
+  const one = build([
+    cal("ev:a", "2026-11-19"),
+    cal("ev:b", "2026-11-20"),
+  ]).find((s) => s.key === "13 3|2026-11-19|3");
+  expect(one?.reasons.map((r) => r.text)).toEqual(["Study leave"]);
+  const mine = build([
+    disruption({ id: "t:1", reason: "Fire drill" }),
+    disruption({ id: "t:2", reason: "Fire drill" }),
+  ]).find((s) => s.key === "13 3|2026-11-19|3");
+  expect(mine?.reasons).toHaveLength(2);
+});

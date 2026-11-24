@@ -105,6 +105,23 @@ const byReason = (a: Disruption, b: Disruption) =>
   compare(a.source, b.source) ||
   compare(a.effect, b.effect);
 
+/**
+ * One reason per cause. Calendar events with the same words (study leave kept
+ * on two dates) show once; two of her own cancellations always show both.
+ */
+function reasonsOf(hits: readonly Disruption[]): SlotReason[] {
+  const seen = new Set<string>();
+  const out: SlotReason[] = [];
+  for (const d of hits) {
+    if (d.source === "calendar") {
+      if (seen.has(d.reason)) continue;
+      seen.add(d.reason);
+    }
+    out.push({ disruptionId: d.id, text: d.reason, source: d.source });
+  }
+  return out;
+}
+
 export function buildSlots(input: {
   days: readonly CalendarDay[];
   timetables: readonly TimetableVersion[];
@@ -140,11 +157,7 @@ export function buildSlots(input: {
           : hits.some((d) => d.effect === "cover")
             ? "cover"
             : "open",
-        reasons: hits.map((d) => ({
-          disruptionId: d.id,
-          text: d.reason,
-          source: d.source,
-        })),
+        reasons: reasonsOf(hits),
         doubleWith: null,
       });
     }

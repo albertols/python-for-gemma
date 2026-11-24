@@ -2,6 +2,7 @@ import {
   canCorrectLabel,
   checkLabels,
   type IsoDate,
+  staleClassifications,
   termSpanning,
   toCalendarDays,
 } from "@planner/domain";
@@ -25,6 +26,8 @@ import type {
   StoredParentsEvening,
   StoredReportWindow,
 } from "../repos/ports.ts";
+import { longDate } from "./calendar-events.ts";
+import { loadPlanning } from "./planning.ts";
 
 export interface ReportIssue {
   /** The id of the stored report window or parents' evening. */
@@ -40,9 +43,16 @@ export interface StaleCorrection {
   date: IsoDate;
   message: string;
 }
+/** A confirmation of a calendar event whose wording or dates the calendar no longer has. */
+export interface StaleEvent {
+  /** The id of the stored confirmation, to remove it. */
+  id: string;
+  message: string;
+}
 export interface ImportSummary extends TidyReport {
   ok: boolean;
   staleCorrections: StaleCorrection[];
+  staleEvents: StaleEvent[];
   counts: { W1: number; W2: number };
   reportIssues: ReportIssue[];
   importedAt: string | null;
@@ -145,15 +155,36 @@ export function importSummary(repos: Repos): ImportSummary | null {
           : [],
     ),
   ].sort((a, b) => cmpDate(a.date, b.date) || cmpDate(a.type, b.type));
-  const staleFindings = staleCorrections.map(
-    (s): ImportFinding => ({
-      kind: "orphaned-correction",
-      severity: "error",
-      sheetRow: null,
-      date: s.date,
-      message: s.message,
-    }),
-  );
+  const planning = loadPlanning(repos);
+  const staleEvents: StaleEvent[] = staleClassifications(
+    planning.candidates,
+    planning.classifications,
+  ).map(({ classification: k, candidateGone, missingDates }) => ({
+    id: k.id,
+    message: candidateGone
+      ? `Your confirmation of "${k.wordingKey}"${k.yearGroup === null ? "" : ` for Year ${k.yearGroup}`} no longer matches an event in the calendar, so it cancels no lessons`
+      : `Your confirmation of "${k.wordingKey}"${k.yearGroup === null ? "" : ` for Year ${k.yearGroup}`} names ${missingDates.map(longDate).join(", ")}, which the calendar no longer has for it`,
+  }));
+  const staleFindings = [
+    ...staleCorrections.map(
+      (s): ImportFinding => ({
+        kind: "orphaned-correction",
+        severity: "error",
+        sheetRow: null,
+        date: s.date,
+        message: s.message,
+      }),
+    ),
+    ...staleEvents.map(
+      (s): ImportFinding => ({
+        kind: "orphaned-correction",
+        severity: "error",
+        sheetRow: null,
+        date: null,
+        message: s.message,
+      }),
+    ),
+  ];
   const shown = [...tidy.shown, ...staleFindings];
   return {
     ok: true,
@@ -161,6 +192,7 @@ export function importSummary(repos: Repos): ImportSummary | null {
     outsideYear: tidy.outsideYear,
     resolved: tidy.resolved,
     staleCorrections,
+    staleEvents,
     counts,
     reportIssues: reportIssuesOf(
       repos.calendar.windows(),
@@ -226,6 +258,7 @@ export async function importCalendar(deps: {
       outsideYear: [],
       resolved: [],
       staleCorrections: [],
+      staleEvents: [],
       counts: { W1: 0, W2: 0 },
       reportIssues: [],
       importedAt: null,

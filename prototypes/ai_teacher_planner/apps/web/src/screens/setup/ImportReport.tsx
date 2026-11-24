@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { ImportSummary, ReportIssue } from "../../api/queries.ts";
 import {
+  useRemoveClassification,
   useRemoveLabel,
   useRemoveResolution,
   useSaveReportDate,
@@ -117,6 +118,7 @@ function Stale({
 }) {
   const removeLabel = useRemoveLabel();
   const removeResolution = useRemoveResolution();
+  const removeEvent = useRemoveClassification();
   return (
     <section
       aria-labelledby="report-stale"
@@ -139,6 +141,23 @@ function Stale({
                     onSuccess: () => onDone(`${longDate(s.date)}: removed.`),
                   },
                 )
+              }
+            >
+              Remove
+            </Button>
+          </li>
+        ))}
+        {summary.staleEvents.map((s) => (
+          <li key={`event-${s.id}`}>
+            {s.message}.{" "}
+            <Button
+              type="button"
+              aria-label={`Remove your confirmation: ${s.message}`}
+              disabled={removeEvent.isPending}
+              onClick={() =>
+                removeEvent.mutate(s.id, {
+                  onSuccess: () => onDone("Confirmation removed."),
+                })
               }
             >
               Remove
@@ -180,7 +199,7 @@ export function ImportReport({ summary }: { summary: ImportSummary }) {
         What the import found
       </h3>
       {done ? <p role="status">{done}</p> : null}
-      {summary.staleCorrections.length > 0 ? (
+      {summary.staleCorrections.length + summary.staleEvents.length > 0 ? (
         <Stale summary={summary} onDone={onDone} />
       ) : null}
       {errors.length > 0 ? (

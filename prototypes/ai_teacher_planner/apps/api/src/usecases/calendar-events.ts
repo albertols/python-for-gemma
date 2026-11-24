@@ -30,7 +30,7 @@ const MONTHS = [
   "November",
   "December",
 ];
-const longDate = (d: IsoDate) =>
+export const longDate = (d: IsoDate) =>
   `${Number(d.slice(8))} ${MONTHS[Number(d.slice(5, 7)) - 1]} ${d.slice(0, 4)}`;
 
 export interface EventView extends EventCandidate {
@@ -75,7 +75,7 @@ export function listStale(repos: Repos): StaleClassification[] {
 export interface ClassificationInput {
   wordingKey: string;
   yearGroup: YearGroup | null;
-  onlyDates: IsoDate[] | null;
+  onlyDates: IsoDate[];
   decision: "cancels" | "no-effect";
   groupIds: string[] | null;
   periods: Period[] | null;
@@ -103,18 +103,26 @@ export function saveClassification(
       "no-such-event",
       "That event is not in the calendar (it may have been reworded).",
     );
-  const onlyDates =
-    input.onlyDates === null ? null : [...new Set(input.onlyDates)].sort();
-  if (onlyDates !== null) {
-    if (onlyDates.length === 0)
-      throw refuse("no-dates", "Choose at least one date.");
-    const unknown = onlyDates.filter((d) => !candidate.dates.includes(d));
-    if (unknown.length > 0)
-      throw refuse(
-        "unknown-date",
-        `The event is not on ${unknown.map(longDate).join(", ")}.`,
-      );
-  }
+  const onlyDates = [...new Set(input.onlyDates)].sort();
+  if (onlyDates.length === 0)
+    throw refuse("no-dates", "Choose at least one date.");
+  const unknownDates = onlyDates.filter((d) => !candidate.dates.includes(d));
+  if (unknownDates.length > 0)
+    throw refuse(
+      "unknown-date",
+      `The event is not on ${unknownDates.map(longDate).join(", ")}.`,
+    );
+  const taken = classifications.find((k) => k.id === id);
+  if (
+    taken &&
+    (taken.wordingKey !== input.wordingKey ||
+      taken.yearGroup !== input.yearGroup)
+  )
+    throw new ApiError(
+      409,
+      "id-in-use",
+      "That id belongs to a confirmation of another event.",
+    );
   const cancels = input.decision === "cancels";
   let groupIds: string[] | null = null;
   let periods: Period[] | null = null;

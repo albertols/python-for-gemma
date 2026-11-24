@@ -413,6 +413,7 @@ export function useStaleEvents() {
 /** Confirming or undoing an event changes the list, the lessons, the board, Today and the audit. */
 function invalidateEvents(qc: QueryClient) {
   void qc.invalidateQueries({ queryKey: ["events"] });
+  void qc.invalidateQueries({ queryKey: ["calendar-import"] });
   void qc.invalidateQueries({ queryKey: ["audit"] });
   void qc.invalidateQueries({ queryKey: ["board", "slots"] });
   invalidateBoard(qc);

@@ -156,10 +156,10 @@ export const eventClassification = z.object({
   provenance: z.enum(["engine", "ai", "teacher", "import"]),
 });
 /** What she decides; the id is in the address and the provenance is always "teacher". */
-export const eventClassificationInput = eventClassification.omit({
-  id: true,
-  provenance: true,
-});
+/** The dates are always the explicit list she saw, never "every date", so a date added by a later import is not cancelled unconfirmed. */
+export const eventClassificationInput = eventClassification
+  .omit({ id: true, provenance: true })
+  .extend({ onlyDates: z.array(isoDate) });
 export const eventCandidate = z.object({
   wordingKey: z.string(),
   text: z.string(),

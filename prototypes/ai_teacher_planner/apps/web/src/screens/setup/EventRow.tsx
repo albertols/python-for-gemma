@@ -2,11 +2,11 @@ import {
   disruptionsFromEvents,
   type EventCandidate,
   type EventClassification,
+  type Group,
   keptDates,
   lessonsHitBy,
   type Period,
   type Slot,
-  type YearGroup,
 } from "@planner/domain";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -18,12 +18,6 @@ import { GroupBadge } from "../../components/GroupBadge.tsx";
 import { Button } from "../../components/ui/button.tsx";
 import { longDate, shortDate } from "../../lib/dates.ts";
 
-export interface GroupInfo {
-  id: string;
-  yearGroup: number;
-  colour: string;
-}
-
 const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];
 const field = "rounded-md border border-border bg-card px-2 py-1";
 const toggle = <T,>(list: T[], item: T): T[] =>
@@ -33,7 +27,7 @@ const asCandidate = (e: EventItem): EventCandidate => ({
   wordingKey: e.wordingKey,
   text: e.text,
   column: e.column,
-  yearGroup: e.yearGroup as YearGroup | null,
+  yearGroup: e.yearGroup,
   dates: e.dates,
   presort: e.presort,
 });
@@ -70,7 +64,7 @@ function DetailsForm({
   onSaved,
 }: {
   event: EventItem;
-  groups: GroupInfo[];
+  groups: Group[];
   allSlots: Slot[];
   editing: EventClassification | null;
   freeDates: string[];
@@ -103,12 +97,11 @@ function DetailsForm({
   );
 
   const everyGroup = chosenGroups.length === forGroups.length;
-  const everyDate = chosenDates.length === event.dates.length;
   const draft: EventClassification = {
     id: editing?.id ?? "draft",
     wordingKey: event.wordingKey,
-    yearGroup: event.yearGroup as YearGroup | null,
-    onlyDates: everyDate ? null : [...chosenDates].sort(),
+    yearGroup: event.yearGroup,
+    onlyDates: [...chosenDates].sort(),
     decision: "cancels",
     groupIds: everyGroup ? null : [...chosenGroups].sort(),
     periods: allDay ? null : [...periods].sort((a, b) => a - b),
@@ -126,16 +119,21 @@ function DetailsForm({
     !backwards;
   const lessons = ready
     ? lessonsHitBy(
-        disruptionsFromEvents([candidate], [draft], groups as never),
+        disruptionsFromEvents([candidate], [draft], groups),
         allSlots,
-        groups as never,
+        groups,
       ).length
     : 0;
   // The chosen groups matter only when they are not the usual ones.
   const submit = () => {
-    const { id: _ignored, provenance: _p, ...body } = draft;
+    const { id: _ignored, provenance: _p, onlyDates: _d, ...body } = draft;
     save.mutate(
-      { id: editing?.id ?? crypto.randomUUID(), ...body },
+      {
+        id: editing?.id ?? crypto.randomUUID(),
+        ...body,
+        // Always the dates she saw, so a date a later import adds is not cancelled unconfirmed.
+        onlyDates: [...chosenDates].sort(),
+      },
       { onSuccess: onSaved },
     );
   };
@@ -286,7 +284,7 @@ export function EventRow({
   allSlots,
 }: {
   event: EventItem;
-  groups: GroupInfo[];
+  groups: Group[];
   allSlots: Slot[];
 }) {
   const [form, setForm] = useState<{
@@ -301,7 +299,7 @@ export function EventRow({
     if (notice !== null) status.current?.focus();
   }, [notice]);
   const candidate = asCandidate(event);
-  const classifications = event.classifications as EventClassification[];
+  const classifications = event.classifications;
   const covered = new Set(
     classifications.flatMap((k) => keptDates(candidate, k)),
   );
@@ -376,8 +374,8 @@ export function EventRow({
                 {
                   id: crypto.randomUUID(),
                   wordingKey: event.wordingKey,
-                  yearGroup: event.yearGroup as YearGroup | null,
-                  onlyDates: covered.size === 0 ? null : freeDates,
+                  yearGroup: event.yearGroup,
+                  onlyDates: freeDates,
                   decision: "no-effect",
                   groupIds: null,
                   periods: null,

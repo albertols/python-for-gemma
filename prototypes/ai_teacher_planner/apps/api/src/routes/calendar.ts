@@ -53,6 +53,7 @@ const summary = z.object({
       message: z.string(),
     }),
   ),
+  staleEvents: z.array(z.object({ id: z.string(), message: z.string() })),
   counts: z.object({ W1: z.number(), W2: z.number() }),
   reportIssues: z.array(
     z.object({
