@@ -101,7 +101,7 @@ test("a Week 2 week with no Week 1 before it stands alone", () => {
   expect(fortnights(fromW2)[0]).toMatchObject({ w1: null });
 });
 
-// A fixed shuffle: reverse the halves and interleave, no randomness.
+// A fixed, repeatable scramble: sort by a multiplicative hash of each item's index, no randomness.
 const shuffle = <T>(xs: readonly T[]): T[] =>
   [...xs].sort(
     (a, b) => ((xs.indexOf(a) * 7919) % 101) - ((xs.indexOf(b) * 7919) % 101),
@@ -109,7 +109,8 @@ const shuffle = <T>(xs: readonly T[]): T[] =>
 
 test("the week functions do not depend on the order of days or terms", () => {
   const shuffled = shuffle(days);
-  const terms = shuffle(SYNTHETIC_TERMS);
+  const terms = [...SYNTHETIC_TERMS].reverse();
+  expect(terms).not.toEqual(SYNTHETIC_TERMS);
   expect(shuffled).not.toEqual(days);
   expect(teachingBlocks(shuffled, terms)).toEqual(
     teachingBlocks(days, SYNTHETIC_TERMS),
