@@ -195,3 +195,27 @@ export const examInput = z.object({
   source: z.string().nullable(),
 });
 export const exam = examInput.extend({ id: z.string() });
+
+export const todoNote = z.object({
+  id: z.string(),
+  text: z.string(),
+  scope: z.enum(["day", "week"]),
+  date: isoDate,
+  done: z.boolean(),
+  createdAt: z.string(),
+});
+/** The text is checked by the use case, so the 200-character rule has one home. */
+export const todoInput = z.object({
+  text: z.string(),
+  scope: z.enum(["day", "week"]),
+  date: isoDate,
+});
+export const todoPatch = z.object({
+  text: z.string().optional(),
+  done: z.boolean().optional(),
+});
+export const todoLists = z.object({
+  today: z.array(todoNote),
+  week: z.array(todoNote),
+  stillToDo: z.array(todoNote),
+});

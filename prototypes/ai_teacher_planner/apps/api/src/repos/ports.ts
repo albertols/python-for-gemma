@@ -10,6 +10,7 @@ import type {
   ReportWindow,
   Term,
   TimetableVersion,
+  TodoNote,
 } from "@planner/domain";
 import type { ImportFinding } from "@planner/importers";
 
@@ -122,6 +123,20 @@ export interface ExamRepo {
   remove(id: string): boolean;
 }
 
+/** Her sticky notes on Today. */
+export interface TodoRepo {
+  /** Oldest first (created time, then id). */
+  list(): TodoNote[];
+  insert(note: TodoNote): void;
+  /** Changes only the fields given. Null when there is no such note. */
+  update(
+    id: string,
+    patch: { text?: string | undefined; done?: boolean | undefined },
+  ): TodoNote | null;
+  /** False when there was none. */
+  remove(id: string): boolean;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
@@ -130,6 +145,7 @@ export interface Repos {
   corrections: CorrectionRepo;
   events: EventRepo;
   exams: ExamRepo;
+  todos: TodoRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }

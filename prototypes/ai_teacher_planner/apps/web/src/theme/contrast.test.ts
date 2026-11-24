@@ -39,6 +39,10 @@ export function contrastRatio(a: string, b: string): number {
 const PAGE_SURFACES = ["background", "card", "muted"];
 const NON_TEXT = ["border"];
 const isGroup = (name: string) => /^g\d+-(bg|fg)$/.test(name);
+/** Sticky-note paper: note-bg and note-late-bg are surfaces, each with its own -fg. */
+const isPaper = (name: string) => /^note(-late)?-(bg|fg)$/.test(name);
+const paperSurfaces = (names: string[]) =>
+  names.filter((n) => /^note(-late)?-bg$/.test(n));
 
 /** The colour the focus outline uses, read from tokens.css so it is checked too. */
 const focusColour = /outline:\s*\d+px solid var\(--([a-z0-9-]+)\)/.exec(
@@ -52,7 +56,8 @@ const focusColour = /outline:\s*\d+px solid var\(--([a-z0-9-]+)\)/.exec(
  *   reach 4.5:1 on every page surface;
  * - X-foreground must reach 4.5:1 on the surface X (primary is a button surface);
  * - the border and the focus outline must reach 3:1 on every page surface;
- * - each group's fg on its bg must reach 4.5:1.
+ * - each group's fg on its bg must reach 4.5:1;
+ * - each note paper's fg on its bg must reach 4.5:1, and the focus outline 3:1 on it.
  */
 function pairsFor(theme: Theme) {
   const t = tokens(theme);
@@ -63,6 +68,7 @@ function pairsFor(theme: Theme) {
       !surfaces.includes(n) &&
       !NON_TEXT.includes(n) &&
       !isGroup(n) &&
+      !isPaper(n) &&
       n !== "primary-foreground",
   );
   const text: [string, string, string, number][] = [];
@@ -85,6 +91,17 @@ function pairsFor(theme: Theme) {
       need(`${g}-bg`),
       4.5,
     ]);
+  }
+  for (const bg of paperSurfaces(names)) {
+    const fg = bg.replace(/-bg$/, "-fg");
+    text.push([`${theme}: ${fg} on ${bg}`, need(fg), need(bg), 4.5]);
+    if (focusColour)
+      text.push([
+        `${theme}: ${focusColour} (focus outline) on ${bg}`,
+        need(focusColour),
+        need(bg),
+        3,
+      ]);
   }
   const nonText = [...NON_TEXT, ...(focusColour ? [focusColour] : [])];
   for (const n of nonText)

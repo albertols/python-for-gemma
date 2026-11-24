@@ -19,6 +19,12 @@
   --danger: #ff9b95;
   --ai: #c9a8f0;
 
+  /* Sticky notes: paper colours, each with its own text colour. */
+  --note-bg: #3b3520;
+  --note-fg: #f7efd2;
+  --note-late-bg: #4a2b27;
+  --note-late-fg: #ffe9e4;
+
   --g1-bg: #2d3180;
   --g1-fg: #e8eaff;
   --g2-bg: #4b2b7a;
@@ -48,6 +54,11 @@
   --danger: #b42318;
   --ai: #6b3fa0;
 
+  --note-bg: #fff1b8;
+  --note-fg: #2b2410;
+  --note-late-bg: #ffd8cf;
+  --note-late-fg: #3a140c;
+
   --g1-bg: #aab0ff;
   --g1-fg: #101450;
   --g2-bg: #d9b3ff;
@@ -75,6 +86,10 @@
   --color-link: var(--link);
   --color-danger: var(--danger);
   --color-ai: var(--ai);
+  --color-note-bg: var(--note-bg);
+  --color-note-fg: var(--note-fg);
+  --color-note-late-bg: var(--note-late-bg);
+  --color-note-late-fg: var(--note-late-fg);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 

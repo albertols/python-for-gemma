@@ -497,3 +497,58 @@ export function useRemoveExam() {
     onSuccess: () => invalidateExams(qc),
   });
 }
+
+export type TodoLists = InferResponseType<typeof api.api.todos.$get, 200>;
+export type TodoNoteData = TodoLists["today"][number];
+export type TodoBody = InferRequestType<typeof api.api.todos.$post>["json"];
+
+export function useTodos(date: string) {
+  return useQuery({
+    queryKey: ["todos", date],
+    queryFn: () =>
+      call<TodoLists>(() => api.api.todos.$get({ query: { date } })),
+  });
+}
+
+export function useAddTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (json: TodoBody) =>
+      call<TodoNoteData>(() => api.api.todos.$post({ json })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
+  });
+}
+
+/** The box ticks at once; the lists are fetched again after the API answers, and put right if it refused. */
+export function useUpdateTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, done }: { id: string; done: boolean }) =>
+      call<TodoNoteData>(() =>
+        api.api.todos[":id"].$patch({ param: { id }, json: { done } }),
+      ),
+    onMutate: ({ id, done }) => {
+      void qc.cancelQueries({ queryKey: ["todos"] });
+      qc.setQueriesData<TodoLists>({ queryKey: ["todos"] }, (lists) => {
+        if (!lists) return lists;
+        const mark = (notes: TodoNoteData[]) =>
+          notes.map((n) => (n.id === id ? { ...n, done } : n));
+        return {
+          today: mark(lists.today),
+          week: mark(lists.week),
+          stillToDo: mark(lists.stillToDo),
+        };
+      });
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
+  });
+}
+
+export function useRemoveTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<{ ok: true }>(() => api.api.todos[":id"].$delete({ param: { id } })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
+  });
+}

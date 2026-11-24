@@ -21,6 +21,7 @@ import { fullDayWithYear } from "../../lib/dates.ts";
 import { possibleOf } from "../../lib/possible.ts";
 import { CancelLessonsDialog } from "./CancelLessonsDialog.tsx";
 import { RemindersList } from "./RemindersList.tsx";
+import { TodoNotes } from "./TodoNotes.tsx";
 import { whyNoLessons } from "./why-no-lessons.ts";
 
 const startOf = (f: Fortnight) => f.w1 ?? f.w2 ?? "";
@@ -214,13 +215,18 @@ export function TodayScreen() {
         <p className="mt-1 text-lg">Week {data.weekLabel.slice(1)}</p>
       ) : null}
       <CancelLessons today={data.date} />
-      <div className="mt-6">
-        <h2 className="mb-2 text-lg font-semibold">Lessons</h2>
-        <Lessons today={data} />
-      </div>
-      <div className="mt-8">
-        <h2 className="mb-2 text-lg font-semibold">Coming up</h2>
-        <RemindersList reminders={data.reminders} />
+      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div>
+          <div>
+            <h2 className="mb-2 text-lg font-semibold">Lessons</h2>
+            <Lessons today={data} />
+          </div>
+          <div className="mt-8">
+            <h2 className="mb-2 text-lg font-semibold">Coming up</h2>
+            <RemindersList reminders={data.reminders} />
+          </div>
+        </div>
+        <TodoNotes today={data.date} />
       </div>
     </section>
   );

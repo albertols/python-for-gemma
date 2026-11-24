@@ -7,6 +7,7 @@ import { createEventRepo } from "./event-repo.ts";
 import { createExamRepo } from "./exam-repo.ts";
 import { createSettingsRepo } from "./settings-repo.ts";
 import { createTimetableRepo } from "./timetable-repo.ts";
+import { createTodoRepo } from "./todo-repo.ts";
 
 export function createRepos(db: Database): Repos {
   return {
@@ -17,6 +18,7 @@ export function createRepos(db: Database): Repos {
     corrections: createCorrectionRepo(db),
     events: createEventRepo(db),
     exams: createExamRepo(db),
+    todos: createTodoRepo(db),
     transaction: (fn) => db.transaction(fn)(),
   };
 }

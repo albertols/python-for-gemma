@@ -18,6 +18,7 @@ import { slotRoutes } from "./routes/slots.ts";
 import { testRoutes } from "./routes/test-reset.ts";
 import { timetableRoutes } from "./routes/timetable.ts";
 import { todayRoutes } from "./routes/today.ts";
+import { todoRoutes } from "./routes/todos.ts";
 import { todayOf } from "./today.ts";
 import { firstRun } from "./usecases/first-run.ts";
 
@@ -102,6 +103,7 @@ export function createApp(deps: AppDeps) {
     .route("/", disruptionRoutes({ repos, now }))
     .route("/", eventRoutes({ repos, now }))
     .route("/", examRoutes({ repos }))
+    .route("/", todoRoutes({ repos, now }))
     .route("/", todayRoutes({ config, repos, now }));
 
   if (config.testRoutes) app.route("/", testRoutes({ db, repos, now }));
