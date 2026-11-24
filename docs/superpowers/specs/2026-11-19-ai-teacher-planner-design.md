@@ -1,7 +1,7 @@
 # AI Teacher Planner v1 — Design Spec
 
 **Date:** 2026-11-19
-**Status:** Draft for approval (Alberto). No application code is written until this is approved.
+**Status:** Approved by Alberto on 24 Nov 2026. Gemma's answers of the same day are folded in, and every change made after approval is listed in appendix D. The task-level plan is in [`docs/superpowers/plans/`](../plans/2026-11-24-ai-teacher-planner-v1.md).
 **Branch:** `ai-planner-v1`
 **Inputs:** `prototypes/ai_teacher_planner/src/ai_teacher_planner/template_prompt.md` (Gemma, Parts 1 to 10) and `master_prompt_for_plan.md` (Alberto, nine delivery points)
 **Diagrams:** [`docs/design/ai-teacher-planner/`](../../design/ai-teacher-planner/README.md)
@@ -116,7 +116,7 @@ A keeps the door to C open: roles are modelled now, the AI provider is swappable
 | # | Feature | Template ref | Made by | Milestone |
 |---|---|---|---|---|
 | 1 | Calendar import with an import report, and a slot audit screen | 2.3, 5 | Engine | M1 |
-| 2 | Timetable grid: seeded, editable, optional image upload | 2.2, 4.1 | Engine; AI for image upload | M1 |
+| 2 | Timetable grid: seeded, editable, optional image upload | 2.2, 4.1 | Engine; AI for image upload | M1; image upload in M2, with the AI layer |
 | 3 | Today screen: today's lessons, report deadlines, parents' evenings, weekly check-in | 6C #13, 8.5 | Engine | M1, M2 |
 | 4 | Scheme of work per course in her order, lessons per topic | 6A #1 | Import; AI suggestions as differences from her numbers | M2 |
 | 5 | Sequencing onto real lesson slots per group | Story 1 | Engine | M2 |
@@ -143,13 +143,14 @@ All verified by opening the files on 19 Nov 2026, except where marked.
 - Holidays appear as "School Holiday" or "Official Holiday" in Secondary event with a blank label.
 - Staff-training days before 4 Sept carry a label although pupils are absent.
 - The data has noise: an `x` in the label column, a row with the wrong weekday, and report dates whose weekday or year is wrong.
+- Shape, re-checked on 24 Nov 2026: the header is the second row, with the year-group names in the row above it. The sheet starts on 5 Jul 2026 and its July rows skip days. Months are spelled `Sept`, `April` and `June` as well as in three-letter forms. There are no merged cells.
 - The school edits this workbook during the year.
 
 **Other tabs:** `Report deadlines` (by year group and, for Years 12 and 13, by programme: report name, SIMS columns, teacher data deadline, HoD review, sent home), `Parents eves`, `AssRep 26_27` (one row per week with cycle number; a cross-check on the labels). `IBDP calendars` only names two workbooks that are not in the folder.
 
 **Terms:** 4 Sep to 22 Dec 2026; 8 Jan to 19 Mar 2027; 5 Apr to 29 Jun 2027.
 
-**Planning sheets:** IAL Unit 4 and IGCSE Y11 each list textbook chapters with a "Number of Classes" (IAL totals 65). Assessment schedules are Word tables of date (no year), chapter, type. The IB outline is prose per unit with week ranges that contradict each other. **None of them records what has been taught.**
+**Planning sheets:** IAL Unit 4 and IGCSE Y11 each list textbook chapters with a "Number of Classes" (the IAL chapters add up to 70 and the sheet states 65; see appendix D). Assessment schedules are Word tables of date (no year), chapter, type. The IB outline is prose per unit with week ranges that contradict each other. **None of them records what has been taught.**
 
 **Specifications:** all three PDFs have a text layer. IAL Unit 4 has 16 sub-topics that match textbook chapters 22 to 37 one to one, in order. IGCSE maps several chapters to one spec point. IB marks HL-only content in sub-topic titles and in bold. Only the IB content folders are named by spec code; IAL and IGCSE folders use chapter numbers.
 
@@ -223,8 +224,8 @@ Diagrams: [domain model](../../design/ai-teacher-planner/05-domain-model.svg), [
 
 - Read the `Week1/2` label **per date**. Never compute it.
 - Find columns by header text, not position.
-- Rebuild each date by continuity (each row is the previous day plus one), starting from the academic year in the sheet title. Take the weekday from the date, not the Day column.
-- A day is a **pupil day** when it has a label, falls inside a term, and is not marked staff-only.
+- Build each date from the Month and Date cells and the academic year in the sheet title: July to December fall in the first year, January to June in the second. Check continuity (each row is the previous day plus one) and report every break; the current file has four, all in July. Take the weekday from the date, not the Day column.
+- A day is a **pupil day** when it has a label and falls inside a term. Term dates are seeded from the calendar and she can edit them in Setup. A labelled day inside a term that is marked staff-only (4 May and 29 Jun 2027 in the current file) becomes a whole-school disruption once she confirms it (section 10.2), so the lessons it removes stay visible in the slot audit.
 - Within one Monday-to-Friday week every labelled day must share one label, and labelled weeks must alternate. A breach is reported.
 - Everything odd goes into an **import report** the teacher sees: unknown tokens, wrong weekdays, merged cells, dates that disagree with their weekday. Nothing is guessed.
 - `AssRep 26_27` is read as a cross-check on the labels.
@@ -235,13 +236,13 @@ For each pupil day, the timetable version active on that date gives each group's
 
 **Disruptions** remove or change slots. Scope: whole school, year group, group, or teacher. Effect: `cancelled` or `cover`. Each keeps its reason and source (the calendar row text, or "entered by teacher"). Cancelled slots are still emitted, so the board and the audit screen can show every lost lesson and why.
 
-One period is one unit. A double period is two adjacent units, drawn joined. (ASSUMPTION, open question 1.)
+One period is one unit. A double period is two adjacent units with no break between them (periods 1 and 2, 3 and 4, or 5 and 6), drawn joined. Confirmed by Gemma on 24 Nov 2026.
 
 Year-group events in the calendar (mocks, trips, study leave) are free text. Fixed keyword rules pre-sort them and a skill suggests the rest, but an event cancels lessons **only after Gemma confirms it**. Each distinct wording is asked once and remembered. Unconfirmed events show as a "possible disruption" marker on the board.
 
 ### 10.3 Lessons, slots, placements
 
-- A **scheme-of-work item** is a chapter or topic with a number of lessons, or an assessment, revision or buffer item.
+- A **scheme-of-work item** is a chapter or topic with a number of lessons, a project (such as the IB Unit 1 podcast project), or an assessment, revision or buffer item.
 - A **lesson** is "item 4, lesson 2 of 6". Parallel groups share lesson identities; that is what makes parity measurable.
 - A **placement** puts one lesson in one slot. Its state is one of:
   - `planned`: in the future.
@@ -280,19 +281,23 @@ The same inputs always give the same plan.
 
 **Buffers are hers.** A buffer or revision item exists only if it is in her scheme of work, such as the "Exam Practice & Revision" row in her IGCSE sheet.
 
-**Dated assessments.** Her schedules give a date with no year and the three IAL groups do not all teach on the same days. So for each group an assessment anchors to that group's first available slot **on or after** the date, and is a conflict if none falls within seven days. The year is inferred from the term the date falls in. An assessment takes one whole slot. ASSUMPTION (open question 13): her "Number of Classes" counts teaching lessons only, so assessment lessons are extra and totals are shown as "65 teaching + N assessment".
+**Dated assessments.** Her schedules give a date with no year and the three IAL groups do not all teach on the same days. So for each group an assessment anchors to that group's first available slot **on or after** the date, and is a conflict if none falls within seven days. The year is inferred from the term the date falls in.
+
+Her "Number of Classes" counts teaching lessons only (confirmed 24 Nov 2026), so assessments are extra and totals are shown as "65 teaching + N assessment". The counts are a guide she adjusts: a Unit 4 chapter normally takes one to two weeks. Not every assessment fills a period: a 12-mark IAL question takes 18 minutes, at 1.5 minutes a mark. So each assessment has a length in minutes, suggested from its marks. One of 30 minutes or more takes a whole slot. A shorter one is **in-lesson**: it is attached to the lesson in that slot and uses no slot of its own. She can switch either way. ASSUMPTION: 30 minutes is the right dividing line.
 
 ### 10.6 Parallel groups: the pace line
 
 A **checkpoint** is a point every group should reach together. Dated checkpoints are dated assessments, half-terms and term ends. Unit ends are checkpoints for reporting only.
 
-Between two dated checkpoints, each group has some number of slots. Shared content for that window is planned to the count of the group with the fewest. Every group places those lessons in its earliest slots. A group's remaining slots in the window become **flex lessons**, placed at the end of the window, just before the checkpoint. A flex lesson is a labelled placeholder ("Flex: exam practice or PBLT") that she can retitle or move. ASSUMPTION (open question 11): end of the window is where she wants them.
+Between two dated checkpoints, each group has some number of slots. Shared content for that window is planned to the count of the group with the fewest. Every group places those lessons in its earliest slots. A group's remaining slots in the window become **flex lessons**, placed at the end of the window, just before the checkpoint. A flex lesson is a labelled placeholder that she can retitle or move. In the interface it is called a **spare lesson**, with a one-line explanation, because "flex lesson" meant nothing to her. She suggested using them for exam practice, activities for a support session, or independent study, so those are the purposes offered. ASSUMPTION (open question 11, still open): the end of the window is where she wants them.
 
 Flex lessons are also that group's cushion. If a group with a flex lesson loses a slot, the flex lesson is what disappears and its content is untouched. A group with none comes up short at the checkpoint, and that is what the parity tracker flags.
 
 Parity is then built in instead of repaired, and each group's totals for the year are known in September.
 
 For 11D, her two colleagues' classes act as a virtual group defined by the department's assessment dates.
+
+**Made precise for the build (24 Nov 2026).** The content that must be finished before a dated assessment is everything that precedes that assessment in her scheme order. For each group, slack is the slots it has before the assessment minus the lessons of that content it still has to teach. If every group has slack, the next lessons in the scheme are brought forward, as many as the tightest group can fit, and whatever slots a group still has left become flex lessons. If a group has negative slack, that group alone is short at the checkpoint: the others keep their plan and are not slowed down unless she picks that catch-up option. Before a half-term or term end there is no required content, so the rule reduces to the count of the group with the fewest.
 
 ### 10.7 Parity
 
@@ -302,7 +307,7 @@ Groups overtake each other inside any fortnight, so a raw daily gap is noise. Th
 - **Gap at checkpoints**, and between them only when it exceeds the timetable's normal **jitter** (the largest gap an undisrupted cycle produces).
 - **Teacher-led lessons missed per unit.** In her own example (template 3.3) the two absent groups nominally covered the chapter through cover work. What they lost was her support and the exam practice. Position alone would have hidden that.
 
-**Catch-up options** are computed, each as a candidate revision with before-and-after numbers: use a buffer; hold the leading groups on consolidation; merge two lessons; set one as flipped work or homework; or wait, with the date the timetable closes the gap by itself. A model only writes the content for an option she has already chosen.
+**Catch-up options** are computed, each as a candidate revision with before-and-after numbers: use a buffer; hold the leading groups on consolidation; condense by merging two lessons (her own suggestion for a group that missed one); set one as flipped work or homework; or wait, with the date the timetable closes the gap by itself. A model only writes the content for an option she has already chosen.
 
 **What a cover lesson does to the plan.** When she is absent and the class has cover, she chooses one of three, each shown as a diff:
 
@@ -347,7 +352,7 @@ One course, two tracks, two slot streams: IB S (everyone, common content) and IB
 
 - HL-only items carry **prerequisites** on core items. An item is **eligible** for an IB H slot when all its prerequisites finish in IB S before that slot.
 - Outputs: a ranked **"teachable now, and why"** list; an **"unlocks on"** date for each blocked item; a **runway** figure comparing eligible lessons with the next fortnight's four IB H slots.
-- A **fallback pool** (prerequisite-free HL topics, IA preparation from February, exam skills) fills slots when nothing is eligible.
+- A **fallback pool** (prerequisite-free HL topics, IA preparation from February, Paper 3 preparation, exam skills) fills slots when nothing is eligible. HL students sit a Paper 3 mock beside the Paper 2 mock towards the end of Year 12, so the helper also shows how many IB H slots remain before it.
 - When IB S slips, the affected IB H lessons are flagged with alternatives.
 - v1 proposes a draft fill per fortnight that she confirms.
 
@@ -452,7 +457,7 @@ Diagram: [frontend](../../design/ai-teacher-planner/04-frontend-components.svg).
 |---|---|
 | **Today** (first screen) | Today's lessons with times and rooms; this week's reminders; the weekly check-in; "a lesson was lost" shortcut |
 | **Fortnight board** | Week 1 and Week 2 side by side, laid out exactly like `timetable.png`, with real dates. Also day, week, month and unit views |
-| **Scheme of work** | Topics in her order with lesson counts; totals against available slots per group, recalculated as she types |
+| **Scheme of work** | Topics in her order with lesson counts, each also shown as weeks for that group; totals against available slots per group, recalculated as she types |
 | **Parity** | Slack per checkpoint, gaps, teacher-led lessons missed, catch-up options |
 | **Slot audit** | Lessons per group per half-term, and every lost lesson with the calendar text that caused it |
 | **IB HL helper** | Teachable now, unlocks on, blocked; runway; draft fill |
@@ -567,7 +572,7 @@ These become Gherkin files in `features/`. Scenarios 5, 7 and 12 are Gemma's own
 2. **A two-day week.** Given 21 and 22 Dec 2026 are labelled Week 2, then only the Monday and Tuesday Week 2 lessons exist that week.
 3. **A one-day week.** Given Friday 8 Jan 2027 alone is labelled Week 1, then 13 1 has one lesson that week, in period 6, and no other group has any.
 4. **Staff days.** Given 1 Sep 2026 is labelled Week 1 and marked staff training, then no group has a lesson that day.
-5. **Story 1: a schedule from my documents.** Given the calendar, my timetable and the IAL Unit 4 scheme with my class counts, when I choose 13 1, 13 3 and 13 5 and my teaching order, then I see a dated schedule per group in which every lesson sits on a real lesson of that group, no lesson falls on a holiday, chapter order is kept, each chapter shows its spec reference, the teaching-lesson total matches my sheet (65), and spare lessons appear as flex lessons before each assessment.
+5. **Story 1: a schedule from my documents.** Given the calendar, my timetable and the IAL Unit 4 scheme with my class counts, when I choose 13 1, 13 3 and 13 5 and my teaching order, then I see a dated schedule per group in which every lesson sits on a real lesson of that group, no lesson falls on a holiday, chapter order is kept, each chapter shows its spec reference, the teaching-lesson total matches my sheet (70 across chapters 22 to 37, of which 65 are for this year: chapter 22's five were taught in Year 12), and spare lessons appear as flex lessons before each assessment.
 6. **The worked example.** Given the three groups are planned to finish a topic before a dated assessment, and 13 3 has no flex lesson in that window, and 13 3 loses a lesson to a closure, when I open the parity tracker, then 13 3 shows as one lesson short before that assessment and I am offered at least one catch-up option. (With a flex lesson in the window, the flex lesson is lost instead and nothing is short.)
 7. **Story 2: absence.** Given I was absent Tuesday to Thursday and two groups had cover, when I enter the absence, then I see a preview with the three cover choices, which topics are affected, how many teacher-led lessons each group loses, and options to realign; and I can record the absence and decide later, in which case the affected lessons are marked stranded and nothing else moves.
 8. **Undo.** Given I accepted a reflow, when I undo it, then the plan is exactly as before.
@@ -600,7 +605,7 @@ Diagram: [roadmap](../../design/ai-teacher-planner/10-roadmap.svg). One course e
 | M | Goal | Proves |
 |---|---|---|
 | M1 | Workspace, engine types, calendar importer and report, slot audit, timetable seed and grid editor, slots, app shell, read-only fortnight board, Today with report deadlines and parents' evenings, backups, one-command start | Scenarios 1 to 4, 15 |
-| M2 | IAL Unit 4 end to end: pack, planning-sheet and assessment import, scheme editor, sequencing, revisions, positions and declared past, pace line, weekly check-in, thin Excel and Teams export | Scenario 5 |
+| M2 | IAL Unit 4 end to end: the AI layer, pack, planning-sheet and assessment import, scheme editor, sequencing, revisions, positions and declared past, pace line, weekly check-in, thin Excel and Teams export, timetable image upload | Scenario 5 |
 | M3 | Disruptions, event confirmation, reflow proposals, undo, parity tracker, catch-up options | Scenarios 6 to 8, 16 |
 | M4 | IB: pack with HL flags, prerequisite map, two tracks, eligibility, helper screen, draft fill | Scenario 10 |
 | M5 | Board editing: "Move to…", drag, pins, merge; other views; card drawer; legend and activity drawer | Scenario 9, 13 |
@@ -665,6 +670,17 @@ Diagram: [roadmap](../../design/ai-teacher-planner/10-roadmap.svg). One course e
 | 13 | Does "Number of Classes" in your planning sheets include the lessons used for assessments? | No: assessments are extra lessons |
 | 14 | Is the timetable grid in the appendix exactly right? It was read from your image | Yes; the fortnight totals match what you wrote |
 
+**Answered on 24 Nov 2026** (her words are in [`answers_section_22.md`](answers_section_22.md)):
+
+| # | Her answer | Effect |
+|---|---|---|
+| 1 | A double is two 55-minute lessons with no break between | Assumption confirmed (section 10.2) |
+| 2 | She gave each group's position | Recorded in appendix D; entered in Setup at each course's go-live |
+| 11 | "What are spare lessons?" She suggested support-session activities or independent study | The interface says "spare lesson" and explains it; purposes changed (section 10.6). Where they go is still open |
+| 13 | No, and not every assessment takes a whole period | Assessments have a length; short ones are in-lesson (section 10.5) |
+
+She also confirmed all sixteen acceptance scenarios in section 17. Questions 3 to 10, 12 and 14 were not answered, so their assumptions stand.
+
 **For Alberto**
 
 | # | Question | ASSUMPTION until answered |
@@ -672,6 +688,8 @@ Diagram: [roadmap](../../design/ai-teacher-planner/10-roadmap.svg). One course e
 | A | Is the GitHub repository private? The school's name and five third-party product screenshots are committed | Private |
 | B | CI lint fails on `main` today: ten course files need formatting and `homework_04.py` has six lint errors. They are Gemma's files | Left untouched; the planner's CI job is separate |
 | C | Deny rules are targeted at the student-work folders. Deny the whole resources folder instead? | Targeted, so she can still ask Claude about her own planning files |
+
+Alberto confirmed all three assumptions on 24 Nov 2026.
 
 ## 23. Left to the builder
 
@@ -733,3 +751,49 @@ A second engineer read this spec cold and asked what they would still have to gu
 | D2 diagrams | D2 0.9 from mise renders the house palette to SVG; checked by eye |
 | Deny rules | A path with spaces and an ampersand is refused; three real student-work folders are refused; a neighbouring folder is not |
 | Repo hygiene | `uv sync --all-packages` and `uv run pytest` pass again (7 passed) |
+
+## Appendix D: changes after approval (24 Nov 2026)
+
+Alberto approved the spec on 24 Nov 2026 and passed on Gemma's answers. These are the changes they caused, and three calls made while writing the task-level plan.
+
+**From Gemma's answers**
+
+| Change | Section |
+|---|---|
+| A double period is two units with no break; only periods 1+2, 3+4 and 5+6 can pair | 10.2 |
+| Assessments are outside her class counts and have a length in minutes; one under 30 minutes is in-lesson and uses no slot | 10.5 |
+| Her class counts are a guide; the scheme screen also shows each count as weeks | 10.5, 12 |
+| "Flex lesson" is shown as "spare lesson" with an explanation; purposes are exam practice, support-session activities, independent study | 10.6 |
+| A project is a kind of scheme item | 10.3 |
+| Condensing two lessons into one is named as a catch-up option | 10.7 |
+| Paper 3 preparation joins the IB fallback pool, and the helper counts IB H slots before the Paper 3 mock | 10.10 |
+
+**Calls made while planning (for Alberto to check)**
+
+| Call | Why | Section |
+|---|---|---|
+| A labelled in-term day marked staff-only is a whole-school disruption she confirms, not a silent non-pupil day | Its lost lessons then show in the slot audit with the calendar text, like every other lost lesson | 10.1 |
+| The pace-line rule is stated exactly | The original wording did not say what happens when one group cannot fit the content due before an assessment. Scenario 6 needs that group alone to be short | 10.6 |
+| Timetable image upload moves from M1 to M2 | It needs the AI layer, which M2 builds. The seeded grid and its editor stay in M1 | 7, 19 |
+| "Hold the leading groups" is a choice she makes, not something the engine does by itself | It defers one lesson until after the assessment for every group, so they stay together; the others gain a spare lesson | 10.7 |
+| Speaker notes in a PowerPoint are never sent to a model | Notes are where a teacher writes reminders about students | 11, 14 |
+| A "not after" deadline is checked and reported, never enforced by reordering | Reordering lessons silently would break her teaching order | 10.5 |
+
+**A correction to the data in section 8.** Her IAL Unit 4 sheet lists 70 classes across chapters 22 to 37 and states a total of 65. The difference is chapter 22, marked "5 (started in Y12)". Imports keep both numbers and show the difference; scenario 5 now says so.
+
+**Where each group is, as Gemma described it on 23 Nov 2026.** These are entered in Setup when each course goes live; nothing is planned from them until she confirms them on screen.
+
+| Group | Position |
+|---|---|
+| 13 1, 13 3, 13 5 (IAL Unit 4, taught in chapter order) | Chapter 26, Trading Blocs, is finished. Its assessment is on Tue 24 Nov for 13 3 and 13 5 and on Wed 25 Nov for 13 1. Chapter 27 is next |
+| IB S (Year 12; unit order 1, 4, 3) | 1.5 Growth is finished. A Unit 1 podcast project starts this week, then 1.6 Multinationals, then a Unit 1 exam |
+| IB H | The HL-only chapters 5.6, 5.7 and 5.8 are done, out of order. Now on 2.5, aiming to finish 2.7 before the winter holiday |
+| 11D (IGCSE; unit order 3, 2, 5) | Halfway through Unit 3, chapter 30, Statement of financial position. A finance assessment is on Tue 24 Nov |
+
+**New questions for Gemma**
+
+| # | Question | ASSUMPTION until answered |
+|---|---|---|
+| 15 | The calendar says the first day of term for students was Fri 4 Sep 2026. You said lessons started on the 3rd. Which is right for your groups? | 4 Sep, as the calendar says; she can change term dates in Setup. It affects only the count of past lessons |
+| 16 | Is 30 minutes the right line between an assessment that takes a whole lesson and one that fits inside a lesson? | Yes |
+| 17 | You said 21 and 22 Dec will be lighter lessons. Should the planner mark the last days before a holiday? | The board marks a week of one or two teaching days as a "short week"; nothing is rescheduled |
