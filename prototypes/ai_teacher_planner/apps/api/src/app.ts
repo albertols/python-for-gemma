@@ -9,6 +9,7 @@ import { ApiError } from "./errors.ts";
 import type { ResourceGateway } from "./gateway/resource-gateway.ts";
 import { createRepos } from "./repos/sqlite/index.ts";
 import { calendarRoutes } from "./routes/calendar.ts";
+import { disruptionRoutes } from "./routes/disruptions.ts";
 import type { Principal } from "./routes/require-access.ts";
 import { createRouter } from "./routes/router.ts";
 import { slotRoutes } from "./routes/slots.ts";
@@ -96,6 +97,7 @@ export function createApp(deps: AppDeps) {
     .route("/", calendarRoutes({ config, repos, gateway, now }))
     .route("/", timetableRoutes({ repos }))
     .route("/", slotRoutes({ repos }))
+    .route("/", disruptionRoutes({ repos, now }))
     .route("/", todayRoutes({ config, repos, now }));
 
   if (config.testRoutes) app.route("/", testRoutes({ db, repos, now }));

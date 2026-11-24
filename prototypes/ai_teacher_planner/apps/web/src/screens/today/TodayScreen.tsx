@@ -1,4 +1,5 @@
 import { addDays, type Fortnight } from "@planner/domain";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   type TodayData,
@@ -8,12 +9,14 @@ import {
   useToday,
 } from "../../api/queries.ts";
 import { GroupBadge } from "../../components/GroupBadge.tsx";
+import { Button } from "../../components/ui/button.tsx";
 import {
   EmptyState,
   ErrorState,
   Loading,
 } from "../../components/ui/states.tsx";
 import { fullDayWithYear } from "../../lib/dates.ts";
+import { CancelLessonsDialog } from "./CancelLessonsDialog.tsx";
 import { RemindersList } from "./RemindersList.tsx";
 import { whyNoLessons } from "./why-no-lessons.ts";
 
@@ -124,6 +127,41 @@ function Lessons({ today }: { today: TodayData }) {
   );
 }
 
+/** The button that opens the cancel dialog, and the sentence that says what it did. */
+function CancelLessons({ today }: { today: string }) {
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3">
+      <Button
+        ref={button}
+        type="button"
+        onClick={() => {
+          setDone(null);
+          setOpen(true);
+        }}
+      >
+        Lessons were cancelled
+      </Button>
+      {done ? <span role="status">{done}</span> : null}
+      <CancelLessonsDialog
+        open={open}
+        today={today}
+        onClose={() => {
+          setOpen(false);
+          button.current?.focus();
+        }}
+        onDone={(n) => {
+          setDone(`${n === 1 ? "1 lesson" : `${n} lessons`} cancelled.`);
+          setOpen(false);
+          button.current?.focus();
+        }}
+      />
+    </div>
+  );
+}
+
 export function TodayScreen() {
   const today = useToday();
   if (today.isPending) return <Loading what="today" />;
@@ -158,6 +196,7 @@ export function TodayScreen() {
       {data.weekLabel ? (
         <p className="mt-1 text-lg">Week {data.weekLabel.slice(1)}</p>
       ) : null}
+      <CancelLessons today={data.date} />
       <div className="mt-6">
         <h2 className="mb-2 text-lg font-semibold">Lessons</h2>
         <Lessons today={data} />

@@ -18,7 +18,7 @@ export interface Planning {
   slots: Slot[];
 }
 
-/** The stored inputs and what the engine derives from them. No disruptions exist before M3. */
+/** The stored inputs, including the lessons she cancelled, and what the engine derives from them. */
 export function loadPlanning(repos: Repos): Planning {
   const terms = repos.settings.terms();
   const days = toCalendarDays(repos.calendar.rows(), terms);
@@ -29,6 +29,11 @@ export function loadPlanning(repos: Repos): Planning {
     days,
     timetables,
     groups,
-    slots: buildSlots({ days, timetables, groups, disruptions: [] }),
+    slots: buildSlots({
+      days,
+      timetables,
+      groups,
+      disruptions: repos.disruptions.list(),
+    }),
   };
 }

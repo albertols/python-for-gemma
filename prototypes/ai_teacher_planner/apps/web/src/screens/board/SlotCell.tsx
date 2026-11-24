@@ -26,7 +26,9 @@ export function SlotCell({
   if (cell.kind === "lesson" && cell.slot) {
     const { slot } = cell;
     const { bg, fg } = groupColour(colour ?? "g1");
-    const status = slot.status === "open" ? "" : `, ${slot.status}`;
+    const why = slot.reasons.map((r) => r.text).join("; ");
+    const status =
+      slot.status === "open" ? "" : `, ${slot.status}${why ? `: ${why}` : ""}`;
     const double = cell.joinsNext
       ? `, double with period ${cell.period + 1}`
       : "";
@@ -49,6 +51,7 @@ export function SlotCell({
         {slot.status === "open" ? null : (
           <span aria-hidden="true" className="block text-xs italic">
             {slot.status}
+            {why ? `: ${why}` : ""}
           </span>
         )}
       </td>

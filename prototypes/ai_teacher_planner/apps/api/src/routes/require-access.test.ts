@@ -48,6 +48,9 @@ test("every guarded write refuses a head of department who may only view", async
     ["PUT", "/api/terms"],
     ["POST", "/api/timetable/versions"],
     ["PUT", "/api/timetable/x"],
+    ["POST", "/api/disruptions"],
+    ["POST", "/api/disruptions/preview"],
+    ["DELETE", "/api/disruptions/batch/x"],
   ];
   const statuses: Record<string, number> = {};
   for (const [method, p] of calls) {
@@ -58,7 +61,7 @@ test("every guarded write refuses a head of department who may only view", async
     });
     statuses[`${method} ${p}`] = res.status;
   }
-  // report-calendar is view-only for her, lesson-plans too: all six are 403.
+  // report-calendar is view-only for her, lesson-plans too: every one is 403.
   expect(Object.values(statuses).every((s) => s === 403)).toBe(true);
 });
 

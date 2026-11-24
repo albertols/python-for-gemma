@@ -1,4 +1,5 @@
 import { CalendarImportCard } from "./CalendarImportCard.tsx";
+import { DisruptionsCard } from "./DisruptionsCard.tsx";
 import { TermsCard } from "./TermsCard.tsx";
 import { TimetableEditor } from "./TimetableEditor.tsx";
 
@@ -11,6 +12,7 @@ export function SetupScreen() {
       <div className="mt-6 space-y-6">
         <CalendarImportCard />
         <TermsCard />
+        <DisruptionsCard />
         <TimetableEditor />
       </div>
     </section>

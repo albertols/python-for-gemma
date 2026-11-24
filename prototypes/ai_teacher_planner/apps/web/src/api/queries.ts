@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { InferResponseType } from "hono/client";
+import type { InferRequestType, InferResponseType } from "hono/client";
 import { api, call } from "./client.ts";
 
 /** One try: when the planner is not running, say so at once instead of waiting. */
@@ -220,5 +220,75 @@ export function useDayText(date: string | null) {
         }),
       ),
     select: (days) => days[0]?.text ?? null,
+  });
+}
+
+export type Disruption = InferResponseType<
+  typeof api.api.disruptions.$get,
+  200
+>[number];
+export type DisruptionBody = InferRequestType<
+  typeof api.api.disruptions.$post
+>["json"];
+export type DisruptionHits = InferResponseType<
+  (typeof api.api.disruptions.preview)["$post"],
+  200
+>["hits"];
+
+/** Cancelling or restoring lessons changes what the board, Today and the audit show. */
+function invalidateLessons(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["disruptions"] });
+  void qc.removeQueries({ queryKey: ["disruption-preview"] });
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  invalidateBoard(qc);
+}
+
+export function useDisruptions() {
+  return useQuery({
+    queryKey: ["disruptions"],
+    queryFn: () => call<Disruption[]>(() => api.api.disruptions.$get()),
+  });
+}
+
+/** Every slot of the year, to count the lessons each cancellation took. */
+export function useAllSlots() {
+  return useQuery({
+    queryKey: ["board", "slots", "all"],
+    queryFn: () => call<BoardSlots>(() => api.api.slots.$get({ query: {} })),
+  });
+}
+
+/** The lessons a cancellation would take. Nothing is stored. */
+export function useDisruptionPreview(body: DisruptionBody | null) {
+  return useQuery({
+    queryKey: ["disruption-preview", body],
+    enabled: body !== null,
+    queryFn: () =>
+      call<{ hits: DisruptionHits }>(() =>
+        api.api.disruptions.preview.$post({
+          json: body as DisruptionBody,
+        }),
+      ),
+    select: (r) => r.hits,
+  });
+}
+
+export function useCreateDisruption() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: DisruptionBody) =>
+      call<Disruption[]>(() => api.api.disruptions.$post({ json: body })),
+    onSuccess: () => invalidateLessons(qc),
+  });
+}
+
+export function useRemoveDisruptionBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (batchId: string) =>
+      call<{ removed: number }>(() =>
+        api.api.disruptions.batch[":batchId"].$delete({ param: { batchId } }),
+      ),
+    onSuccess: () => invalidateLessons(qc),
   });
 }

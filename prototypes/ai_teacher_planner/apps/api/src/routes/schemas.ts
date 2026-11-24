@@ -113,3 +113,32 @@ export const dateRangeQuery = z.object({
   from: isoDate.optional(),
   to: isoDate.optional(),
 });
+
+const disruptionScope = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("school") }),
+  z.object({ kind: z.literal("year"), yearGroup }),
+  z.object({ kind: z.literal("group"), groupId: z.string() }),
+  z.object({ kind: z.literal("teacher") }),
+]);
+export const storedDisruption = z.object({
+  id: z.string(),
+  batchId: z.string(),
+  scope: disruptionScope,
+  from: isoDate,
+  to: isoDate,
+  periods: z.array(period).nullable(),
+  effect: z.enum(["cancelled", "cover"]),
+  reason: z.string(),
+  source: z.enum(["calendar", "teacher"]),
+  createdAt: z.string(),
+});
+/** What she fills in. The use case checks the reason, so a preview works while she is still typing it. */
+export const disruptionInput = z.object({
+  scope: z.enum(["school", "year", "groups"]),
+  yearGroup: yearGroup.optional(),
+  groupIds: z.array(z.string()).optional(),
+  from: isoDate,
+  to: isoDate,
+  periods: z.array(period).nullable(),
+  reason: z.string(),
+});

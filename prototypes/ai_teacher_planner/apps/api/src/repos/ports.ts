@@ -1,5 +1,6 @@
 import type {
   CalendarRow,
+  Disruption,
   Group,
   ParentsEvening,
   ReportWindow,
@@ -67,10 +68,25 @@ export interface SettingsRepo {
   setFlag(key: string): void;
 }
 
+/** A disruption as stored: which cancellation it came from, and when. */
+export type StoredDisruption = Disruption & {
+  batchId: string;
+  createdAt: string;
+};
+
+export interface DisruptionRepo {
+  /** Sorted by first day, then id. */
+  list(): StoredDisruption[];
+  add(rows: StoredDisruption[]): void;
+  /** Removes every row of one cancellation. Returns how many rows went. */
+  removeBatch(batchId: string): number;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
   settings: SettingsRepo;
+  disruptions: DisruptionRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }
