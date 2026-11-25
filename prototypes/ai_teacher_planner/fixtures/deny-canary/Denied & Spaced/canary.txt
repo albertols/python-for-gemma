@@ -1,0 +1,1 @@
+CANARY-DENIED: if Claude can read this line, the deny rule for paths with spaces and an ampersand is not working.

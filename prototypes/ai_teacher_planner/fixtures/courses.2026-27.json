@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ial-business-u4",
+    "title": "IAL Business Unit 4",
+    "board": "IAL",
+    "revisionWeeks": 2
+  },
+  {
+    "id": "ib-business",
+    "title": "IB Business Management",
+    "board": "IB",
+    "revisionWeeks": 2
+  },
+  {
+    "id": "igcse-business",
+    "title": "International GCSE Business",
+    "board": "IGCSE",
+    "revisionWeeks": 2
+  }
+]

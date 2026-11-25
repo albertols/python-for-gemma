@@ -1,0 +1,75 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+  d2-legend: {
+    l1: "Engine step" {class: concept}
+    l2: "Stored data" {class: win}
+    l3: "Check or teacher gate" {class: warn}
+    l5: "Later" {class: later}
+  }
+}
+
+title: |md
+  # Scheduling pipeline: from the calendar to an accepted plan
+  Fixed rules all the way. Nothing reaches the head revision until Gemma accepts the diff.
+| {near: top-center}
+
+direction: right
+
+workbook: "Calendar\nworkbook" {
+  class: win
+  shape: page
+}
+report: "Import report\nodd rows listed,\nnever guessed" {class: warn}
+days: "Calendar days\nweek label,\npupil day" {class: concept}
+timetable: "Timetable\nWeek 1 | Week 2" {class: win}
+disruptions: "Disruptions\nabsence, closure,\ntrip" {class: win}
+slots: "Slots\nper group,\ndate, period" {class: concept}
+sow: "Scheme of work\norder, counts, anchors,\npins; from a locked pack" {class: win}
+lessons: "Lessons per group\nitem#n, overrides,\nno assessments" {class: concept}
+history: "History and freeze\nlog (latest entry wins) or assumed,\npast spare\nlessons dropped, used buffers\nstay used; today and next\nday frozen" {class: concept}
+previous: "Previous plan\n+ lesson log\n(append-only)" {class: win}
+sequencing: "Sequencing per group\nposition, pins, dated anchors,\nrevision block" {class: concept}
+exams: "Official exams\n+ course revision weeks" {class: win}
+pace: "Pace line\nparallel groups level at each\ncheckpoint; spare lessons" {class: concept}
+candidate: "Candidate\nrevision" {class: concept}
+diff: "Diff, metrics + accept\nlessons that lost their slot first;\nskips and changed answers as\ncorrections; refused when the head or\nthe candidate changed" {class: warn}
+head: "Head revision\nundo = parent" {
+  class: win
+  shape: cylinder
+}
+
+reads: "Read from the head revision" {
+  class: group
+  grid-columns: 1
+  grid-gap: 12
+
+  board: "Board and Today\nplacements" {class: concept}
+  checkin: "Check-in: assumed lessons\nan answer is appended to the log" {class: concept}
+  uptodate: "Up to date? a fresh plan\nagainst the head" {class: warn}
+  parity: "Parity (M3)" {class: later}
+  coverage: "Coverage (M6)" {class: later}
+  reminders: "Reminders" {class: concept}
+}
+
+workbook -> days: "import" {class: flow}
+workbook -> report: {class: flow}
+days -> slots: {class: flow}
+timetable -> slots: {class: flow}
+disruptions -> slots: "folded in" {class: flow}
+previous -> history: {class: flow}
+slots -> history: "horizon, usable" {class: flow}
+history -> sequencing: "what is left to plan" {class: flow}
+slots -> sequencing: {class: flow}
+sow -> lessons: "expanded" {class: flow}
+lessons -> sequencing: {class: flow}
+exams -> sequencing: "no lessons from the exam;\nrevision counted back" {class: flow}
+sequencing -> pace: "streams and windows" {class: flow}
+pace -> candidate: {class: flow}
+candidate -> diff: {class: flow}
+diff -> head: "accepted" {class: flow}
+head -> reads: {class: flow}
+reads.checkin -> previous: "appends her answer\nto the lesson log" {class: flow}

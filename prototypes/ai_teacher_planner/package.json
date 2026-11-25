@@ -1,0 +1,26 @@
+{
+  "name": "ai-teacher-planner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p scripts",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "build": "pnpm -r --if-present build",
+    "start": "node scripts/start.ts",
+    "ai:try": "node packages/ai/scripts/try.ts",
+    "pack:draft": "node scripts/pack-draft.ts",
+    "ai:schemas": "node packages/ai/scripts/write-schemas.ts",
+    "seed:synthetic": "node scripts/seed-synthetic.ts",
+    "e2e": "pnpm build && pnpm --filter @planner/e2e e2e"
+  },
+  "devDependencies": {
+    "@amiceli/vitest-cucumber": "8.0.1",
+    "@biomejs/biome": "2.6.8",
+    "@planner/fixtures": "workspace:*",
+    "@types/node": "26.6.6",
+    "fast-check": "4.10.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

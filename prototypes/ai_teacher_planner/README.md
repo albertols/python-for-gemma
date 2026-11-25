@@ -8,9 +8,72 @@ vision models — just the same "open a file, walk its rows, build
 objects" habit from python_course module 06, wearing module 07's
 classes.
 
-## 🎯 What this will do for you
+> 🚀 **Update, November 2026.** You answered the questions and filled in the
+> planner template, so the real planner is now designed. It will be a web
+> app (TypeScript + React) living in this same folder, **beside** the Python
+> scaffold below, which stays exactly as it is.
+>
+> - 🖼️ Start with the pictures: [`docs/design/ai-teacher-planner/`](../../docs/design/ai-teacher-planner/README.md)
+> - 📐 Then the design: [`docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`](../../docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md)
+> - ❓ Section 22 of that design has ten questions only you can answer.
+> - ✍️ ADR-005 and Part 11 of your template are still yours to write.
+>
+> Everything below describes the original Python scaffold from the course.
 
-Once it's fully built, this prototype will read your real school staff
+## ▶️ How to start it
+
+The planner is a web app that runs on your own Mac. Nothing is sent anywhere.
+
+1. **Once only:** open a terminal in this folder and run `mise install`, then `pnpm install`. (If your Mac says `pnpm` is not found, put `~/.local/bin/mise exec --` in front.)
+2. **Every time:** run `pnpm start`. The first run takes a minute while it builds the screens. Then the planner opens in your browser at `http://127.0.0.1:4319`.
+3. **To stop it:** go back to the terminal and press `Ctrl+C`.
+
+Copy and paste, from any terminal:
+
+```bash
+cd /Users/gemmakelly/PycharmProjects/python-for-gemma/prototypes/ai_teacher_planner
+pnpm install
+pnpm start
+```
+
+Your plan lives in the `data/` folder next to this file, on your Mac only. It never leaves your computer, and the planner makes a backup copy each day.
+
+## ✨ What the planner lets you do now (milestone 2)
+
+The planner now does Unit 4 of IAL Business from start to finish, and it
+asks before it changes anything.
+
+- **Build the course pack.** The planner reads the specification and drafts
+  the units and spec points, and links your textbook chapters to them. You
+  review it, fix what is wrong and press Lock. Anything the AI wrote is
+  marked with a purple sparkle until you have reviewed it.
+- **Set up the scheme of work.** Bring in your planning sheet and assessment
+  schedule. The planner shows the lesson counts and what fits, and the
+  totals change as you type. It can suggest a different count, but only as
+  a difference you can accept or reject.
+- **Say where each group is, then ask for a plan.** You get a proposal that
+  lists every lesson that moves and why. Nothing changes until you press
+  Accept, and "Undo last change" puts the old plan back.
+- **See it on the board.** Each lesson sits on that group's own period, with
+  its chapter and "2 of 4". Spare lessons appear before an assessment. Half
+  terms and holidays have no lessons.
+- **Check in once a week.** Today asks "did these happen as planned?" for each
+  group. One click confirms the week; "Not as planned" lets you say what
+  happened and offers a new plan.
+- **Take it with you.** The Export button on the board makes an Excel file of
+  the fortnight, or a week as plain text to paste into Teams. Anything the AI
+  suggested and you have not reviewed is left out, and you are told.
+- **Read your timetable from a picture,** and keep a plan and files for each lesson.
+
+Still to come: cancelled-lesson replanning and parity (milestone 3), and the
+IB and IGCSE courses after that. The design is in the pictures linked above.
+
+Claude helps with the AI buttons, so Claude Code needs to be signed in on
+your Mac. If it is not, the AI buttons say so and everything else works.
+
+## 🎯 What the original Python scaffold was for
+
+This prototype was first meant to read your real school staff
 calendar and turn it into two things you currently have to work out by
 hand each term:
 

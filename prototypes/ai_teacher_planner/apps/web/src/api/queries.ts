@@ -1,0 +1,1112 @@
+import {
+  lastDaysBeforeBreaks,
+  type PlanInputs,
+  type Position,
+  type Proposal,
+} from "@planner/domain";
+import {
+  QueryClient,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { InferRequestType, InferResponseType } from "hono/client";
+import { ApiError, api, call, PlannerNotRunning } from "./client.ts";
+
+/** One try: when the planner is not running, say so at once instead of waiting. */
+export const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+});
+
+export type PlannerConfig = InferResponseType<typeof api.api.config.$get, 200>;
+
+export function useConfig() {
+  return useQuery({
+    queryKey: ["config"],
+    queryFn: () => call<PlannerConfig>(() => api.api.config.$get()),
+  });
+}
+
+/** What the board shows is built from these, so anything that changes the calendar or timetable refreshes them. */
+function invalidateBoard(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["fortnights"] });
+  void qc.invalidateQueries({ queryKey: ["board"] });
+  void qc.invalidateQueries({ queryKey: ["today"] });
+}
+
+export type ImportSummary = NonNullable<
+  InferResponseType<(typeof api.api.calendar.import)["$get"], 200>
+>;
+export type Term = InferResponseType<typeof api.api.terms.$get, 200>[number];
+export type TimetableData = InferResponseType<
+  typeof api.api.timetable.$get,
+  200
+>;
+export type ReportIssue = ImportSummary["reportIssues"][number];
+
+export function useImportSummary() {
+  return useQuery({
+    queryKey: ["calendar-import"],
+    queryFn: () =>
+      call<ImportSummary | null>(() => api.api.calendar.import.$get()),
+  });
+}
+
+/** The import changes the calendar, so everything built from it is stale. */
+export function useRunImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<ImportSummary>(() => api.api.calendar.import.$post()),
+    onSuccess: (summary) => {
+      qc.setQueryData(["calendar-import"], summary);
+      void qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateBoard(qc);
+    },
+  });
+}
+
+export function useSaveReportDate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ issue, date }: { issue: ReportIssue; date: string }) =>
+      issue.kind === "report-window"
+        ? call<ImportSummary>(() =>
+            api.api.reports.windows[":id"].date.$put({
+              param: { id: issue.id },
+              json: {
+                field: issue.field as "dataDeadline" | "hodReview" | "sentHome",
+                date,
+              },
+            }),
+          )
+        : call<ImportSummary>(() =>
+            api.api.reports.evenings[":id"].date.$put({
+              param: { id: issue.id },
+              json: { date },
+            }),
+          ),
+    onSuccess: (summary) => {
+      qc.setQueryData(["calendar-import"], summary);
+      void qc.invalidateQueries({ queryKey: ["today"] });
+    },
+  });
+}
+
+export function useTerms() {
+  return useQuery({
+    queryKey: ["terms"],
+    queryFn: () => call<Term[]>(() => api.api.terms.$get()),
+  });
+}
+
+export function useSaveTerms() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (terms: Term[]) =>
+      call<Term[]>(() => api.api.terms.$put({ json: terms })),
+    onSuccess: (terms) => {
+      qc.setQueryData(["terms"], terms);
+      invalidateBoard(qc);
+    },
+  });
+}
+
+export function useTimetable() {
+  return useQuery({
+    queryKey: ["timetable"],
+    queryFn: () => call<TimetableData>(() => api.api.timetable.$get()),
+  });
+}
+
+export type TimetableVersionData = TimetableData["versions"][number];
+
+export function useSaveTimetable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      entries,
+      duties,
+    }: Pick<TimetableVersionData, "id" | "entries" | "duties">) =>
+      call<TimetableVersionData>(() =>
+        api.api.timetable[":id"].$put({
+          param: { id },
+          json: { entries, duties },
+        }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["timetable"] });
+      void qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateBoard(qc);
+    },
+  });
+}
+
+/** A reviewed grid replaced the stored one: the timetable is fetched again (the promise settles when it has arrived), and what is built from it is stale. */
+export function refreshAfterTimetableChange(qc: QueryClient): Promise<void> {
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  invalidateBoard(qc);
+  return qc.refetchQueries({ queryKey: ["timetable"] });
+}
+
+/** A picture of her timetable goes up as a multipart form, so this call is made by hand; the `x-planner-upload` header is what the API checks. The job it starts only suggests a grid. */
+export function useUploadTimetablePicture(versionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return call<{ id: string }>(() =>
+        fetch(
+          `/api/timetable/image?versionId=${encodeURIComponent(versionId)}`,
+          {
+            method: "POST",
+            headers: { "x-planner-upload": "1" },
+            body: form,
+          },
+        ),
+      );
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["ai"] }),
+  });
+}
+
+export function useCreateTimetableVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { validFrom: string; copyOf: string }) =>
+      call<TimetableVersionData>(() =>
+        api.api.timetable.versions.$post({ json: input }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["timetable"] });
+      void qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateBoard(qc);
+    },
+  });
+}
+
+export type Fortnights = InferResponseType<typeof api.api.fortnights.$get, 200>;
+export type BoardDays = InferResponseType<
+  typeof api.api.calendar.days.$get,
+  200
+>;
+export type BoardSlots = InferResponseType<typeof api.api.slots.$get, 200>;
+
+export function useFortnights() {
+  return useQuery({
+    queryKey: ["fortnights"],
+    queryFn: () => call<Fortnights>(() => api.api.fortnights.$get()),
+  });
+}
+
+/** Only the dates of the fortnight on screen, not the whole year. */
+export function useBoardDays(from: string | null, to: string | null) {
+  return useQuery({
+    queryKey: ["board", "days", from, to],
+    enabled: from !== null && to !== null,
+    queryFn: () =>
+      call<BoardDays>(() =>
+        api.api.calendar.days.$get({
+          query: { from: from ?? "", to: to ?? "" },
+        }),
+      ),
+  });
+}
+
+const breakDaysOf = (days: BoardDays): ReadonlySet<string> =>
+  new Set(lastDaysBeforeBreaks(days));
+
+/** The days that end before a break of a week or more, found in the whole calendar. */
+export function useLastDaysBeforeBreaks() {
+  return useQuery({
+    queryKey: ["board", "days", "all"],
+    queryFn: () =>
+      call<BoardDays>(() => api.api.calendar.days.$get({ query: {} })),
+    select: breakDaysOf,
+  });
+}
+
+export function useBoardSlots(from: string | null, to: string | null) {
+  return useQuery({
+    queryKey: ["board", "slots", from, to],
+    enabled: from !== null && to !== null,
+    queryFn: () =>
+      call<BoardSlots>(() =>
+        api.api.slots.$get({ query: { from: from ?? "", to: to ?? "" } }),
+      ),
+  });
+}
+
+export type TodayData = InferResponseType<typeof api.api.today.$get, 200>;
+export type AuditData = InferResponseType<typeof api.api.audit.$get, 200>;
+
+export function useToday() {
+  return useQuery({
+    queryKey: ["today"],
+    queryFn: () => call<TodayData>(() => api.api.today.$get()),
+  });
+}
+
+export function useAudit() {
+  return useQuery({
+    queryKey: ["audit"],
+    queryFn: () => call<AuditData>(() => api.api.audit.$get()),
+  });
+}
+
+/** The calendar's own words for one day (a holiday's name), if it has any. */
+export function useDayText(date: string | null) {
+  return useQuery({
+    queryKey: ["board", "days", date, date],
+    enabled: date !== null,
+    queryFn: () =>
+      call<BoardDays>(() =>
+        api.api.calendar.days.$get({
+          query: { from: date ?? "", to: date ?? "" },
+        }),
+      ),
+    select: (days) => days[0]?.text ?? null,
+  });
+}
+
+export type Disruption = InferResponseType<
+  typeof api.api.disruptions.$get,
+  200
+>[number];
+export type DisruptionBody = InferRequestType<
+  typeof api.api.disruptions.$post
+>["json"];
+export type DisruptionHits = InferResponseType<
+  (typeof api.api.disruptions.preview)["$post"],
+  200
+>["hits"];
+
+/** Cancelling or restoring lessons changes what the board, Today and the audit show. */
+function invalidateLessons(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["disruptions"] });
+  void qc.removeQueries({ queryKey: ["disruption-preview"] });
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  invalidateBoard(qc);
+}
+
+export function useDisruptions() {
+  return useQuery({
+    queryKey: ["disruptions"],
+    queryFn: () => call<Disruption[]>(() => api.api.disruptions.$get()),
+  });
+}
+
+/** Every slot of the year, to count the lessons each cancellation took. */
+export function useAllSlots() {
+  return useQuery({
+    queryKey: ["board", "slots", "all"],
+    queryFn: () => call<BoardSlots>(() => api.api.slots.$get({ query: {} })),
+  });
+}
+
+/** The lessons a cancellation would take. Nothing is stored. */
+export function useDisruptionPreview(body: DisruptionBody | null) {
+  return useQuery({
+    queryKey: ["disruption-preview", body],
+    enabled: body !== null,
+    queryFn: () =>
+      call<{ hits: DisruptionHits }>(() =>
+        api.api.disruptions.preview.$post({
+          json: body as DisruptionBody,
+        }),
+      ),
+    select: (r) => r.hits,
+  });
+}
+
+export function useCreateDisruption() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: DisruptionBody) =>
+      call<Disruption[]>(() => api.api.disruptions.$post({ json: body })),
+    onSuccess: () => invalidateLessons(qc),
+  });
+}
+
+export function useRemoveDisruptionBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (batchId: string) =>
+      call<{ removed: number }>(() =>
+        api.api.disruptions.batch[":batchId"].$delete({ param: { batchId } }),
+      ),
+    onSuccess: () => invalidateLessons(qc),
+  });
+}
+
+export type Corrections = InferResponseType<
+  typeof api.api.calendar.corrections.$get,
+  200
+>;
+export type LabelCorrectionBody = InferRequestType<
+  (typeof api.api.calendar.corrections.labels)[":date"]["$put"]
+>["json"];
+export type ResolutionBody = InferRequestType<
+  (typeof api.api.calendar.corrections.resolutions)[":date"]["$put"]
+>["json"];
+
+export function useCorrections() {
+  return useQuery({
+    queryKey: ["corrections"],
+    queryFn: () => call<Corrections>(() => api.api.calendar.corrections.$get()),
+  });
+}
+
+/** One day as the calendar and her corrections make it. */
+export function useDay(date: string) {
+  return useQuery({
+    queryKey: ["board", "days", date, date],
+    queryFn: () =>
+      call<BoardDays>(() =>
+        api.api.calendar.days.$get({ query: { from: date, to: date } }),
+      ),
+    select: (days) => days[0] ?? null,
+  });
+}
+
+/** A correction or decision changes the report, the board, Today, the audit and the cancelled lessons. */
+function invalidateCorrections(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["calendar-import"] });
+  void qc.invalidateQueries({ queryKey: ["corrections"] });
+  invalidateLessons(qc);
+}
+
+export function useSetLabel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ date, ...json }: { date: string } & LabelCorrectionBody) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.labels[":date"].$put({
+          param: { date },
+          json,
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export function useRemoveLabel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.labels[":date"].$delete({
+          param: { date },
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export function useSetResolution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ date, ...json }: { date: string } & ResolutionBody) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.resolutions[":date"].$put({
+          param: { date },
+          json,
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export function useRemoveResolution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string) =>
+      call<unknown>(() =>
+        api.api.calendar.corrections.resolutions[":date"].$delete({
+          param: { date },
+        }),
+      ),
+    onSuccess: () => invalidateCorrections(qc),
+  });
+}
+
+export type EventItem = InferResponseType<
+  typeof api.api.events.$get,
+  200
+>[number];
+export type StaleEvent = InferResponseType<
+  typeof api.api.events.stale.$get,
+  200
+>[number];
+export type ClassificationBody = InferRequestType<
+  (typeof api.api.events.classifications)[":id"]["$put"]
+>["json"];
+
+export function useEvents() {
+  return useQuery({
+    queryKey: ["events"],
+    queryFn: () => call<EventItem[]>(() => api.api.events.$get()),
+  });
+}
+
+export function useStaleEvents() {
+  return useQuery({
+    queryKey: ["events", "stale"],
+    queryFn: () => call<StaleEvent[]>(() => api.api.events.stale.$get()),
+  });
+}
+
+/** Confirming or undoing an event changes the list, the lessons, the board, Today and the audit. */
+function invalidateEvents(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["events"] });
+  void qc.invalidateQueries({ queryKey: ["calendar-import"] });
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  void qc.invalidateQueries({ queryKey: ["board", "slots"] });
+  invalidateBoard(qc);
+}
+
+export function useSaveClassification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...json }: { id: string } & ClassificationBody) =>
+      call<unknown>(() =>
+        api.api.events.classifications[":id"].$put({ param: { id }, json }),
+      ),
+    onSuccess: () => invalidateEvents(qc),
+  });
+}
+
+export function useRemoveClassification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<unknown>(() =>
+        api.api.events.classifications[":id"].$delete({ param: { id } }),
+      ),
+    onSuccess: () => invalidateEvents(qc),
+  });
+}
+
+export type Exam = InferResponseType<typeof api.api.exams.$get, 200>[number];
+export type ExamBody = InferRequestType<typeof api.api.exams.$post>["json"];
+
+export function useExams() {
+  return useQuery({
+    queryKey: ["exams"],
+    queryFn: () => call<Exam[]>(() => api.api.exams.$get()),
+  });
+}
+
+/** An exam shows in Coming up on Today and in the audit's last-lesson list. */
+function invalidateExams(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["exams"] });
+  void qc.invalidateQueries({ queryKey: ["today"] });
+}
+
+export function useCreateExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ExamBody) =>
+      call<Exam>(() => api.api.exams.$post({ json: body })),
+    onSuccess: () => invalidateExams(qc),
+  });
+}
+
+export function useUpdateExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...json }: { id: string } & ExamBody) =>
+      call<Exam>(() => api.api.exams[":id"].$put({ param: { id }, json })),
+    onSuccess: () => invalidateExams(qc),
+  });
+}
+
+export function useRemoveExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<unknown>(() => api.api.exams[":id"].$delete({ param: { id } })),
+    onSuccess: () => invalidateExams(qc),
+  });
+}
+
+export type TodoLists = InferResponseType<typeof api.api.todos.$get, 200>;
+export type TodoNoteData = TodoLists["today"][number];
+export type TodoBody = InferRequestType<typeof api.api.todos.$post>["json"];
+
+export function useTodos(date: string) {
+  return useQuery({
+    queryKey: ["todos", date],
+    queryFn: () =>
+      call<TodoLists>(() => api.api.todos.$get({ query: { date } })),
+  });
+}
+
+export function useAddTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (json: TodoBody) =>
+      call<TodoNoteData>(() => api.api.todos.$post({ json })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
+  });
+}
+
+/** The box ticks at once; the lists are fetched again after the API answers, and put right if it refused. */
+export function useUpdateTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, done }: { id: string; done: boolean }) =>
+      call<TodoNoteData>(() =>
+        api.api.todos[":id"].$patch({ param: { id }, json: { done } }),
+      ),
+    onMutate: ({ id, done }) => {
+      void qc.cancelQueries({ queryKey: ["todos"] });
+      qc.setQueriesData<TodoLists>({ queryKey: ["todos"] }, (lists) => {
+        if (!lists) return lists;
+        const mark = (notes: TodoNoteData[]) =>
+          notes.map((n) => (n.id === id ? { ...n, done } : n));
+        return {
+          today: mark(lists.today),
+          week: mark(lists.week),
+          stillToDo: mark(lists.stillToDo),
+        };
+      });
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
+  });
+}
+
+export function useRemoveTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<{ ok: true }>(() => api.api.todos[":id"].$delete({ param: { id } })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
+  });
+}
+
+export type CourseRow = InferResponseType<
+  typeof api.api.courses.$get,
+  200
+>[number];
+export type PackData = InferResponseType<
+  (typeof api.api.packs)[":courseId"]["$get"],
+  200
+>;
+export type PackReviewNotes = NonNullable<PackData["review"]>;
+
+export function useCourses() {
+  return useQuery({
+    queryKey: ["courses"],
+    queryFn: () => call<CourseRow[]>(() => api.api.courses.$get()),
+  });
+}
+
+/** The draft, the locked pack and the AI's notes beside the draft. */
+export function usePack(courseId: string) {
+  return useQuery({
+    queryKey: ["packs", courseId],
+    queryFn: () =>
+      call<PackData>(() =>
+        api.api.packs[":courseId"].$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** Her corrections to the draft. The answer is the stored draft, so the screen shows what was saved. */
+export function useSaveDraftPack(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pack: NonNullable<PackData["draft"]>) =>
+      call<NonNullable<PackData["draft"]>>(() =>
+        api.api.packs[":courseId"].draft.$put({
+          param: { courseId },
+          json: pack,
+        }),
+      ),
+    onSuccess: (draft) => {
+      qc.setQueryData<PackData>(["packs", courseId], (old) =>
+        old ? { ...old, draft } : old,
+      );
+      // saving can clear the ticks of units she changed, so the stored list is read again
+      void qc.invalidateQueries({ queryKey: ["packs", courseId] });
+    },
+  });
+}
+
+/** Locking is her review of the draft. A locked pack is what planning needs, so the course list is stale too. */
+export function useLockPack(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<NonNullable<PackData["locked"]>>(() =>
+        api.api.packs[":courseId"].lock.$post({ param: { courseId } }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["packs", courseId] });
+      void qc.invalidateQueries({ queryKey: ["courses"] });
+    },
+  });
+}
+
+const NO_NOTES: PackReviewNotes = {
+  linkReasons: [],
+  unsure: [],
+  meta: null,
+  checkedUnits: [],
+};
+
+/** Ticks or unticks a unit. The box follows at once; if the planner refuses, the stored list comes back. */
+export function useSetUnitChecked(courseId: string) {
+  const qc = useQueryClient();
+  const key = ["packs", courseId];
+  return useMutation({
+    mutationFn: ({ unitId, checked }: { unitId: string; checked: boolean }) =>
+      call<{ checkedUnits: string[] }>(() =>
+        api.api.packs[":courseId"].draft.checked.$put({
+          param: { courseId },
+          json: { unitId, checked },
+        }),
+      ),
+    onMutate: ({ unitId, checked }) => {
+      qc.setQueryData<PackData>(key, (old) => {
+        if (!old) return old;
+        const notes = old.review ?? NO_NOTES;
+        const others = notes.checkedUnits.filter((id) => id !== unitId);
+        return {
+          ...old,
+          review: {
+            ...notes,
+            checkedUnits: checked ? [...others, unitId] : others,
+          },
+        };
+      });
+    },
+    onError: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+export type SchemeData = InferResponseType<
+  (typeof api.api.scheme)[":courseId"]["$get"],
+  200
+>;
+export type SchemeBody = InferRequestType<
+  (typeof api.api.scheme)[":courseId"]["$put"]
+>["json"];
+export type ImportSources = InferResponseType<
+  (typeof api.api.scheme)[":courseId"]["import-sources"]["$get"],
+  200
+>;
+export type ImportPreview = InferResponseType<
+  (typeof api.api.scheme)[":courseId"]["import"]["$post"],
+  200
+>;
+
+export function useScheme(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["scheme", courseId],
+    enabled,
+    queryFn: () =>
+      call<SchemeData>(() =>
+        api.api.scheme[":courseId"].$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** What the engine is given to plan the course today. The scheme screen works its totals from this. */
+export function usePlanInputs(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["plan-inputs", courseId],
+    enabled,
+    queryFn: () =>
+      call<PlanInputs>(() =>
+        api.api.plans[":courseId"].inputs.$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** A changed scheme or revision length changes the totals, the plan's freshness, the board, Today and the audit. */
+export function invalidateScheme(qc: QueryClient, courseId: string) {
+  void qc.invalidateQueries({ queryKey: ["scheme", courseId] });
+  void qc.invalidateQueries({ queryKey: ["plan-inputs", courseId] });
+  void qc.invalidateQueries({ queryKey: ["courses"] });
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  invalidateBoard(qc);
+}
+
+export function useSaveScheme(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SchemeBody) =>
+      call<{ ok: true }>(() =>
+        api.api.scheme[":courseId"].$put({ param: { courseId }, json: body }),
+      ),
+    onSuccess: (_ok, body) => {
+      // what she saved is what the screen shows until the stored scheme has been read again
+      qc.setQueryData<SchemeData>(["scheme", courseId], (old) =>
+        old ? { ...old, items: body.items, overrides: body.overrides } : old,
+      );
+      invalidateScheme(qc, courseId);
+    },
+  });
+}
+
+export function useSetRevisionWeeks(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (revisionWeeks: number) =>
+      call<unknown>(() =>
+        api.api.courses[":courseId"].$put({
+          param: { courseId },
+          json: { revisionWeeks },
+        }),
+      ),
+    onSuccess: () => invalidateScheme(qc, courseId),
+  });
+}
+
+/** The planning files she can import from. Asked only when the import is opened. */
+export function useImportSources(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["scheme", courseId, "import-sources"],
+    enabled,
+    queryFn: () =>
+      call<ImportSources>(() =>
+        api.api.scheme[":courseId"]["import-sources"].$get({
+          param: { courseId },
+        }),
+      ),
+  });
+}
+
+/** A preview of the import. Nothing is stored. */
+export function useImportPreview(courseId: string) {
+  return useMutation({
+    mutationFn: (body: { planningFile: string; scheduleFile: string | null }) =>
+      call<ImportPreview>(() =>
+        api.api.scheme[":courseId"].import.$post({
+          param: { courseId },
+          json: body,
+        }),
+      ),
+  });
+}
+
+/** Starts the lesson-count job. The suggestions arrive as AI items; the scheme itself is not touched. */
+export function useSuggestCounts(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<{ id: string }>(() =>
+        api.api.scheme[":courseId"]["suggest-counts"].$post({
+          param: { courseId },
+        }),
+      ),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["ai"] }),
+  });
+}
+
+// ---- Plans: positions, proposals, accept, undo, and what the board shows ----
+
+export type PlacementsData = InferResponseType<
+  typeof api.api.placements.$get,
+  200
+>;
+export type PlacementView = PlacementsData["placements"][number];
+export type AssessmentView = PlacementsData["assessments"][number];
+export type DeclaredView = PlacementsData["declared"][number];
+export type PlanStatusData = InferResponseType<
+  (typeof api.api.plans)[":courseId"]["$get"],
+  200
+>;
+/** The engine's Proposal (the API passes it through) and the key the accept sends back. */
+export type PlanProposal = Proposal & { candidateKey: string };
+
+/** What every plan puts in the days on screen. Under "board", so whatever refreshes the board refreshes it. */
+export function useBoardPlacements(from: string | null, to: string | null) {
+  return useQuery({
+    queryKey: ["board", "placements", from, to],
+    enabled: from !== null && to !== null,
+    queryFn: () =>
+      call<PlacementsData>(() =>
+        api.api.placements.$get({ query: { from: from ?? "", to: to ?? "" } }),
+      ),
+  });
+}
+
+const planStatusQuery = (courseId: string) => ({
+  // under "board": a changed calendar, scheme or timetable can leave the plan out of date
+  queryKey: ["board", "plans", courseId],
+  queryFn: () =>
+    call<PlanStatusData>(() =>
+      api.api.plans[":courseId"].$get({ param: { courseId } }),
+    ),
+});
+
+/** The accepted plan of each course that has one: undo, and whether it is still up to date. */
+export function usePlanStatuses(courseIds: readonly string[]) {
+  return useQueries({
+    queries: courseIds.map((id) => planStatusQuery(id)),
+  });
+}
+
+export type CheckInData = InferResponseType<typeof api.api.checkin.$get, 200>;
+export type CheckInBody = InferRequestType<
+  typeof api.api.checkin.$post
+>["json"];
+export type CheckInResult = InferResponseType<
+  typeof api.api.checkin.$post,
+  200
+>;
+
+/** The past lessons she has not said anything about yet, by week, oldest first. */
+export function useCheckIn() {
+  return useQuery({
+    queryKey: ["checkin"],
+    queryFn: () => call<CheckInData>(() => api.api.checkin.$get()),
+  });
+}
+
+/**
+ * Writes her answers to the lesson log. The list shrinks, the board shows the
+ * new states and the plan may now be out of date, so all of them are fetched
+ * again, also after a refusal (the lesson may have been answered elsewhere).
+ */
+export function useRecordCheckIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (json: CheckInBody) =>
+      call<CheckInResult>(() => api.api.checkin.$post({ json })),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["checkin"] });
+      invalidateBoard(qc);
+    },
+  });
+}
+
+export function usePositions(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["positions", courseId],
+    enabled,
+    queryFn: () =>
+      call<Position[]>(() =>
+        api.api.positions[":courseId"].$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** A plan change: the board, Today, the scheme's totals and the course list all follow it. */
+function invalidatePlan(qc: QueryClient, courseId: string) {
+  void qc.invalidateQueries({ queryKey: ["courses"] });
+  void qc.invalidateQueries({ queryKey: ["plan-inputs", courseId] });
+  invalidateBoard(qc);
+}
+
+export function useSavePositions(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (positions: Position[]) =>
+      call<Position[]>(() =>
+        api.api.positions[":courseId"].$put({
+          param: { courseId },
+          json: { positions },
+        }),
+      ),
+    onSuccess: (stored) => {
+      qc.setQueryData(["positions", courseId], stored);
+      invalidatePlan(qc, courseId);
+    },
+  });
+}
+
+/** A proposal from what is stored now. Nothing is stored. */
+export function useProposePlan(courseId: string) {
+  return useMutation({
+    mutationFn: () =>
+      call<PlanProposal>(() =>
+        api.api.plans[":courseId"].proposals.$post({ param: { courseId } }),
+      ),
+  });
+}
+
+/** Stores the proposal she saw; refused (409 stale-proposal) when the plan changed meanwhile. */
+export function useAcceptPlan(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: Pick<PlanProposal, "baseRevisionId" | "candidateKey">) =>
+      call<PlanStatusData>(() =>
+        api.api.plans[":courseId"].accept.$post({
+          param: { courseId },
+          json: {
+            baseRevisionId: p.baseRevisionId,
+            candidateKey: p.candidateKey,
+          },
+        }),
+      ),
+    onSuccess: () => invalidatePlan(qc, courseId),
+  });
+}
+
+/** The plan goes back to its parent. Facts (cancelled lessons, the log) stay. */
+export function useUndoPlan(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<PlanStatusData>(() =>
+        api.api.plans[":courseId"].undo.$post({ param: { courseId } }),
+      ),
+    onSuccess: () => invalidatePlan(qc, courseId),
+  });
+}
+
+export type LessonNoteData = InferResponseType<
+  (typeof api.api)["lesson-notes"]["$get"],
+  200
+>;
+export type MaterialData = LessonNoteData["materials"][number];
+export type LessonNoteSummary = InferResponseType<
+  (typeof api.api)["lesson-notes"]["summary"]["$get"],
+  200
+>["items"][number];
+export type RemovedLessonNote = InferResponseType<
+  (typeof api.api)["lesson-notes"]["removed"]["$get"],
+  200
+>["items"][number];
+
+/** A lesson's note and files; the board's paper clips and the removed list are built from them too. */
+function invalidateLessonNotes(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["lesson-note"] });
+  void qc.invalidateQueries({ queryKey: ["lesson-notes-summary"] });
+  void qc.invalidateQueries({ queryKey: ["lesson-notes-removed"] });
+}
+
+export function useLessonNote(groupId: string, lessonId: string) {
+  return useQuery({
+    queryKey: ["lesson-note", groupId, lessonId],
+    queryFn: () =>
+      call<LessonNoteData>(() =>
+        api.api["lesson-notes"].$get({ query: { groupId, lessonId } }),
+      ),
+  });
+}
+
+export function useSaveLessonNote(groupId: string, lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (text: string) =>
+      call<LessonNoteData>(() =>
+        api.api["lesson-notes"].$put({
+          query: { groupId, lessonId },
+          json: { text },
+        }),
+      ),
+    onSuccess: (note) => {
+      qc.setQueryData(["lesson-note", groupId, lessonId], note);
+      invalidateLessonNotes(qc);
+    },
+  });
+}
+
+/** A file goes up as a multipart form, so this one call is made by hand; the `x-planner-upload` header is what the API checks. */
+export function useAttachMaterial(groupId: string, lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const query = `groupId=${encodeURIComponent(groupId)}&lessonId=${encodeURIComponent(lessonId)}`;
+      return call<MaterialData>(() =>
+        fetch(`/api/lesson-notes/materials?${query}`, {
+          method: "POST",
+          headers: { "x-planner-upload": "1" },
+          body: form,
+        }),
+      );
+    },
+    onSuccess: () => invalidateLessonNotes(qc),
+  });
+}
+
+export function useRemoveMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<{ ok: true }>(() =>
+        api.api.materials[":id"].$delete({ param: { id } }),
+      ),
+    onSuccess: () => invalidateLessonNotes(qc),
+  });
+}
+
+export function useLessonNoteSummary() {
+  return useQuery({
+    queryKey: ["lesson-notes-summary"],
+    queryFn: () =>
+      call<{ items: LessonNoteSummary[] }>(() =>
+        api.api["lesson-notes"].summary.$get(),
+      ),
+  });
+}
+
+export function useRemovedLessonNotes() {
+  return useQuery({
+    queryKey: ["lesson-notes-removed"],
+    queryFn: () =>
+      call<{ items: RemovedLessonNote[] }>(() =>
+        api.api["lesson-notes"].removed.$get(),
+      ),
+  });
+}
+
+/** The warning header the export routes set (`WARNING_HEADER` in the API). */
+const EXPORT_WARNING = "X-Planner-Warning";
+export type TeamsPost = InferResponseType<
+  typeof api.api.export.teams.$get,
+  200
+>;
+
+/** What a failed export answered, in the API's own words. */
+async function exportError(res: Response): Promise<ApiError> {
+  const body = (await res.json().catch(() => null)) as {
+    error?: { code?: string; message?: string };
+  } | null;
+  return new ApiError(
+    res.status,
+    body?.error?.code ?? "unknown",
+    body?.error?.message ?? `The planner answered with status ${res.status}.`,
+  );
+}
+
+/**
+ * Builds the fortnight's workbook and keeps it in the page. Nothing is saved to
+ * disk until she chooses to; the warning arrives with the file, so it can be
+ * shown first.
+ */
+export function useExportFortnight() {
+  return useMutation({
+    mutationFn: async (w1: string) => {
+      let res: Response;
+      try {
+        res = await api.api.export["fortnight.xlsx"].$get({ query: { w1 } });
+      } catch {
+        throw new PlannerNotRunning();
+      }
+      if (!res.ok) throw await exportError(res);
+      return {
+        blob: await res.blob(),
+        warning: res.headers.get(EXPORT_WARNING),
+        fileName: `fortnight-${w1}.xlsx`,
+      };
+    },
+  });
+}
+
+export function useExportTeams() {
+  return useMutation({
+    mutationFn: (args: { groupId: string; weekOf: string }) =>
+      call<TeamsPost>(() => api.api.export.teams.$get({ query: args })),
+  });
+}

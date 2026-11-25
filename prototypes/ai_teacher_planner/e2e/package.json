@@ -1,0 +1,15 @@
+{
+  "name": "@planner/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "e2e": "bddgen -c playwright.config.ts && playwright test -c playwright.config.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.1",
+    "playwright-bdd": "9.2.1"
+  }
+}

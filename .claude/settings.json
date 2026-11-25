@@ -9,7 +9,32 @@
       "Read(**/*token_cache*)",
       "Read(**/.msal_cache*)",
       "Read(~/.azure/**)",
-      "Read(~/.cache/automation_flows/**)"
+      "Read(~/.cache/automation_flows/**)",
+      "Read(/prototypes/resources/ibdp/EE/**)",
+      "Read(/prototypes/resources/ibdp/IA/IAs 2025/**)",
+      "Read(/prototypes/resources/ibdp/IA/IA 2026/**)",
+      "Read(/prototypes/resources/ibdp/Scanned exams/**)",
+      "Read(/prototypes/resources/ibdp/ibdp Reports/**)",
+      "Read(/prototypes/resources/ibdp/Assessments/**)",
+      "Read(/prototypes/resources/ial/Report Templates/**)",
+      "Read(/prototypes/resources/ial/ial Mocks/**)",
+      "Read(/prototypes/resources/igcse/Assessments/Mock/**)",
+      "Read(/prototypes/resources/igcse/igcse Exam Preparation/IGCSE RAG Tracker.docx)",
+      "Read(/prototypes/resources/**/*Sample Answers*)",
+      "Read(/prototypes/resources/**/*Feedback*)",
+      "Read(/prototypes/ai_teacher_planner/fixtures/deny-canary/Denied & Spaced/**)"
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "remember@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true
   }
 }

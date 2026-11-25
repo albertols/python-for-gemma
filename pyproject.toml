@@ -15,6 +15,9 @@ dev = ["pytest>=8.0", "ruff>=0.4", "pre-commit>=3.7"]
 
 [tool.uv.workspace]
 members = ["prototypes/*"]
+# prototypes/resources is Gemma's local, git-ignored teaching-resource folder,
+# not a Python package. Without this, `uv sync` fails on machines that have it.
+exclude = ["prototypes/resources"]
 
 [tool.uv.sources]
 ai-teacher-planner = { workspace = true }
@@ -24,6 +27,8 @@ ai-examiner = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "python_course", "prototypes"]
+# Never walk the 5 GB resources folder, the planner's local data, or JS deps.
+norecursedirs = [".*", "node_modules", "dist", "build", "resources", "data", "*.egg-info"]
 markers = ["homework: Gemma's exercises — excluded from CI, run per-module"]
 addopts = "-m 'not homework'"
 

@@ -1,0 +1,41 @@
+{
+  "courseId": "syn-econ",
+  "board": "Invented Board",
+  "unitsInScope": ["Unit 1"],
+  "chapters": [
+    {
+      "number": "1",
+      "title": "Markets"
+    },
+    {
+      "number": "2",
+      "title": "Demand"
+    },
+    {
+      "number": "3",
+      "title": "Supply"
+    },
+    {
+      "number": "4",
+      "title": "Price"
+    },
+    {
+      "number": "5",
+      "title": "Elasticity"
+    },
+    {
+      "number": "6",
+      "title": "Costs"
+    }
+  ],
+  "pages": [
+    {
+      "number": 1,
+      "text": "Invented Board Economics Specification\nUnit 1 Markets and prices\n1.1 Demand and the demand curve\n1.2 Supply and the supply curve\n1.3 Price and equilibrium\nUnit 2 Firms and costs"
+    },
+    {
+      "number": 2,
+      "text": "1.4 Elasticity of demand (higher level only)\n2.1 Short run and long run costs"
+    }
+  ]
+}

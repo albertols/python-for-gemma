@@ -1,0 +1,1 @@
+CANARY-ALLOWED: this file sits beside the denied folder and must stay readable.

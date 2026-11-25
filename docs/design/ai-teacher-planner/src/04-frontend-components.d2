@@ -1,0 +1,49 @@
+...@_style
+
+vars: {
+  d2-legend: {
+    l1: "Our code" {class: concept}
+    l4: "AI involved" {class: ai}
+    l5: "Later" {class: later}
+  }
+}
+
+title: |md
+  # Frontend screens: six built, five to come
+  Six screens exist after M2; the purple ones are where AI shows up. The grey ones belong to M3 to M7.
+| {near: top-center}
+
+grid-columns: 1
+grid-gap: 70
+
+screens: "Screens built" {
+  class: group
+  grid-rows: 2
+  grid-columns: 3
+  grid-gap: 16
+
+  today: "Today\nlessons with the plan's lesson,\nweekly check-in (one click a group),\nreminders, cancel lessons, to-do notes,\nlesson notes, out-of-date banner" {class: concept}
+  board: "Fortnight board\nlesson cards and states, spare lessons,\ndeclared band, class filter, undo,\nexport menu, out-of-date banner" {class: concept}
+  sow: "Scheme of work\nlive fit totals, import preview,\nAI counts as differences,\nout-of-date banner" {class: ai}
+  audit: "Slot audit\nlost lessons and why,\nlast lessons, official exams" {class: concept}
+  setup: "Setup\ncalendar + corrections, timetable\n(and a picture of it), cancelled lessons,\nevents, exams, positions + ask for a plan" {class: ai}
+  packreview: "Curriculum and pack review\ncourses, units, spec points,\nchapter links, AI reasons, lock" {class: ai}
+}
+
+shared: "Shared pieces and the API\nsee diagram 12" {class: concept}
+
+later: "Screens later" {
+  class: group
+  style.stroke-dash: 4
+  grid-rows: 1
+  grid-columns: 5
+  grid-gap: 16
+
+  parity: "Parity (M3)\nslack, gaps,\ncatch-up options" {class: later}
+  hl: "IB HL helper (M4)\nteachable now,\nunlocks on" {class: later}
+  coverage: "Coverage (M6)\ntaught, assessed\nper spec point" {class: later}
+  assess: "Assessments (M6)\nand reports\nclashes, deadlines" {class: later}
+  resources: "Resources (M7)\nrefresher, cover,\nindependent task" {class: later}
+}
+
+screens -> shared: "every screen uses" {class: flow}

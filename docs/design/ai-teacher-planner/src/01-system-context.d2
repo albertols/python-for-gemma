@@ -1,0 +1,68 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+  d2-legend: {
+    l1: "Our code" {class: concept}
+    l2: "Data that stays on the Mac" {class: win}
+    l4: "AI involved" {class: ai}
+    l5: "Later" {class: later}
+  }
+}
+
+title: |md
+  # System context: who and what the planner touches
+  One teacher, one Mac. Nothing in v1 is hosted.
+| {near: top-center}
+
+direction: right
+
+gemma: "Gemma\nBusiness teacher" {
+  shape: person
+  style: {fill: "#4F86C6"; stroke: "#2B4C7E"; font-color: "#2D3748"}
+}
+
+mac: "Gemma's Mac" {
+  class: group
+  style.stroke-dash: 4
+
+  planner: "AI Teacher Planner\nlocal web app" {class: concept}
+  calendar: "School calendar workbook\nthe school updates it" {
+    class: win
+    shape: page
+  }
+  resources: "Teaching resources folder\nOneDrive copy, git-ignored" {
+    class: win
+    shape: cylinder
+  }
+  exports: "Exported files\nExcel fortnight,\nTeams-ready text\n(Word, PowerPoint: later)" {
+    class: win
+    shape: page
+  }
+  claude: "Claude Code\nher own sign-in" {class: ai}
+
+  calendar -> planner: "imported,\nre-imported" {class: flow}
+  resources -> planner: "allowlisted\nfiles only" {class: flow}
+  planner -> exports: "exports" {class: flow}
+  planner -> claude: "text in,\nJSON out" {class: aiflow}
+}
+
+model: "Claude model\n(Anthropic)" {class: ai}
+
+later: "Later, not in v1" {
+  class: group
+  style.stroke-dash: 4
+
+  m365: "Microsoft 365\nTeams, OneDrive sync" {class: later}
+  views: "Student and Head of\nDepartment views" {class: later}
+  providers: "Other AI providers\nAPI key, Ollama, Gemini" {class: later}
+}
+
+gemma -> mac.planner: "plans, reviews,\naccepts" {class: flow}
+mac.claude -> model: "extracted\ntext only" {class: aiflow}
+mac.planner -> later: {
+  class: flow
+  style.stroke-dash: 4
+}

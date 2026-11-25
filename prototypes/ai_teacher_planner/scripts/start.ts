@@ -1,0 +1,170 @@
+// One-command start. Run: pnpm start
+// Builds the web app when it is out of date, starts the API (which also serves
+// the web app), waits until it answers, opens the browser and keeps running
+// until you press Ctrl+C. PLANNER_NO_OPEN=1 skips opening the browser.
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
+import fs from "node:fs";
+import net from "node:net";
+import path from "node:path";
+import { loadConfig } from "../apps/api/src/config.ts";
+
+const APP_ROOT = path.resolve(import.meta.dirname, "..");
+
+function newestMtime(target: string): number {
+  if (!fs.existsSync(target)) return 0;
+  const stat = fs.statSync(target);
+  if (!stat.isDirectory()) return stat.mtimeMs;
+  let newest = 0;
+  for (const entry of fs.readdirSync(target)) {
+    newest = Math.max(newest, newestMtime(path.join(target, entry)));
+  }
+  return newest;
+}
+
+/** Everything the web build reads: its own files and each shared package's source. */
+function buildInputs(appRoot: string): string[] {
+  const web = path.join(appRoot, "apps/web");
+  const packagesDir = path.join(appRoot, "packages");
+  const packages = fs.existsSync(packagesDir)
+    ? fs.readdirSync(packagesDir).map((p) => path.join(packagesDir, p, "src"))
+    : [];
+  return [
+    path.join(web, "src"),
+    path.join(web, "index.html"),
+    path.join(web, "vite.config.ts"),
+    ...packages,
+  ];
+}
+
+/** True when the web build is missing or older than any of its inputs. */
+export function needsBuild(appRoot: string): boolean {
+  const built = path.join(appRoot, "apps/web/dist/index.html");
+  if (!fs.existsSync(built)) return true;
+  const builtAt = fs.statSync(built).mtimeMs;
+  return buildInputs(appRoot).some((input) => newestMtime(input) > builtAt);
+}
+
+type PortState = "free" | "planner" | "other";
+
+async function isPlanner(port: number): Promise<boolean> {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/health`, {
+      signal: AbortSignal.timeout(1500),
+    });
+    const body = (await res.json()) as { ok?: unknown };
+    return res.ok && body.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+function accepts(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ port, host: "127.0.0.1" });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
+}
+
+async function portState(port: number): Promise<PortState> {
+  if (await isPlanner(port)) return "planner";
+  return (await accepts(port)) ? "other" : "free";
+}
+
+function openBrowser(url: string): void {
+  if (process.env.PLANNER_NO_OPEN === "1") return;
+  const opener = process.platform === "darwin" ? "open" : "xdg-open";
+  spawn(opener, [url], { stdio: "ignore", detached: true })
+    .on("error", () => console.log(`Open ${url} in your browser.`))
+    .unref();
+}
+
+async function waitForPlanner(
+  port: number,
+  child: ChildProcess,
+): Promise<boolean> {
+  for (let i = 0; i < 60; i++) {
+    if (child.exitCode !== null || child.signalCode !== null) return false;
+    if (await isPlanner(port)) return true;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return false;
+}
+
+async function main(): Promise<number> {
+  const config = loadConfig(process.env);
+  const url = `http://127.0.0.1:${config.port}`;
+
+  const state = await portState(config.port);
+  if (state === "planner") {
+    console.log(`The planner is already running at ${url}.`);
+    openBrowser(url);
+    return 0;
+  }
+  if (state === "other") {
+    console.error(
+      `Port ${config.port} is in use by something that is not the planner. Close it, or start the planner on another port with PLANNER_PORT=<number>.`,
+    );
+    return 1;
+  }
+
+  if (needsBuild(APP_ROOT)) {
+    console.log("Building the web app...");
+    const build = spawnSync("pnpm", ["--filter", "@planner/web", "build"], {
+      cwd: APP_ROOT,
+      stdio: "inherit",
+    });
+    if (build.error) {
+      console.error(
+        `Could not run the web build: ${build.error.message}. If pnpm is "not found", start with: ~/.local/bin/mise exec -- pnpm start`,
+      );
+      return 1;
+    }
+    if (build.status !== 0) {
+      console.error("The web app did not build. See the messages above.");
+      return 1;
+    }
+  }
+
+  const api = spawn(
+    process.execPath,
+    [path.join(APP_ROOT, "apps/api/src/main.ts")],
+    { cwd: APP_ROOT, stdio: "inherit", env: process.env },
+  );
+  let stopping = false;
+  const stop = () => {
+    if (stopping) process.exit(1); // a second Ctrl+C ends us for certain
+    stopping = true;
+    api.kill("SIGTERM");
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  const exited = new Promise<number>((resolve) =>
+    api.on("exit", (code) => resolve(code ?? 0)),
+  );
+
+  if (!(await waitForPlanner(config.port, api))) {
+    if (stopping) {
+      console.log("Stopped.");
+      return 0;
+    }
+    api.kill("SIGTERM");
+    console.error("The planner did not start. See the messages above.");
+    return 1;
+  }
+  console.log(`The planner is running at ${url}. Press Ctrl+C to stop it.`);
+  openBrowser(url);
+  return exited;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename) {
+  try {
+    process.exit(await main());
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+}

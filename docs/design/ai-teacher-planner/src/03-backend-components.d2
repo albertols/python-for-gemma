@@ -1,0 +1,66 @@
+...@_style
+...@_legend
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+}
+
+title: |md
+  # Backend components: ports and adapters
+  Use cases sit in the middle. Everything that touches disk, the network or a model is an adapter behind a port.
+| {near: top-center}
+
+direction: down
+
+http: "HTTP routes (Host allowlist: 127.0.0.1 and\nlocalhost on our port only)\nHono + OpenAPI: today (the plan's lesson and assessment),\ncalendar, corrections, events, disruptions, exams, todos,\nslots, export (fortnight .xlsx, Teams text),\nlesson notes + materials (uploads),\nAI jobs and review; courses, packs, scheme + import\npreview + suggest-counts (starts the AI job), positions, plans\n(+ lessons without a slot), placements (+ declared), check-in" {class: concept}
+
+core: "Core of apps/api" {
+  class: group
+
+  usecases: "Use cases\nimport, corrections, disruptions, events,\nexams, todos, review AI item, export data;\nloadPlanInputs,\npropose, accept, undo, check-in, seedM2" {class: concept}
+  jobs: "Job queue\none AI job at a time,\nasks available() first,\nplain-words progress (SSE)" {class: concept}
+
+  usecases -> jobs: "AI work" {class: flow}
+}
+
+engine: "Engine: packages/domain\npure TypeScript, no IO" {class: concept}
+
+adapters: "Driven adapters, each behind a port" {
+  class: group
+
+  repo: "Repository ports\n+ SQLite adapter (Drizzle)\nmigrations 0001-0011: M1b rows, AI runs\nand items, courses, scheme, decisions,\nfacts, plan revisions, lesson notes" {class: concept}
+  packs: "PackStore\npack JSON files,\nlocked hash in SQLite" {class: concept}
+  importers: "packages/importers\ncalendar xlsx, specification PDF text,\nplanning xlsx, assessment schedule docx\n(to scheme items), resource index" {class: concept}
+  exporters: "packages/exporters\nExcel fortnight (exceljs), Teams text;\nleaves out AI items not yet reviewed\n(docx, pptx: later)" {class: concept}
+  content: "packages/content-creator (M7)\nrefresher, cover lesson,\nindependent task" {class: later}
+  port: "packages/ai\nAiProvider port" {class: ai}
+
+  content -> port: {class: aiflow}
+}
+
+materials: "MaterialStore\ndata/materials/<uuid>.<ext>\nextension + magic bytes, 25 MB\nstreamed, .jpeg stored as .jpg,\nmacro and OLE parts refused,\nstart-up sweep of old .part files" {class: warn}
+db: "SQLite file + pack files\ndata/, git-ignored" {
+  class: win
+  shape: cylinder
+}
+gateway: "ResourceGateway\nallowlist only; find() lists\nplanning-files (Planning/ only)" {class: warn}
+cli: "ClaudeCodeCliProvider\nclaude -p" {class: ai}
+fake: "FakeAiProvider\ntests and CI" {class: ai}
+
+http -> core.usecases: {class: flow}
+core.usecases -> engine: "calls" {class: flow}
+core.usecases -> adapters.repo: {class: flow}
+core.usecases -> adapters.importers: {class: flow}
+core.usecases -> adapters.exporters: "display states in,\nbytes + warning out" {class: flow}
+core.jobs -> adapters.content: {class: aiflow}
+core.jobs -> adapters.port: "text in,\nJSON out" {class: aiflow}
+adapters.repo -> db: {class: flow}
+core.usecases -> materials: "uploads, downloads" {class: flow}
+materials -> db: "files, not in backups" {class: flow}
+core.usecases -> adapters.packs: {class: flow}
+adapters.packs -> db: "data/packs/" {class: flow}
+adapters.importers -> gateway: "every file read" {class: flow}
+adapters.port -> cli: {class: aiflow}
+adapters.port -> fake: {class: aiflow}

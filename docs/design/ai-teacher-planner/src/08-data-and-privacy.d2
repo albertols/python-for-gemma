@@ -1,0 +1,69 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+  d2-legend: {
+    l2: "Data that stays on the Mac" {class: win}
+    l3: "Guard" {class: warn}
+    l6: "Denied" {class: denied}
+  }
+}
+
+title: |md
+  # Data and privacy: what stays on the Mac and what is denied
+  Everything she owns stays here. Student work, textbooks and credentials are refused at a guard. v1 stores no student data.
+| {near: top-center}
+
+direction: right
+
+stays: "Stays on the Mac" {
+  class: group
+
+  resources: "Resources folder\ngit-ignored" {
+    class: win
+    shape: cylinder
+  }
+  db: "SQLite file\nplans, decisions, AI log" {
+    class: win
+    shape: cylinder
+  }
+  materials: "Lesson materials\ndata/materials/, uuid names" {
+    class: win
+    shape: cylinder
+  }
+  uploads: "Timetable pictures\ndata/uploads/, deleted after the job" {
+    class: win
+    shape: cylinder
+  }
+  packs: "Curriculum packs\nbuilt locally" {
+    class: win
+    shape: cylinder
+  }
+}
+
+denied: "Denied" {
+  class: group
+
+  student: "Student-work folders\nessays, IAs, scanned\nexams, reports" {class: denied}
+  textbooks: "Whole textbooks" {class: denied}
+  creds: "Credentials\nand tokens" {class: denied}
+}
+
+gateway: "ResourceGateway\nallowlist" {class: warn}
+upload: "Upload checks\ntype, first bytes, size" {class: warn}
+she: "Gemma attaches a file" {class: concept}
+denyrules: "Claude deny rules" {class: warn}
+gitignore: ".gitignore" {class: warn}
+github: "GitHub repo" {class: later}
+
+stays.resources -> gateway: "planning sheets,\nspecs, chapter slides" {class: flow}
+she -> upload: "multipart, x-planner-upload" {class: flow}
+upload -> stays.materials: "stored by uuid" {class: flow}
+upload -> stays.uploads: "pictures, stored by uuid" {class: flow}
+denied.student -> gateway: "refused" {class: blocked}
+denied.textbooks -> gateway: "refused" {class: blocked}
+denied.creds -> denyrules: "never read" {class: blocked}
+stays -> gitignore: {class: flow}
+gitignore -> github: "never committed" {class: blocked}

@@ -1,0 +1,335 @@
+{
+  "id": "2026-27",
+  "validFrom": "2026-08-31",
+  "entries": [
+    {
+      "week": "W1",
+      "weekday": 1,
+      "period": 1,
+      "groupId": "IB H",
+      "room": "605"
+    },
+    {
+      "week": "W1",
+      "weekday": 2,
+      "period": 1,
+      "groupId": "13 5",
+      "room": "504"
+    },
+    {
+      "week": "W1",
+      "weekday": 4,
+      "period": 1,
+      "groupId": "IB S",
+      "room": "605"
+    },
+    {
+      "week": "W1",
+      "weekday": 1,
+      "period": 2,
+      "groupId": "IB H",
+      "room": "605"
+    },
+    {
+      "week": "W1",
+      "weekday": 3,
+      "period": 2,
+      "groupId": "13 1",
+      "room": "206"
+    },
+    {
+      "week": "W1",
+      "weekday": 4,
+      "period": 2,
+      "groupId": "IB S",
+      "room": "605"
+    },
+    {
+      "week": "W1",
+      "weekday": 1,
+      "period": 3,
+      "groupId": "11D",
+      "room": "207"
+    },
+    {
+      "week": "W1",
+      "weekday": 2,
+      "period": 3,
+      "groupId": "11D",
+      "room": "207"
+    },
+    {
+      "week": "W1",
+      "weekday": 4,
+      "period": 3,
+      "groupId": "13 3",
+      "room": "202"
+    },
+    {
+      "week": "W1",
+      "weekday": 2,
+      "period": 4,
+      "groupId": "11D",
+      "room": "207"
+    },
+    {
+      "week": "W1",
+      "weekday": 4,
+      "period": 4,
+      "groupId": "13 3",
+      "room": "202"
+    },
+    {
+      "week": "W1",
+      "weekday": 1,
+      "period": 5,
+      "groupId": "13 1",
+      "room": "206"
+    },
+    {
+      "week": "W1",
+      "weekday": 2,
+      "period": 5,
+      "groupId": "13 3",
+      "room": "202"
+    },
+    {
+      "week": "W1",
+      "weekday": 3,
+      "period": 5,
+      "groupId": "IB S",
+      "room": "605"
+    },
+    {
+      "week": "W1",
+      "weekday": 1,
+      "period": 6,
+      "groupId": "13 5",
+      "room": "504"
+    },
+    {
+      "week": "W1",
+      "weekday": 4,
+      "period": 6,
+      "groupId": "13 5",
+      "room": "504"
+    },
+    {
+      "week": "W1",
+      "weekday": 5,
+      "period": 6,
+      "groupId": "13 1",
+      "room": "206"
+    },
+    {
+      "week": "W2",
+      "weekday": 1,
+      "period": 1,
+      "groupId": "IB H",
+      "room": "605"
+    },
+    {
+      "week": "W2",
+      "weekday": 4,
+      "period": 1,
+      "groupId": "IB S",
+      "room": "605"
+    },
+    {
+      "week": "W2",
+      "weekday": 1,
+      "period": 2,
+      "groupId": "IB H",
+      "room": "605"
+    },
+    {
+      "week": "W2",
+      "weekday": 2,
+      "period": 2,
+      "groupId": "13 5",
+      "room": "504"
+    },
+    {
+      "week": "W2",
+      "weekday": 3,
+      "period": 2,
+      "groupId": "13 1",
+      "room": "206"
+    },
+    {
+      "week": "W2",
+      "weekday": 4,
+      "period": 2,
+      "groupId": "IB S",
+      "room": "605"
+    },
+    {
+      "week": "W2",
+      "weekday": 2,
+      "period": 3,
+      "groupId": "11D",
+      "room": "207"
+    },
+    {
+      "week": "W2",
+      "weekday": 4,
+      "period": 3,
+      "groupId": "13 3",
+      "room": "202"
+    },
+    {
+      "week": "W2",
+      "weekday": 2,
+      "period": 4,
+      "groupId": "11D",
+      "room": "207"
+    },
+    {
+      "week": "W2",
+      "weekday": 4,
+      "period": 4,
+      "groupId": "13 3",
+      "room": "202"
+    },
+    {
+      "week": "W2",
+      "weekday": 5,
+      "period": 4,
+      "groupId": "13 5",
+      "room": "504"
+    },
+    {
+      "week": "W2",
+      "weekday": 1,
+      "period": 5,
+      "groupId": "13 1",
+      "room": "206"
+    },
+    {
+      "week": "W2",
+      "weekday": 2,
+      "period": 5,
+      "groupId": "13 3",
+      "room": "202"
+    },
+    {
+      "week": "W2",
+      "weekday": 3,
+      "period": 5,
+      "groupId": "IB S",
+      "room": "605"
+    },
+    {
+      "week": "W2",
+      "weekday": 4,
+      "period": 6,
+      "groupId": "13 5",
+      "room": "504"
+    },
+    {
+      "week": "W2",
+      "weekday": 5,
+      "period": 6,
+      "groupId": "13 1",
+      "room": "206"
+    }
+  ],
+  "duties": [
+    {
+      "week": "W1",
+      "weekday": 5,
+      "period": 1,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 2,
+      "period": 2,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 5,
+      "period": 2,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 3,
+      "period": 3,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 5,
+      "period": 3,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 1,
+      "period": 4,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 3,
+      "period": 4,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 5,
+      "period": 4,
+      "label": "400"
+    },
+    {
+      "week": "W1",
+      "weekday": 2,
+      "period": 6,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 2,
+      "period": 1,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 5,
+      "period": 1,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 5,
+      "period": 2,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 3,
+      "period": 3,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 5,
+      "period": 3,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 3,
+      "period": 4,
+      "label": "400"
+    },
+    {
+      "week": "W2",
+      "weekday": 2,
+      "period": 6,
+      "label": "400"
+    }
+  ]
+}

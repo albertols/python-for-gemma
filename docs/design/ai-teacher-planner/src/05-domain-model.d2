@@ -1,0 +1,99 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: tala
+  }
+}
+
+title: |md
+  # Domain model: what is stored and what is derived
+  Her decisions are stored rows. Slots, lessons and placements are worked out from them. An accepted plan is saved as a revision.
+| {near: top-center}
+
+setup: "Calendar and timetable" {
+  class: group
+
+  day: "CalendarDay\ndate, week label, pupil day" {class: win}
+  timetable: "TimetableVersion\nweek, weekday, period, group" {class: win}
+  grp: "Group\ncode, year, track, parallel set" {class: win}
+  coursenode: "Course\nexam board, revision weeks;\nseeded like the groups" {class: win}
+  report: "ReportWindow\nfeeds reminders" {class: win}
+}
+
+pack: "Course pack (locked)" {
+  class: group
+
+  course: "CurriculumPack\nboard, subject, version, units; a JSON\nfile, its SHA-256 hash kept in SQLite" {class: win}
+  chapter: "PackChapter\nnumber, spec points it links,\nhl only, page" {class: win}
+  spec: "SpecPoint\ncode, core or hl-only, unit\n(in scope comes from the unit)" {class: win}
+  speclink: "packRefs\nitem to chapter ids" {class: win}
+}
+
+decisions: "Her decisions and recorded facts (stored rows)" {
+  class: group
+
+  item: "SowItem\norder, kind, track, lessons,\nprereqs, provenance" {class: win}
+  override: "GroupOverride\nlessons for one group" {class: win}
+  assessment: "AssessmentSpec\ndate, type, marks, length,\nwhole slot or in lesson" {class: win}
+  pin: "Pin and Merge\nlesson to a slot, not-after,\ntwo lessons in one slot" {class: win}
+  position: "Position and LessonLogEntry\nnext lesson, items done;\nwhat happened in a past lesson" {class: win}
+  labelfix: "LabelCorrection and\nFindingResolution\nher day label, her import decision" {class: win}
+  exam: "ExternalExam\ncode, date, session, groups" {class: win}
+  disruption: "Disruption\nscope, dates, effect, reason" {class: win}
+  eventconfirm: "EventClassification\nwording, year, dates, groups,\nperiods, until" {class: win}
+  todo: "TodoNote\ntext, day or week, date, done" {class: win}
+  airun: "AiRun and AiItem\nrun outcome; each item waits\nfor her review, with its course" {class: win}
+}
+
+derived: "Derived by the engine" {
+  class: group
+
+  slot: "Slot\ngroup, date, period, status" {class: concept}
+  lesson: "Lesson\nitem#n, per group;\nassessments are not lessons" {class: concept}
+  placement: "Placement\nlesson, slot, state (history: assumed,\ntaught, skipped); spare lessons" {class: concept}
+  anchors: "AssessmentPlacement, Conflict,\nCheckpoint: assessment, block end,\nrevision, exam; Overflow, absorbed" {class: concept}
+}
+
+proposal: "Proposal\ncandidate, diff, PlanMetrics\nbefore and after; not stored" {class: concept}
+revision: "PlanChain and PlanRevision\nimmutable snapshots (JSON), each points\nto its parent; head; undo = parent" {
+  class: win
+  shape: cylinder
+}
+provenance: "Provenance\norigin: engine, AI, teacher, import;\nAI run, sources, review state" {class: ai}
+
+setup.day -> derived.slot: "label and date" {class: flow}
+decisions.labelfix -> setup.day: "overrides the label,\nnever lost on re-import" {class: flow}
+setup.timetable -> derived.slot: "periods" {class: flow}
+setup.grp -> setup.coursenode: "belongs to" {class: flow}
+setup.coursenode -> pack.course: "follows" {class: flow}
+setup.coursenode -> derived.anchors: "revision weeks" {class: flow}
+decisions.disruption -> derived.slot: "cancels or covers" {class: flow}
+decisions.eventconfirm -> derived.slot: "cancels only once confirmed" {class: flow}
+pack.course -> decisions.item: "ordered items" {class: flow}
+decisions.item -> derived.lesson: "one per lesson" {class: flow}
+decisions.override -> derived.lesson: "changes the count\nfor one group" {class: flow}
+decisions.item -> pack.speclink: {class: flow}
+pack.speclink -> pack.chapter: {class: flow}
+pack.chapter -> pack.spec: "unmapped in-scope points and\nunchecked units block the lock" {class: flow}
+decisions.assessment -> decisions.item: "assesses" {class: flow}
+decisions.pin -> derived.placement: "fixes" {class: flow}
+decisions.position -> derived.lesson: "declares what is behind her" {class: flow}
+decisions.position -> derived.placement: "the log settles history" {class: flow}
+decisions.assessment -> derived.anchors: "anchored to a slot" {class: flow}
+derived.placement -> derived.anchors: "unplaced or refused" {class: flow}
+decisions.exam -> derived.anchors: "a checkpoint by its code,\nthe plan's last" {class: flow}
+derived.lesson -> derived.placement: {class: flow}
+derived.slot -> derived.placement: {class: flow}
+derived.placement -> proposal: "diffed against the head" {class: flow}
+proposal -> revision: "saved on accept, only if the head\nand the candidate are unchanged" {class: flow}
+provenance -> decisions: "on every stored item" {class: aiflow}
+provenance -> decisions.airun: "review state" {class: aiflow}
+
+vars: {
+  d2-legend: {
+    l1: "Derived by the engine;\nkept only in revision snapshots" {class: concept}
+    l2: "Stored on the Mac" {class: win}
+    l4: "Records AI involvement" {class: ai}
+  }
+}

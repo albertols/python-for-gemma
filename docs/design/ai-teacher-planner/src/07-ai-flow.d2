@@ -1,0 +1,55 @@
+...@_style
+
+title: |md
+  # AI flow: from a button to a reviewed suggestion
+  The model receives text (or one picture she uploaded) and returns JSON. It reads no files and writes nothing. Gemma reviews before anything is used.
+| {near: top-center}
+
+flow: "" {
+  shape: sequence_diagram
+
+  teacher: "Gemma" {class: concept}
+  web: "Web app" {class: concept}
+  api: "API job" {class: concept}
+  gateway: "ResourceGateway" {class: warn}
+  provider: "AiProvider (packages/ai)\nregistry, prompt builder, fake for tests" {class: ai}
+  adapter: "ClaudeCodeCliProvider\nflags, stream parser, schema check" {class: ai}
+  cli: "claude -p (child process)" {class: ai}
+  model: "Claude model" {class: ai}
+
+  ask: "1. Ask" {
+    teacher -> web: "clicks an AI action"
+    web -> api: "start job"
+    api -> api: "refused with a reason if AI is off or signed out"
+    api -> gateway: "file for this chapter"
+    gateway -> api: "extracted text"
+    api -> api: "or a timetable picture: PNG or JPG, 5 MB,\nkept in data/uploads/,\ndeleted when the job ends"
+  }
+
+  run: "2. Run" {
+    api -> api: "queued, one job at a time"
+    api -> provider: "available()? asked again before each job"
+    api -> provider: "skill id, input JSON, text, Zod schema"
+    provider -> adapter: "skill text + input as one prompt"
+    adapter -> adapter: "a picture is read only from data/uploads/\n(path resolved and checked first)"
+    adapter -> cli: "proven flags, no API key, stdin closed\n(a picture: one stream-json line on stdin)"
+    cli -> model: "extracted text, or the picture"
+    model -> cli: "JSON"
+    cli -> adapter: "stream-json lines"
+    adapter -> provider: "output checked against the Zod schema"
+    provider -> api: "schema-valid data"
+    api -> web: "progress events: plain words, never her text or a path"
+  }
+
+  store: "3. Store" {
+    api -> api: "run and items saved as 'suggested'\n(a failure is one sentence, no items)"
+    api -> web: "result"
+    web -> teacher: "sparkle badge, sources;\na suggested timetable sits beside hers,\nchanged cells marked"
+  }
+
+  review: "4. Review" {
+    teacher -> web: "accept, edit or reject"
+    web -> api: "review state saved, once (a second review is refused)"
+    api -> api: "applied with provider, model, skill, time and review state"
+  }
+}

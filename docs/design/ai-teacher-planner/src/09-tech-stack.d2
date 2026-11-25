@@ -1,0 +1,58 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+  d2-legend: {
+    l1: "Our code and tools" {class: concept}
+    l2: "Data that stays on the Mac" {class: win}
+    l4: "AI involved" {class: ai}
+  }
+}
+
+title: |md
+  # Tech stack: layers and versions
+  Every library built in milestones M1 and M2 is pinned to an exact version. Writers for Word and PowerPoint are not installed yet.
+| {near: top-center}
+
+grid-rows: 3
+grid-columns: 3
+grid-gap: 20
+
+runtime: "Runtime" {
+  class: group
+  box: "Node 26 LTS (via mise)\npnpm 12" {class: concept}
+}
+language: "Language and lint" {
+  class: group
+  box: "TypeScript 7.0.2, strict\nBiome 2.6.8" {class: concept}
+}
+web: "Web" {
+  class: group
+  box: "React 19.3.1, Vite 8.3.8\nreact-router 8.5.2\n@tanstack/react-query 5.108.0\nTailwind 4.3.5, shadcn-style parts" {class: concept}
+}
+api: "API" {
+  class: group
+  box: "Hono 4.13.19, @hono/node-server 2.1.11\n@hono/zod-openapi 1.6.3, Zod 4.6.7\nbusboy 1.6.0 (uploads), fflate 0.8.3" {class: concept}
+}
+data: "Data" {
+  class: group
+  box: "Drizzle 0.45.4\nbetter-sqlite3 13.2.0" {class: win}
+}
+tests: "Tests" {
+  class: group
+  box: "Vitest 5.1.0, vitest-cucumber 8.0.1\nfast-check 4.10.2\n@playwright/test 1.65.1 + installed Chrome\nplaywright-bdd 9.2.1\n@axe-core/playwright 4.14.0" {class: concept}
+}
+office: "Office files" {
+  class: group
+  box: "exceljs 4.4.0 (calendar import, Excel fortnight)\npdfjs-dist 6.5.438 (specification text)\nmammoth 1.13.0 (assessment schedule)\ndocx, pptxgenjs: later" {class: concept}
+}
+diagrams: "Diagrams" {
+  class: group
+  box: "D2 0.9 (via mise)\nMermaid for inline flows" {class: concept}
+}
+ai: "AI" {
+  class: group
+  box: "@planner/ai: AiProvider port, fake, skill registry\nClaude Code CLI adapter + stream parser\nZod 4.6.7 JSON schemas" {class: ai}
+}

@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Colours live here and nowhere else. contrast.test.ts reads this file and
+   fails if any text or group pair drops below 4.5 to 1 in either theme.
+   Dark is the default; the light theme is switched on by data-theme="light". */
+
+:root {
+  color-scheme: dark;
+  --background: #0f1218;
+  --foreground: #e8ebf0;
+  --card: #171b24;
+  --card-foreground: #e8ebf0;
+  --muted: #1f2431;
+  --muted-foreground: #a6afc0;
+  --border: #6f788b;
+  --primary: #8fb4f5;
+  --primary-foreground: #0b1020;
+  --link: #8fb4f5;
+  --danger: #ff9b95;
+  --ai: #c9a8f0;
+
+  /* Sticky notes: paper colours, each with its own text colour. */
+  --note-bg: #3b3520;
+  --note-fg: #f7efd2;
+  --note-late-bg: #4a2b27;
+  --note-late-fg: #ffe9e4;
+
+  --g1-bg: #2d3180;
+  --g1-fg: #e8eaff;
+  --g2-bg: #4b2b7a;
+  --g2-fg: #f2e8ff;
+  --g3-bg: #7a2b62;
+  --g3-fg: #ffe8f7;
+  --g4-bg: #5a6314;
+  --g4-fg: #f7fad9;
+  --g5-bg: #386a1c;
+  --g5-fg: #eaf8da;
+  --g6-bg: #1f4a14;
+  --g6-fg: #e4f4dc;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f6f7f9;
+  --foreground: #151a24;
+  --card: #ffffff;
+  --card-foreground: #151a24;
+  --muted: #e9ecf1;
+  --muted-foreground: #4a5465;
+  --border: #788193;
+  --primary: #2457b5;
+  --primary-foreground: #ffffff;
+  --link: #1d4ba0;
+  --danger: #b42318;
+  --ai: #6b3fa0;
+
+  --note-bg: #fff1b8;
+  --note-fg: #2b2410;
+  --note-late-bg: #ffd8cf;
+  --note-late-fg: #3a140c;
+
+  --g1-bg: #aab0ff;
+  --g1-fg: #101450;
+  --g2-bg: #d9b3ff;
+  --g2-fg: #2a0f4a;
+  --g3-bg: #f5a9e0;
+  --g3-fg: #4a0f3a;
+  --g4-bg: #e4f77f;
+  --g4-fg: #2f3a05;
+  --g5-bg: #b5df78;
+  --g5-fg: #1e3305;
+  --g6-bg: #5f9a3b;
+  --g6-fg: #0a1f04;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-link: var(--link);
+  --color-danger: var(--danger);
+  --color-ai: var(--ai);
+  --color-note-bg: var(--note-bg);
+  --color-note-fg: var(--note-fg);
+  --color-note-late-bg: var(--note-late-bg);
+  --color-note-late-fg: var(--note-late-fg);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+  }
+  /* Visible focus on everything that can take it. */
+  :focus-visible {
+    outline: 3px solid var(--link);
+    outline-offset: 2px;
+  }
+}

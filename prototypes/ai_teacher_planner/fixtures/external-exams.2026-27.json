@@ -1,0 +1,29 @@
+[
+  {
+    "code": "4BS1 01",
+    "title": "International GCSE Business Paper 1",
+    "date": "2027-05-12",
+    "session": "afternoon",
+    "durationMinutes": 90,
+    "groupIds": ["11D"],
+    "source": "https://qualifications.pearson.com/content/dam/pdf/Support/Examination-timetables-for-Edexcel-International-GCSE/int-gcse-summer-2027-final.pdf"
+  },
+  {
+    "code": "4BS1 02",
+    "title": "International GCSE Business Paper 2",
+    "date": "2027-05-21",
+    "session": "afternoon",
+    "durationMinutes": 90,
+    "groupIds": ["11D"],
+    "source": "https://qualifications.pearson.com/content/dam/pdf/Support/Examination-timetables-for-Edexcel-International-GCSE/int-gcse-summer-2027-final.pdf"
+  },
+  {
+    "code": "WBS14 01",
+    "title": "IAL Business Unit 4: Global Business",
+    "date": "2027-06-01",
+    "session": "morning",
+    "durationMinutes": 120,
+    "groupIds": ["13 1", "13 3", "13 5"],
+    "source": "https://qualifications.pearson.com/content/dam/pdf/Support/Examination-timetables-for-International-Advanced-Levels/ial-summer-2027-final.pdf"
+  }
+]
