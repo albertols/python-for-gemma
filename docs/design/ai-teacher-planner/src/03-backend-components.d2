@@ -34,7 +34,7 @@ adapters: "Driven adapters, each behind a port" {
   packs: "PackStore\npack JSON files,\nlocked hash in SQLite" {class: concept}
   importers: "packages/importers\ncalendar xlsx, specification PDF text,\nplanning xlsx, assessment schedule docx\n(to scheme items), resource index" {class: concept}
   exporters: "packages/exporters\nExcel fortnight (exceljs), Teams text;\nleaves out AI items not yet reviewed\n(docx, pptx: later)" {class: concept}
-  content: "packages/content-creator\nrefresher, cover lesson,\nindependent task" {class: ai}
+  content: "packages/content-creator (M7)\nrefresher, cover lesson,\nindependent task" {class: later}
   port: "packages/ai\nAiProvider port" {class: ai}
 
   content -> port: {class: aiflow}
@@ -47,7 +47,7 @@ db: "SQLite file + pack files\ndata/, git-ignored" {
 }
 gateway: "ResourceGateway\nallowlist only; find() lists\nplanning-files (Planning/ only)" {class: warn}
 cli: "ClaudeCodeCliProvider\nclaude -p" {class: ai}
-fake: "FakeAiProvider\ntests and CI" {class: later}
+fake: "FakeAiProvider\ntests and CI" {class: ai}
 
 http -> core.usecases: {class: flow}
 core.usecases -> engine: "calls" {class: flow}

@@ -38,9 +38,42 @@ pnpm start
 
 Your plan lives in the `data/` folder next to this file, on your Mac only. It never leaves your computer, and the planner makes a backup copy each day.
 
-## 🎯 What this will do for you
+## ✨ What the planner lets you do now (milestone 2)
 
-Once it's fully built, this prototype will read your real school staff
+The planner now does Unit 4 of IAL Business from start to finish, and it
+asks before it changes anything.
+
+- **Build the course pack.** The planner reads the specification and drafts
+  the units and spec points, and links your textbook chapters to them. You
+  review it, fix what is wrong and press Lock. Anything the AI wrote is
+  marked with a purple sparkle until you have reviewed it.
+- **Set up the scheme of work.** Bring in your planning sheet and assessment
+  schedule. The planner shows the lesson counts and what fits, and the
+  totals change as you type. It can suggest a different count, but only as
+  a difference you can accept or reject.
+- **Say where each group is, then ask for a plan.** You get a proposal that
+  lists every lesson that moves and why. Nothing changes until you press
+  Accept, and "Undo last change" puts the old plan back.
+- **See it on the board.** Each lesson sits on that group's own period, with
+  its chapter and "2 of 4". Spare lessons appear before an assessment. Half
+  terms and holidays have no lessons.
+- **Check in once a week.** Today asks "did these happen as planned?" for each
+  group. One click confirms the week; "Not as planned" lets you say what
+  happened and offers a new plan.
+- **Take it with you.** The Export button on the board makes an Excel file of
+  the fortnight, or a week as plain text to paste into Teams. Anything the AI
+  suggested and you have not reviewed is left out, and you are told.
+- **Read your timetable from a picture,** and keep a plan and files for each lesson.
+
+Still to come: cancelled-lesson replanning and parity (milestone 3), and the
+IB and IGCSE courses after that. The design is in the pictures linked above.
+
+Claude helps with the AI buttons, so Claude Code needs to be signed in on
+your Mac. If it is not, the AI buttons say so and everything else works.
+
+## 🎯 What the original Python scaffold was for
+
+This prototype was first meant to read your real school staff
 calendar and turn it into two things you currently have to work out by
 hand each term:
 

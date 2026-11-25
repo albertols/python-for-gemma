@@ -1,0 +1,46 @@
+...@_style
+
+vars: {
+  d2-legend: {
+    l1: "Our code" {class: concept}
+    l4: "AI involved" {class: ai}
+  }
+}
+
+title: |md
+  # Frontend shared pieces: what every screen reuses
+  Seven pieces; the purple ones are where AI shows up. Every plan change goes through the proposal dialog before it is stored.
+| {near: top-center}
+
+grid-columns: 1
+grid-gap: 70
+
+screens: "Every screen (diagram 4)" {class: group}
+
+shared: "Shared pieces" {
+  class: group
+  grid-rows: 1
+  grid-columns: 7
+  grid-gap: 16
+
+  badge: "AI badge + popover\nsparkle, dashed outline,\nprovider, model, sources" {class: ai}
+  diff: "Proposal dialog + diff\nsummary, conflicts, changes;\naccept or cancel, stale refusal" {class: concept}
+  card: "Lesson card\nlesson, state in words,\nspare lesson, assessment chip" {class: concept}
+  drawer: "Activity drawer + job chip\nevery AI run, live progress,\naccept, edit, reject" {class: ai}
+  legend: "Legend\nwhat each mark means" {class: ai}
+  client: "API client\ntyped from\nOpenAPI" {class: concept}
+  engineimport: "Engine import\ninstant previews" {class: concept}
+}
+
+outside: "What the web app talks to" {
+  class: group
+  grid-rows: 1
+  grid-columns: 2
+  grid-gap: 16
+
+  api: "Local API\nREST + progress events" {class: concept}
+  engine: "Engine: packages/domain\npure TypeScript, runs in the browser" {class: concept}
+}
+
+screens -> shared: "use" {class: flow}
+shared -> outside: "API client calls the API;\nengine import runs the engine" {class: flow}

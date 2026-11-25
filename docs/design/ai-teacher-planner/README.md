@@ -1,6 +1,6 @@
 # AI Teacher Planner: architecture at a glance
 
-Eleven diagrams, drawn as code. Read them top to bottom for the whole picture, or jump to the one you need. They show the design agreed in `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`; when the code and a diagram disagree, fix the diagram in the same commit.
+Twelve diagrams, drawn as code. Read them top to bottom for the whole picture, or jump to the one you need. They show the design agreed in `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`; when the code and a diagram disagree, fix the diagram in the same commit.
 
 **Colour key, the same in every diagram:** blue is our code, green is data that stays on the Mac, amber is a boundary or guard, purple means a model is involved, grey dashed is later work, red dashed is denied.
 
@@ -9,7 +9,7 @@ Eleven diagrams, drawn as code. Read them top to bottom for the whole picture, o
 | 1 | [System context](#1-system-context) | Who and what does the planner touch? |
 | 2 | [Containers](#2-containers) | What runs, and where? |
 | 3 | [Backend components](#3-backend-components) | How is the API put together? |
-| 4 | [Frontend components](#4-frontend-components) | Which screens exist and what do they share? |
+| 4 | [Frontend screens](#4-frontend-screens) | Which screens exist, and which are still to come? |
 | 5 | [Domain model](#5-domain-model) | What is stored and what is derived? |
 | 6 | [Scheduling pipeline](#6-scheduling-pipeline) | How does a calendar become an accepted plan? |
 | 7 | [AI flow](#7-ai-flow) | What happens when Gemma clicks an AI action? |
@@ -17,6 +17,7 @@ Eleven diagrams, drawn as code. Read them top to bottom for the whole picture, o
 | 9 | [Tech stack](#9-tech-stack) | Which tools, at which versions? |
 | 10 | [Roadmap](#10-roadmap) | What comes in v1, v2 and after? |
 | 11 | [What reaches the model](#11-what-reaches-the-model) | Which data can leave for the model, and which never does? |
+| 12 | [Frontend shared pieces](#12-frontend-shared-pieces) | Which pieces does every screen reuse? |
 
 ## 1. System context
 
@@ -36,11 +37,11 @@ Look for the direction of the arrows: use cases call ports, while disk, files an
 
 ![Backend components: HTTP routes (today with the plan's lesson and assessment for each slot, calendar, corrections, events, disruptions, exams, todos, lesson notes and materials uploads, AI jobs and review; courses, packs, scheme, import preview and suggest-counts, positions, plans with the lessons that lost their slot, placements with declared topics, check-in, export), use cases (loadPlanInputs, propose, accept, undo, check-in, export data, seedM2), job queue, engine, driven adapters (importers read calendar, specification PDF text, planning sheets and assessment schedules; exporters write the Excel fortnight and Teams text) with migrations 0001-0011, the MaterialStore for uploads and the PackStore, ResourceGateway (finds planning files under Planning/ only), SQLite file and pack files, AI providers](03-backend-components.svg)
 
-## 4. Frontend components
+## 4. Frontend screens
 
-Look for the seven shared pieces every screen reuses; the purple ones are where AI shows up in the GUI: the badge and its popover, the activity drawer with the header job chip and review buttons, and the legend. Engine output carries no badge. The scheme-of-work screen computes its fit totals in the browser from her unsaved edits, with the same engine rule the API uses. Every change to a plan (a first plan from her positions in Setup, or "See what changes" when the plan is out of date on the board, Today or the scheme) opens the one proposal dialog; the board draws the plan with lesson cards whose state is written in words. Today's weekly check-in asks "did these happen as planned?" once per group and week, and writes the lesson log.
+Look for the split: six screens are built after M2 (Today, the fortnight board, the scheme of work, the slot audit, Setup, and Curriculum with its pack review) and the purple ones are where AI shows up. The five grey dashed screens (Parity, the IB HL helper, Coverage, Assessments, Resources) belong to M3 to M7 and are not built. The scheme-of-work screen computes its fit totals in the browser from her unsaved edits, with the same engine rule the API uses. Today's weekly check-in asks "did these happen as planned?" once per group and week, and writes the lesson log; the board's export menu offers the fortnight as Excel and a group's week as Teams text.
 
-![Frontend components: eleven screens (Today with the plan's lessons and the weekly check-in, board with lesson cards, spare lessons, declared band, undo and the out-of-date banner, scheme of work with live totals, import preview and AI count differences, pack review with lock, audit with official exams, Setup with events, exams and positions), seven shared pieces (AI badge and popover, proposal dialog and diff, lesson card, activity drawer and job chip, legend, API client, engine import), and the API and engine they talk to](04-frontend-components.svg)
+![Frontend screens: six built screens (Today with the plan's lessons, the weekly check-in and lesson notes; the board with lesson cards, spare lessons, declared band, class filter, undo and the export menu; scheme of work with live totals and import preview; slot audit; Setup with timetable picture, events, exams and positions; Curriculum and pack review with lock), the shared pieces and API they use, and five later screens](04-frontend-components.svg)
 
 ## 5. Domain model
 
@@ -68,13 +69,13 @@ Look for the red dashed arrows: each one ends at a guard. Files she attaches to 
 
 ## 9. Tech stack
 
-Look for the exact versions: every library built in milestone M1 is pinned, and the office-file readers for later milestones are marked "later".
+Look for the exact versions: every library built in milestones M1 and M2 is pinned (the Excel writer and the assessment-schedule reader included), and the Word and PowerPoint writers are marked "later".
 
 ![Tech stack: runtime, language and lint, web, API, data, tests, office and PDF files, diagrams, AI, with the exact pinned versions](09-tech-stack.svg)
 
 ## 10. Roadmap
 
-Look for the order inside v1: one course end to end at a time, before any logins or hosting.
+Look for the order inside v1: one course end to end at a time, before any logins or hosting. M2 is built; M3 (disruptions, reflow, parity) is next.
 
 ![Roadmap: v1 milestones, v2, and the 360 platform](10-roadmap.svg)
 
@@ -83,6 +84,12 @@ Look for the order inside v1: one course end to end at a time, before any logins
 Look for the three purple boxes: extracted text of allowlisted files, what she types, and one timetable picture read only from `data/uploads/`. The red dashed arrow is the lesson materials, which no model reads.
 
 ![What reaches the model: extracted text through the ResourceGateway, what she types, and a timetable picture checked by the Claude adapter, all to the Claude model; lesson materials never](11-what-reaches-the-model.svg)
+
+## 12. Frontend shared pieces
+
+Look for the seven shared pieces every screen reuses; the purple ones are where AI shows up in the GUI: the badge and its popover, the activity drawer with the header job chip and review buttons, and the legend. Engine output carries no badge. Every change to a plan (a first plan from her positions in Setup, or "See what changes" when the plan is out of date on the board, Today or the scheme) opens the one proposal dialog; the board draws the plan with lesson cards whose state is written in words.
+
+![Frontend shared pieces: AI badge and popover, proposal dialog and diff, lesson card, activity drawer and job chip, legend, API client, engine import, and the API and engine they talk to](12-frontend-shared-pieces.svg)
 
 ## How to update
 
@@ -118,3 +125,13 @@ Milestone M1b (her corrections, cancelled lessons, calendar events, exams, board
 | Slot audit: lessons that will not run, last lessons and official exams | ![Audit](screens/m1b-audit.png) |
 | Board: one week, with the class filter | ![Board week](screens/m1b-board-week.png) |
 | Today in the dark theme, with to-do notes | ![Today](screens/m1b-today.png) |
+
+Milestone M2 (pack review, scheme of work, plan proposals, check-in), all from synthetic data in the dark theme:
+
+| Screen | Screenshot |
+|---|---|
+| Pack review: a draft with the AI badge, the AI's doubts and the lock panel | ![Pack review](screens/m2-pack-review.png) |
+| Scheme of work: lesson counts with live totals for each group | ![Scheme](screens/m2-scheme.png) |
+| Board: the fortnight with the plan's lessons, a spare lesson and assessments | ![Board with the plan](screens/m2-board-plan.png) |
+| Proposal: what moves and why, before she accepts | ![Proposal](screens/m2-proposal.png) |
+| Today: the weekly check-in, one click for each group | ![Check-in](screens/m2-checkin.png) |

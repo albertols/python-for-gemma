@@ -2,7 +2,7 @@
 
 A local web app that turns Gemma's syllabus, scheme of work, school calendar and two-week timetable into a dated lesson plan for each group. Fixed rules do the dates; Claude helps with judgement calls and is labelled wherever it does.
 
-**Status:** M1 built (calendar, timetable, slots, Setup, board, Today, slot audit). M1b built (her corrections: day labels, import report, cancelled lessons, calendar events she confirms, official exams, board class filter and week view, to-do notes); M2 next.
+**Status:** M1 built (calendar, timetable, slots, Setup, board, Today, slot audit). M1b built (her corrections: day labels, import report, cancelled lessons, calendar events she confirms, official exams, board class filter and week view, to-do notes); M2 built (IAL Unit 4 end to end: the AI layer, the curriculum pack, the scheme of work, sequencing with the pace line and revision block, revisions with undo, positions, the weekly check-in, exports as an Excel fortnight and Teams text, a timetable read from a picture, and plans and files for each lesson). M3 is next (disruptions, reflow, parity). The M2 gate's live steps with Gemma's real files run with Alberto.
 
 ## Read first
 - Spec: `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md` (appendix D lists what changed after approval)
@@ -11,10 +11,11 @@ A local web app that turns Gemma's syllabus, scheme of work, school calendar and
 - Decisions: `docs/adr/006` to `016` (005 is reserved for Gemma)
 - Gemma's requirements: `src/ai_teacher_planner/template_prompt.md`. It is her document: do not edit it
 
-## Map (target layout; M1 is built, the rest arrives with its milestone)
+## Map (M1, M1b and M2 are built; `content-creator` arrives with M7)
 - `packages/domain` — the engine. Pure TypeScript
-- `packages/importers`, `packages/exporters` — files in, files out
-- `packages/ai` — `AiProvider` port, Claude CLI adapter, fake adapter
+- `packages/importers` — files in: calendar workbook, specification PDF text, planning sheet, assessment schedule
+- `packages/exporters` — files out: the Excel fortnight and the Teams post, leaving out AI items she has not reviewed
+- `packages/ai` — `AiProvider` port, skill registry, stream parser, Claude CLI adapter, fake adapter, and the JSON schemas the skills answer with
 - `packages/content-creator` — resource refresher, cover lesson, independent task
 - `apps/api` — local Node API, SQLite, `ResourceGateway`; serves the built web app
 - `apps/web` — React app
@@ -26,6 +27,9 @@ Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/
 - `pnpm install`
 - `pnpm start` — builds the web app if it is out of date, starts the API on port 4319, opens the browser. Ctrl+C stops it. If a planner already answers on the port it just opens the browser
 - `pnpm typecheck` · `pnpm lint` · `pnpm test` (Vitest, all packages) · `pnpm e2e` (builds, then runs the Gherkin browser tests with axe on port 4320)
+- `pnpm ai:try` — runs one AI skill by hand against the fake or the real provider, to see what comes back (see `packages/ai/scripts/try.ts`)
+- `pnpm ai:schemas` — rewrites the JSON schemas of the AI skills from their Zod definitions
+- `pnpm pack:draft --course <id> --spec <file>` — drafts a curriculum pack from a specification PDF with Claude; Gemma reviews and locks it on the pack screen. The pack stays in `data/`
 - `pnpm seed:synthetic --data-dir <dir>` — fills a folder with the synthetic school year. Refuses `data/` unless `--force`
 - Environment variables, read once in `apps/api/src/config.ts`: `PLANNER_DATA_DIR` (default `data/`), `PLANNER_RESOURCES_DIR` (default `prototypes/resources`), `PLANNER_PORT` (4319), `PLANNER_AI` (`claude`, `fake` or `off`), `PLANNER_FIXED_TODAY` (a date such as 2026-11-20, for tests and screenshots), `PLANNER_TIME_ZONE`, `PLANNER_TEST_ROUTES=1` (browser tests only; refused outside a seeded temporary folder), `PLANNER_NO_OPEN=1` (`pnpm start` does not open a browser; use it when an agent starts the app)
 - `sh docs/design/render.sh` — re-render diagrams
@@ -56,7 +60,7 @@ Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/
 Scenario written and passing; tests written first; type-check and lint clean; no real names or student data; AI output has provenance and a review step; diagrams updated; clicked through in Chrome with Claude in Chrome and looked at as an image (screenshots are committed to `docs/design/ai-teacher-planner/screens/` at each milestone gate); Gemma has clicked through it.
 
 ## Headless Claude, as proven on 19 Nov 2026
-`claude -p "<prompt>" --model <alias> --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` unset. A task with a picture (the timetable import) uses `claude -p --input-format stream-json` with the same flags and no prompt argument, and pipes one JSON line (the image block, then the prompt) on stdin instead of `< /dev/null`; pictures are read only from `data/uploads/`. Never `--bare`: it ignores the subscription sign-in. See ADR-007.
+`claude -p "<prompt>" --model <alias> --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` unset. A task with a picture (the timetable import, built in M2) uses `claude -p --input-format stream-json` with the same flags and no prompt argument, and pipes one JSON line (the image block, then the prompt) on stdin instead of `< /dev/null`; pictures are read only from `data/uploads/`. Never `--bare`: it ignores the subscription sign-in. See ADR-007.
 
 ## Machine limits
 M1 Air, 8 GB RAM. No Docker, no database server, no long-running dev server in daily use, one Playwright worker, use the installed Chrome (`channel: 'chrome'`).

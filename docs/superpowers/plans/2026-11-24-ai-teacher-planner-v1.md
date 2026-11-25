@@ -443,7 +443,7 @@ The engine functions added in M3 to M6 are defined in the task that introduces e
 | 2 | Two-day week | `02-two-day-week` | Task 1.3 | |
 | 3 | One-day week | `03-one-day-week` | Task 1.3 | |
 | 4 | Staff days | `04-staff-days` | Task 1.3 | |
-| 5 | Schedule from my documents | `05-schedule-from-documents` | Task 2.3 (domain, `paceWorld`) and Task 2.13 (`apps/api`, full year) | Task 2.21 |
+| 5 | Schedule from my documents | `05-schedule-from-documents` | Task 2.3 (domain, `paceWorld`) and Task 2.13 (`apps/api`, full year) | Task 2.21 (`e2e/steps/schedule.steps.ts`, on the seeded `m2-planned` course) |
 | 6 | The worked example | `06-worked-example` | Task 3.4 | Task 3.9 |
 | 7 | Absence | `07-absence` | Task 3.3 | Task 3.7 |
 | 8 | Undo | `08-undo` | Task 2.5 | Task 2.17 |
@@ -466,6 +466,18 @@ M1b feature files (`features/m1b-*.feature`, each also run in the browser by `pn
 | `m1b-exams-audit` | The audit groups lost lessons by reason, lists last lessons and official exams, study leave moves the last lesson; Setup lists, adds and removes exams |
 | `m1b-board` | Board class filter, one-week view, the last day before the holiday marked on the board and on Today |
 | `m1b-todos` | To-do notes on Today: for today or the week, undone notes carry over, removal, typed text never run |
+
+M2 feature files (`features/m2-*.feature`, each also run in the browser by `pnpm e2e`, with axe checks in both themes):
+
+| Feature file | What it proves |
+|---|---|
+| `m2-pack-review` | A pack with an unmapped point cannot be locked, checked units persist, every point shows its page, AI reasons and doubts are marked until the lock, keyboard use |
+| `m2-scheme` | Totals follow edits at once, importing the planning sheet is a preview, a count suggestion is a difference she can reject, "does not fit" is said, keyboard reordering, revision weeks |
+| `m2-plan` | Positions lead to a proposal, a stale proposal is refused, spare lessons are explained, a cancelled slot waits for her answer, accepting from Today, undo then a new change, a slot gone from the timetable is never silent |
+| `m2-checkin` | One click confirms a group's week, a skipped lesson offers a new plan, weeks away, the two halves of a double, a refused save keeps what she typed |
+| `m2-ai-marking` | Suggestions are marked by icon and outline, provenance popover, layered Escape, accept and edit change the mark, the legend, progress and cancel, AI unavailable or signed out |
+| `m2-timetable-image` | A picture becomes a suggested grid beside hers; accept replaces, reject leaves hers; a non-picture is refused |
+| `m2-lesson-notes` | A plan and files for a lesson persist, the paper clip on the board, bad and oversized files are refused, a removed lesson keeps its notes |
 
 Write each feature file with the wording of spec section 17, in the task that first needs it.
 
