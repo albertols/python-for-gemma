@@ -24,6 +24,8 @@ const run = { numRuns: 60 };
 const isFlex = (id: string) => id.startsWith("flex:");
 
 interface Change {
+  /** The scheme has an undated whole-slot assessment, so assessments can be frozen. */
+  undated: boolean;
   today: string;
   counts: [number, number, number, number];
   broken: { slot: number; status: "cancelled" | "cover" }[];
@@ -31,10 +33,11 @@ interface Change {
   merges: { group: string; at: number }[];
 }
 const change: fc.Arbitrary<Change> = fc.record({
+  undated: fc.boolean(),
   today: fc.constantFrom(...TODAYS),
-  // c1 keeps at least one lesson: her position is c1#1, and one that is not in the scheme plans nothing.
+  // c1 may drop to 0: her position c1#1 is then unknown, and the freeze must still hold.
   counts: fc.tuple(
-    fc.integer({ min: 1, max: 8 }),
+    fc.nat(8),
     fc.nat(8),
     fc.nat(8),
     fc.integer({ min: 0, max: 30 }),
@@ -61,16 +64,32 @@ const change: fc.Arbitrary<Change> = fc.record({
   ),
 });
 
+/** The scheme with an undated whole-slot assessment after c2, when `undated`. */
+function worldFor(undated: boolean): PlanInputs {
+  const w = paceWorld();
+  const a1 = w.items.find((i) => i.id === "a1");
+  if (undated && a1?.assessment)
+    w.items.push({
+      ...a1,
+      id: "u1",
+      title: "u1",
+      order: 2.5,
+      assessment: { ...a1.assessment, date: null },
+    });
+  return w;
+}
+const firsts = { false: first, true: sequence(worldFor(true)) };
+
 /** The unchanged world, with a later today. */
-const unchanged = (today: string): PlanInputs => ({
-  ...paceWorld(),
+const unchanged = (today: string, undated = false): PlanInputs => ({
+  ...worldFor(undated),
   today,
-  previous: first,
+  previous: firsts[`${undated}`],
 });
 
 /** The same world with her edits to the scheme, pins, merges and slots from today on. */
 function changed(c: Change): PlanInputs {
-  const w = unchanged(c.today);
+  const w = unchanged(c.today, c.undated);
   w.items = w.items.map((i) => {
     const k = ["c1", "c2", "c3", "c4"].indexOf(i.id);
     return k >= 0 ? { ...i, lessons: c.counts[k] ?? i.lessons } : i;
@@ -114,9 +133,9 @@ describe("history properties", () => {
   test("history is deep-equal before and after any change dated on or after today", () =>
     fc.assert(
       fc.property(change, (c) => {
-        const before = sequence(unchanged(c.today)).placements.filter(
-          isHistory,
-        );
+        const before = sequence(
+          unchanged(c.today, c.undated),
+        ).placements.filter(isHistory);
         const after = sequence(changed(c)).placements.filter(isHistory);
         expect(before.length).toBeGreaterThan(0);
         expect(after).toEqual(before);
@@ -124,28 +143,89 @@ describe("history properties", () => {
       run,
     ));
 
-  test("frozen placements are copied unless their slot stopped being usable", () =>
+  test("the horizon's placements and assessments are exactly the previous plan's", () =>
     fc.assert(
       fc.property(change, (c) => {
-        const baseline = unchanged(c.today);
-        const horizon = freezeHorizonEnd(c.today, baseline.slots);
         const w = changed(c);
+        const previous = firsts[`${c.undated}`];
+        const horizon = freezeHorizonEnd(c.today, w.slots);
         const usable = new Set(
           w.slots
             .filter((s) => s.status === "open" || s.status === "cover")
             .map((s) => s.key),
         );
-        const after = sequence(w).placements;
-        const frozen = first.placements.filter((p) => {
-          if (p.slotKey === null) return false;
-          const d = slotDate(p.slotKey);
-          return (
-            d >= c.today &&
-            (horizon === null || d <= horizon) &&
-            usable.has(p.slotKey)
-          );
-        });
-        for (const p of frozen) expect(after).toContainEqual(p);
+        const inWindow = (key: string | null) =>
+          key !== null &&
+          slotDate(key) >= c.today &&
+          (horizon === null || slotDate(key) <= horizon);
+        const snap = sequence(w);
+        const byKey = (
+          a: { slotKey: string | null; lessonId?: string },
+          b: typeof a,
+        ) =>
+          (a.slotKey ?? "").localeCompare(b.slotKey ?? "") ||
+          (a.lessonId ?? "").localeCompare(b.lessonId ?? "");
+        const expected = previous.placements
+          .filter((p) => inWindow(p.slotKey) && usable.has(p.slotKey ?? ""))
+          .sort(byKey);
+        const got = snap.placements
+          .filter((p) => inWindow(p.slotKey))
+          .sort(byKey);
+        expect(got).toEqual(expected);
+        const rows = previous.assessments.filter(
+          (a) =>
+            a.itemId === "u1" && inWindow(a.slotKey) && usable.has(a.slotKey),
+        );
+        for (const r of rows) expect(snap.assessments).toContainEqual(r);
+      }),
+      run,
+    ));
+
+  test("nothing after the horizon is read from the previous plan", () =>
+    fc.assert(
+      fc.property(change, (c) => {
+        const w = changed(c);
+        const horizon = freezeHorizonEnd(c.today, w.slots);
+        const previous = firsts[`${c.undated}`];
+        const trimmed = {
+          ...previous,
+          placements: previous.placements.filter(
+            (p) =>
+              p.slotKey === null ||
+              horizon === null ||
+              slotDate(p.slotKey) <= horizon,
+          ),
+          assessments: previous.assessments.filter(
+            (a) => horizon === null || slotDate(a.slotKey) <= horizon,
+          ),
+        };
+        expect(sequence({ ...w, previous: trimmed })).toEqual(sequence(w));
+      }),
+      run,
+    ));
+
+  test("after any replan a slot holds one lesson (a merged pair counts once) or one whole assessment, never both", () =>
+    fc.assert(
+      fc.property(change, (c) => {
+        const snap = sequence(changed(c));
+        const lessonSlots = new Set<string>();
+        for (const p of snap.placements) {
+          if (
+            p.slotKey === null ||
+            p.mergedInto !== null ||
+            p.state === "skipped"
+          )
+            continue;
+          expect(lessonSlots.has(p.slotKey)).toBe(false);
+          lessonSlots.add(p.slotKey);
+        }
+        const whole = new Set<string>();
+        for (const a of snap.assessments) {
+          if (a.slotUse !== "whole") continue;
+          expect(whole.has(a.slotKey)).toBe(false);
+          whole.add(a.slotKey);
+          expect(lessonSlots.has(a.slotKey)).toBe(false);
+        }
       }),
       run,
     ));

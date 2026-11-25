@@ -350,6 +350,7 @@ export type Conflict =
   | { kind: "assessment-no-slot"; groupId: GroupId; itemId: string; date: IsoDate /* the assessment's date; today for an undated one */ }
   | { kind: "position-unknown"; groupId: GroupId; lessonId: LessonId }   // her position names a lesson not in the scheme: nothing is planned for the group
   | { kind: "pin-lesson-unknown"; pinId: string; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey | null }   // slotKey is null for a not-after pin
+  | { kind: "pin-frozen"; pinId: string; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey }   // a slot pin would move a lesson in the freeze horizon; it stays. Message: "This lesson is in the next two teaching days, so it stays where it is."
   | { kind: "pin-slot-unavailable"; pinId: string; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey }
   | { kind: "not-after-missed"; pinId: string; groupId: GroupId; lessonId: LessonId; date: IsoDate; plannedDate: IsoDate | null }
   | { kind: "hl-prerequisite"; groupId: GroupId; lessonId: LessonId; prerequisiteItemId: string; finishesOn: IsoDate | null };   // from M4

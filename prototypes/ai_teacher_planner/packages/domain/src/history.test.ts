@@ -283,7 +283,7 @@ describe("the freeze horizon", () => {
     const s = sequence(w);
     expect(keyOf(s, "13 1", "c2#1")).toEqual(["13 1|2026-11-16|5"]);
     expect(s.conflicts).toContainEqual({
-      kind: "pin-slot-unavailable",
+      kind: "pin-frozen",
       pinId: "p1",
       groupId: "13 1",
       lessonId: "c2#1",
@@ -426,7 +426,7 @@ describe("history and declared lessons", () => {
     ]);
   });
 
-  test("a group whose position is unknown keeps its history and plans nothing", () => {
+  test("a group whose position is unknown keeps its history and its frozen lessons, and plans nothing new", () => {
     const w = later("2026-11-16");
     w.positions = w.positions.map((p) =>
       p.groupId === "13 1" ? { ...p, nextLessonId: "zz#1" } : p,
@@ -438,8 +438,83 @@ describe("history and declared lessons", () => {
       lessonId: "zz#1",
     });
     expect(
-      s.placements.filter((p) => p.groupId === "13 1").map((p) => p.state),
-    ).toEqual(["assumed", "assumed", "assumed"]);
+      s.placements
+        .filter((p) => p.groupId === "13 1")
+        .map((p) => [p.lessonId, p.state, p.slotKey]),
+    ).toEqual([
+      ["c1#1", "assumed", "13 1|2026-11-09|5"],
+      ["c1#2", "assumed", "13 1|2026-11-11|2"],
+      ["c1#3", "assumed", "13 1|2026-11-13|6"],
+      // today's lesson is frozen, exactly as in the previous plan
+      ["c2#1", "planned", "13 1|2026-11-16|5"],
+    ]);
+    expect(onDates(s, ["2026-11-16", "2026-11-17"])).toEqual(
+      onDates(first, ["2026-11-16", "2026-11-17"]),
+    );
+  });
+
+  test("an unknown position does not wipe declared lessons or the freeze when the scheme loses her lesson", () => {
+    const declaredWorld = world();
+    declaredWorld.positions = declaredWorld.positions.map((p) => ({
+      ...p,
+      nextLessonId: "c1#3",
+    }));
+    const prev = sequence(declaredWorld);
+    const w: PlanInputs = {
+      ...world(),
+      today: "2026-11-16",
+      previous: prev,
+    };
+    w.items = w.items.map((i) => (i.id === "c1" ? { ...i, lessons: 0 } : i));
+    w.positions = w.positions.map((p) => ({ ...p, nextLessonId: "c1#3" }));
+    const s = sequence(w);
+    expect(
+      s.conflicts.filter((c) => c.kind === "position-unknown"),
+    ).toHaveLength(3);
+    expect(
+      s.placements
+        .filter((p) => p.groupId === "13 1" && p.state === "declared")
+        .map((p) => [p.lessonId, p.slotKey]),
+    ).toEqual([
+      ["c1#1", null],
+      ["c1#2", null],
+    ]);
+    const dates = ["2026-11-16", "2026-11-17"];
+    expect(onDates(s, dates)).toEqual(onDates(prev, dates));
+    expect(onDates(s, dates).length).toBeGreaterThan(0);
+  });
+});
+
+describe("assessments in the freeze horizon", () => {
+  const withU1 = (): PlanInputs => {
+    const w = world();
+    const a1 = w.items.find((i) => i.id === "a1");
+    if (!a1?.assessment) throw new Error("no a1");
+    w.items.push({
+      ...a1,
+      id: "u1",
+      title: "u1",
+      order: 2.5,
+      assessment: { ...a1.assessment, date: null },
+    });
+    return w;
+  };
+
+  test("an undated whole-slot assessment in the horizon keeps its slot, and no lesson moves into it", () => {
+    const prev = sequence(withU1());
+    const row = prev.assessments.find(
+      (a) => a.groupId === "13 1" && a.itemId === "u1",
+    );
+    expect(row?.slotKey).toBe("13 1|2026-11-23|5");
+    const w: PlanInputs = { ...withU1(), today: "2026-11-23", previous: prev };
+    w.items = w.items.map((i) => (i.id === "c2" ? { ...i, lessons: 5 } : i));
+    const s = sequence(w);
+    expect(
+      s.assessments.find((a) => a.groupId === "13 1" && a.itemId === "u1"),
+    ).toEqual(row);
+    expect(s.placements.some((p) => p.slotKey === "13 1|2026-11-23|5")).toBe(
+      false,
+    );
   });
 });
 

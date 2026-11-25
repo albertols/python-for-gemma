@@ -134,6 +134,18 @@ export type Conflict =
       slotKey: SlotKey | null;
     }
   | {
+      /**
+       * A slot pin would move a lesson that is inside the freeze horizon (today
+       * and the next teaching day). It stays where it is. Message: "This lesson
+       * is in the next two teaching days, so it stays where it is." `slotKey` is the slot the pin asked for.
+       */
+      kind: "pin-frozen";
+      pinId: string;
+      groupId: GroupId;
+      lessonId: LessonId;
+      slotKey: SlotKey;
+    }
+  | {
       kind: "pin-slot-unavailable";
       pinId: string;
       groupId: GroupId;

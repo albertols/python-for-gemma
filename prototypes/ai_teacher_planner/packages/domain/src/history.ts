@@ -1,6 +1,7 @@
 import type { IsoDate } from "./dates.ts";
 import type { LessonId } from "./lessons.ts";
 import type {
+  AssessmentPlacement,
   LessonLogEntry,
   Placement,
   PlacementState,
@@ -105,6 +106,10 @@ export interface Carried {
   frozen: Placement[];
   /** Lessons done by history: they are not planned again. */
   deliveredIds: Set<LessonId>;
+  /** The previous plan's declared placements (no slot), for a group whose declared set cannot be recomputed. */
+  declaredKept: Placement[];
+  /** Assessments from today to the horizon on slots that are still usable: copied as they are. */
+  frozenAssessments: AssessmentPlacement[];
 }
 
 /** The latest log entry per lesson, oldest first, so a later entry wins. */
@@ -137,8 +142,33 @@ export function carryHistory(args: {
   editedFlex: ReadonlySet<LessonId>;
 }): Carried {
   const { previous, groupId, today, declared } = args;
-  const out: Carried = { history: [], frozen: [], deliveredIds: new Set() };
+  const out: Carried = {
+    history: [],
+    frozen: [],
+    deliveredIds: new Set(),
+    declaredKept: [],
+    frozenAssessments: [],
+  };
   if (previous === null) return out;
+
+  out.declaredKept = previous.placements
+    .filter(
+      (p) =>
+        p.groupId === groupId && p.slotKey === null && p.state === "declared",
+    )
+    .map((p) => ({ ...p }));
+  const end = args.horizonEnd ?? "9999-12-31";
+  out.frozenAssessments = previous.assessments
+    .filter((a) => {
+      const date = slotDate(a.slotKey);
+      return (
+        a.groupId === groupId &&
+        date >= today &&
+        date <= end &&
+        args.usable.has(a.slotKey)
+      );
+    })
+    .map((a) => ({ ...a }));
 
   const mine = previous.placements.filter(
     (p) =>
@@ -195,7 +225,6 @@ export function carryHistory(args: {
   for (const p of out.history)
     if (DELIVERED.has(p.state)) out.deliveredIds.add(p.lessonId);
 
-  const end = args.horizonEnd ?? "9999-12-31";
   out.frozen = mine
     .filter((p) => {
       const date = slotDate(p.slotKey ?? "");

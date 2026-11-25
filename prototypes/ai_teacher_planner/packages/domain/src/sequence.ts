@@ -160,8 +160,14 @@ function prepareGroup(
     editedFlex: new Set(inputs.flexEdits.map((e) => e.flexId)),
   });
   if (declared === null) {
-    // Nothing is planned, but what is behind her is never lost.
-    out.placements.push(...carried.history);
+    // Nothing new is planned, but nothing is lost either: her history, the
+    // declared lessons and everything frozen stay exactly as in the previous plan.
+    out.placements.push(
+      ...carried.history,
+      ...carried.declaredKept,
+      ...carried.frozen,
+    );
+    out.assessments.push(...carried.frozenAssessments);
     out.conflicts.push({
       kind: "position-unknown",
       groupId: g.id,
@@ -197,6 +203,38 @@ function prepareGroup(
     }
   }
 
+  // Assessments: dated ones are anchored now; undated ones wait for their place in the stream.
+  const assessmentItems = inputs.items
+    .filter(
+      (i) =>
+        i.kind === "assessment" &&
+        i.assessment !== null &&
+        i.assessment.status === "planned" &&
+        i.track === g.track &&
+        !doneItems.has(i.id),
+    )
+    .sort(byOrder);
+  const markers = new Map<string, "whole" | "in-lesson">();
+  const dated = assessmentItems.filter((i) => i.assessment?.date != null);
+  for (const i of assessmentItems)
+    if (i.assessment && i.assessment.date === null)
+      markers.set(i.id, i.assessment.slotUse);
+  const anchorOf = new Map<string, Slot>();
+  // Assessments in the horizon are frozen like lessons: the row is copied, and a
+  // whole-slot one keeps its slot so no lesson moves into it. A dated assessment
+  // keeps the anchor it already had; an undated one leaves the stream.
+  const datedIds = new Set(dated.map((i) => i.id));
+  for (const a of carried.frozenAssessments) {
+    const slot = usableByKey.get(a.slotKey);
+    if (!slot || !(markers.has(a.itemId) || datedIds.has(a.itemId))) continue;
+    markers.delete(a.itemId);
+    if (datedIds.has(a.itemId)) anchorOf.set(a.itemId, slot);
+    out.assessments.push(a);
+    if (a.slotUse === "whole") {
+      reserved.add(a.slotKey);
+      wholeReserved.add(a.slotKey);
+    }
+  }
   // Slot pins fix a lesson; one that cannot be honoured is a conflict and the lesson stays in the stream.
   const undeclared = new Set(
     lessons
@@ -222,12 +260,12 @@ function prepareGroup(
     }
     // A pin on a lesson already taught is moot.
     if (!undeclared.has(pin.lessonId)) continue;
-    // A frozen lesson stays where it is; a pin that asks for another slot cannot be honoured.
+    // A frozen lesson stays where it is; a pin that asks for another slot is reported as `pin-frozen`.
     const frozenSlot = frozenAt.get(pin.lessonId);
     if (frozenSlot !== undefined) {
       if (frozenSlot !== pin.slotKey)
         out.conflicts.push({
-          kind: "pin-slot-unavailable",
+          kind: "pin-frozen",
           pinId: pin.id,
           groupId: g.id,
           lessonId: pin.lessonId,
@@ -253,6 +291,8 @@ function prepareGroup(
     );
   }
 
+  // Released and skipped lessons go back in scheme order. Everything earlier in
+  // the scheme is history, frozen or itself in the stream, so in practice they land first.
   const stream = lessons.filter(
     (l) =>
       undeclared.has(l.id) && !pinnedLessons.has(l.id) && !frozenAt.has(l.id),
@@ -263,28 +303,12 @@ function prepareGroup(
   );
   const seconds = new Set(secondOf.values());
 
-  // Assessments: dated ones are anchored now; undated ones wait for their place in the stream.
-  const assessmentItems = inputs.items
-    .filter(
-      (i) =>
-        i.kind === "assessment" &&
-        i.assessment !== null &&
-        i.assessment.status === "planned" &&
-        i.track === g.track &&
-        !doneItems.has(i.id),
-    )
-    .sort(byOrder);
-  const markers = new Map<string, "whole" | "in-lesson">();
-  const dated = assessmentItems.filter((i) => i.assessment?.date != null);
-  for (const i of assessmentItems)
-    if (i.assessment && i.assessment.date === null)
-      markers.set(i.id, i.assessment.slotUse);
-  const anchorOf = new Map<string, Slot>();
   // Whole-slot anchors first, so an in-lesson anchor never lands on a slot a whole assessment takes.
   for (const use of ["whole", "in-lesson"] as const)
     for (const item of dated) {
       const spec = item.assessment;
       if (!spec || spec.date === null || spec.slotUse !== use) continue;
+      if (anchorOf.has(item.id)) continue;
       const date = spec.date;
       const noSlot = () =>
         out.conflicts.push({
