@@ -1191,7 +1191,7 @@ The "Undo" scenario here is the browser side of `features/08-undo.feature`: writ
 She asked for room on Today to plan each of the day's lessons and to attach documents and materials so they are ready (spec appendix E).
 
 **Files:**
-- Create: `apps/api/src/db/migrations/0010_lesson_notes.sql`, `repos/sqlite/lesson-note-repo.ts`, `routes/lesson-notes.ts`, `apps/api/src/materials/store.ts`, and tests
+- Create: `apps/api/src/db/migrations/0011_lesson_notes.sql`, `repos/sqlite/lesson-note-repo.ts`, `routes/lesson-notes.ts`, `apps/api/src/materials/store.ts`, and tests
 - Create: `apps/web/src/components/LessonNotes.tsx`, `MaterialsList.tsx`, `features/m2-lesson-notes.feature`, `e2e/steps/lesson-notes.steps.ts`
 - Modify: `TodayScreen.tsx`, `LessonCard.tsx`, `apps/api/src/db/schema.ts` (mirror comment), `apps/api/src/routes/router.ts`
 - Modify: diagrams 03 (routes) and 08 (uploads, data and privacy), with the `architecture-visual-docs` skill, in this task's commit
