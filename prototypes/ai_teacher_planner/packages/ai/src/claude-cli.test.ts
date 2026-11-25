@@ -183,6 +183,25 @@ async function rejection(p: Promise<unknown>): Promise<AiError> {
 afterEach(() => vi.useRealTimers());
 
 describe("buildArgs", () => {
+  test("the schema reaching --json-schema never holds $schema, at any depth", () => {
+    const args = buildArgs(
+      "P",
+      "sonnet",
+      {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        properties: { a: { $schema: "x", type: "string" } },
+      },
+      [],
+    );
+    const sent = args[args.indexOf("--json-schema") + 1] ?? "";
+    expect(sent).not.toContain("$schema");
+    expect(JSON.parse(sent)).toEqual({
+      type: "object",
+      properties: { a: { type: "string" } },
+    });
+  });
+
   test("the arguments are exactly the proven flag set", () =>
     expect(buildArgs("P", "sonnet", { type: "object" }, [])).toEqual([
       "-p",

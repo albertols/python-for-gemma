@@ -12,6 +12,7 @@ import {
   getSkill,
   jsonSchemaFor,
   stripFrontMatter,
+  withoutSchemaKey,
 } from "./registry.ts";
 import { cutForUser, linesOf, parseStream } from "./stream.ts";
 
@@ -93,7 +94,7 @@ export function buildArgs(
     "stream-json",
     "--verbose",
     "--json-schema",
-    JSON.stringify(schema),
+    JSON.stringify(withoutSchemaKey(schema)),
     "--no-session-persistence",
   ];
 }

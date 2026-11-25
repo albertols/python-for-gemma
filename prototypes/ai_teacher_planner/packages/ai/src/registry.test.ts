@@ -35,6 +35,19 @@ const OTHER_SKILLS: SkillId[] = ["planner-build-curriculum-pack"];
 const registered = Object.values(skills).filter((s) => s !== undefined);
 const withText = registered.filter((s) => !PENDING_SKILL_TEXT.includes(s.id));
 
+describe("the schema for the CLI", () => {
+  test.each(registered.map((s) => [s.id, s] as const))(
+    "%s: draft 7 only, no $schema, prefixItems or $defs",
+    (_id, skill) => {
+      const text = JSON.stringify(jsonSchemaFor(skill));
+      expect(text).not.toContain("$schema");
+      expect(text).not.toContain("prefixItems");
+      expect(text).not.toContain("$defs");
+      expect(text).toContain('"type":"object"');
+    },
+  );
+});
+
 describe("buildPrompt", () => {
   test("the prompt holds the skill text, then the input as JSON, then the extracted text, in that order", () => {
     const p = buildPrompt(

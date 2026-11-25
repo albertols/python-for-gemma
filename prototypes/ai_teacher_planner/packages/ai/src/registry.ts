@@ -235,8 +235,26 @@ const INTERACTIVE_SKILLS = ["planner-run-and-verify"];
 const APP_ONLY =
   /^Used by the AI Teacher Planner app \(headless\)\. Not for interactive use\./;
 
+/** A copy of the schema with every `$schema` key removed, at any depth. */
+export function withoutSchemaKey(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutSchemaKey);
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([k]) => k !== "$schema")
+        .map(([k, v]) => [k, withoutSchemaKey(v)]),
+    );
+  return value;
+}
+
+/**
+ * The schema the CLI gets: draft 7, which its validator knows, and no `$schema` key, because
+ * the validator cannot resolve even the draft-7 URL. Also what is committed as schema.json.
+ */
 export function jsonSchemaFor(
   skill: SkillDefinition<unknown, unknown>,
 ): object {
-  return z.toJSONSchema(skill.output);
+  return withoutSchemaKey(
+    z.toJSONSchema(skill.output, { target: "draft-7" }),
+  ) as object;
 }
