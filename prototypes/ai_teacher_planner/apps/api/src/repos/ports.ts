@@ -272,6 +272,52 @@ export interface FactRepo {
   append(entries: readonly LessonLogEntry[]): void;
 }
 
+/** An attached file as stored: the row, not the bytes. The bytes are `data/materials/<storedName>`. */
+export interface StoredMaterial {
+  id: string;
+  groupId: string;
+  lessonId: string;
+  /** Her file name, as text only. */
+  name: string;
+  /** `<uuid>.<ext>`, the only name used on disk. */
+  storedName: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+}
+
+/** A content lesson's note and files. A row exists while there is a note or a file. */
+export interface StoredLessonNote {
+  groupId: string;
+  lessonId: string;
+  /** Plain text, possibly empty when only files are attached. */
+  text: string;
+  /** The lesson's name when she last wrote to it. */
+  title: string;
+  updatedAt: string;
+  materials: StoredMaterial[];
+}
+
+/** Her plan for each content lesson, and the files attached to it. Never read by a model. */
+export interface LessonNoteRepo {
+  get(groupId: string, lessonId: string): StoredLessonNote | null;
+  /** Every lesson that has a note or a file, by group then lesson id. */
+  list(): StoredLessonNote[];
+  /** Stores the text. An empty text with no files removes the row. */
+  saveText(
+    groupId: string,
+    lessonId: string,
+    text: string,
+    title: string,
+    now: string,
+  ): void;
+  /** Stores the row for a file, creating the lesson's row first if there is none. */
+  addMaterial(material: StoredMaterial, title: string): void;
+  material(id: string): StoredMaterial | null;
+  /** Removes the row and returns it; the lesson's row goes too when nothing is left in it. */
+  removeMaterial(id: string): StoredMaterial | null;
+}
+
 /** Accepted plans: one per course (the plan id is the course id), as immutable revisions. */
 export interface PlanRepo {
   head(planId: string): PlanRevision | null;
@@ -335,6 +381,7 @@ export interface Repos {
   events: EventRepo;
   exams: ExamRepo;
   todos: TodoRepo;
+  lessonNotes: LessonNoteRepo;
   ai: AiRepo;
   courses: CourseRepo;
   scheme: SchemeRepo;

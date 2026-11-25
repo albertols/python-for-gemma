@@ -9,6 +9,7 @@ import type { Config } from "./config.ts";
 import type { Database } from "./db/connection.ts";
 import { ApiError } from "./errors.ts";
 import type { ResourceGateway } from "./gateway/resource-gateway.ts";
+import { createMaterialStore } from "./materials/store.ts";
 import { createRepos } from "./repos/sqlite/index.ts";
 import { createPackStore } from "./repos/sqlite/pack-store.ts";
 import { aiRoutes } from "./routes/ai.ts";
@@ -18,6 +19,7 @@ import { courseRoutes } from "./routes/courses.ts";
 import { disruptionRoutes } from "./routes/disruptions.ts";
 import { eventRoutes } from "./routes/events.ts";
 import { examRoutes } from "./routes/exams.ts";
+import { lessonNoteRoutes } from "./routes/lesson-notes.ts";
 import { packRoutes } from "./routes/packs.ts";
 import { planRoutes } from "./routes/plans.ts";
 import type { Principal } from "./routes/require-access.ts";
@@ -88,6 +90,8 @@ export function createApp(deps: AppDeps) {
   const repos = createRepos(db);
   // pack files live beside the database; nothing is written there until a pack is saved
   const packs = createPackStore(db, path.join(config.dataDir, "packs"));
+  // attached files live beside the database; the folder is made when the first file arrives
+  const materials = createMaterialStore(path.join(config.dataDir, "materials"));
   firstRun(repos);
   registerLessonCountHandler();
   // a job that was running when the planner closed can never finish
@@ -120,6 +124,7 @@ export function createApp(deps: AppDeps) {
     .route("/", eventRoutes({ repos, now }))
     .route("/", examRoutes({ repos }))
     .route("/", todoRoutes({ repos, now }))
+    .route("/", lessonNoteRoutes({ repos, store: materials, now }))
     .route("/", todayRoutes({ config, repos, now }))
     .route("/", aiRoutes({ state: ai }))
     .route("/", courseRoutes({ repos, packs }))

@@ -9,6 +9,7 @@ import { createDisruptionRepo } from "./disruption-repo.ts";
 import { createEventRepo } from "./event-repo.ts";
 import { createExamRepo } from "./exam-repo.ts";
 import { createFactRepo } from "./fact-repo.ts";
+import { createLessonNoteRepo } from "./lesson-note-repo.ts";
 import { createPlanRepo } from "./plan-repo.ts";
 import { createSchemeRepo } from "./scheme-repo.ts";
 import { createSettingsRepo } from "./settings-repo.ts";
@@ -25,6 +26,7 @@ export function createRepos(db: Database): Repos {
     events: createEventRepo(db),
     exams: createExamRepo(db),
     todos: createTodoRepo(db),
+    lessonNotes: createLessonNoteRepo(db),
     ai: createAiRepo(db),
     courses: createCourseRepo(db),
     scheme: createSchemeRepo(db),

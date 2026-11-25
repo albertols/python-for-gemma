@@ -9,6 +9,7 @@ import {
   useEvents,
   useFortnights,
   useLastDaysBeforeBreaks,
+  useLessonNoteSummary,
   useTimetable,
 } from "../../api/queries.ts";
 import { PlanArea } from "../../components/PlanNotices.tsx";
@@ -28,7 +29,7 @@ import {
   weeksOf,
   weekToShow,
 } from "./board-model.ts";
-import { cardsFor, declaredFor } from "./board-plan.ts";
+import { cardsFor, clipKey, declaredFor, withClips } from "./board-plan.ts";
 import { FortnightGrid, WeekPanel } from "./FortnightGrid.tsx";
 import { GroupFilter } from "./GroupFilter.tsx";
 import { groupsParam, parseGroups, toggleGroup } from "./group-filter.ts";
@@ -106,19 +107,22 @@ export function BoardScreen() {
   const days = useBoardDays(range?.from ?? null, range?.to ?? null);
   const slots = useBoardSlots(range?.from ?? null, range?.to ?? null);
   const placements = useBoardPlacements(range?.from ?? null, range?.to ?? null);
-  const plan = useMemo(
-    () =>
-      placements.data
-        ? {
-            cards: cardsFor(
-              placements.data.placements,
-              placements.data.assessments,
-            ),
-            declared: declaredFor(placements.data.declared),
-          }
-        : null,
-    [placements.data],
-  );
+  const clips = useLessonNoteSummary();
+  const plan = useMemo(() => {
+    if (!placements.data) return null;
+    const counts = new Map(
+      (clips.data?.items ?? [])
+        .filter((i) => i.materials > 0)
+        .map((i) => [clipKey(i.groupId, i.lessonId), i.materials] as const),
+    );
+    return {
+      cards: withClips(
+        cardsFor(placements.data.placements, placements.data.assessments),
+        counts,
+      ),
+      declared: declaredFor(placements.data.declared),
+    };
+  }, [placements.data, clips.data]);
 
   const failed = [config, fortnights, timetable, days, slots, events].find(
     (q) => q.isError,

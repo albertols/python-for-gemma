@@ -30,6 +30,10 @@ stays: "Stays on the Mac" {
     class: win
     shape: cylinder
   }
+  materials: "Lesson materials\ndata/materials/, uuid names,\nnot in backups, never sent" {
+    class: win
+    shape: cylinder
+  }
   packs: "Curriculum packs\nbuilt locally,\nnot committed" {
     class: win
     shape: cylinder
@@ -45,6 +49,8 @@ denied: "Denied" {
 }
 
 gateway: "ResourceGateway\nallowlist" {class: warn}
+upload: "Upload checks\ntype, first bytes, 25 MB,\nname never a path" {class: warn}
+she: "Gemma attaches a file" {class: concept}
 denyrules: "Claude deny rules" {class: warn}
 gitignore: ".gitignore" {class: warn}
 
@@ -62,6 +68,9 @@ stays.resources -> gateway: "planning sheets,\nspecs, chapter slides" {class: fl
 gateway -> leaves.text: {class: aiflow}
 leaves.text -> model: {class: aiflow}
 leaves.typed -> model: {class: aiflow}
+she -> upload: "multipart, x-planner-upload" {class: flow}
+upload -> stays.materials: "stored by uuid" {class: flow}
+stays.materials -> leaves: "never read by a model" {class: blocked}
 denied.student -> gateway: "refused" {class: blocked}
 denied.textbooks -> gateway: "refused" {class: blocked}
 denied.creds -> denyrules: "never read" {class: blocked}

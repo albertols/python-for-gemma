@@ -898,3 +898,102 @@ export function useUndoPlan(courseId: string) {
     onSuccess: () => invalidatePlan(qc, courseId),
   });
 }
+
+export type LessonNoteData = InferResponseType<
+  (typeof api.api)["lesson-notes"]["$get"],
+  200
+>;
+export type MaterialData = LessonNoteData["materials"][number];
+export type LessonNoteSummary = InferResponseType<
+  (typeof api.api)["lesson-notes"]["summary"]["$get"],
+  200
+>["items"][number];
+export type RemovedLessonNote = InferResponseType<
+  (typeof api.api)["lesson-notes"]["removed"]["$get"],
+  200
+>["items"][number];
+
+/** A lesson's note and files; the board's paper clips and the removed list are built from them too. */
+function invalidateLessonNotes(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ["lesson-note"] });
+  void qc.invalidateQueries({ queryKey: ["lesson-notes-summary"] });
+  void qc.invalidateQueries({ queryKey: ["lesson-notes-removed"] });
+}
+
+export function useLessonNote(groupId: string, lessonId: string) {
+  return useQuery({
+    queryKey: ["lesson-note", groupId, lessonId],
+    queryFn: () =>
+      call<LessonNoteData>(() =>
+        api.api["lesson-notes"].$get({ query: { groupId, lessonId } }),
+      ),
+  });
+}
+
+export function useSaveLessonNote(groupId: string, lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (text: string) =>
+      call<LessonNoteData>(() =>
+        api.api["lesson-notes"].$put({
+          query: { groupId, lessonId },
+          json: { text },
+        }),
+      ),
+    onSuccess: (note) => {
+      qc.setQueryData(["lesson-note", groupId, lessonId], note);
+      invalidateLessonNotes(qc);
+    },
+  });
+}
+
+/** A file goes up as a multipart form, so this one call is made by hand; the `x-planner-upload` header is what the API checks. */
+export function useAttachMaterial(groupId: string, lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const query = `groupId=${encodeURIComponent(groupId)}&lessonId=${encodeURIComponent(lessonId)}`;
+      return call<MaterialData>(() =>
+        fetch(`/api/lesson-notes/materials?${query}`, {
+          method: "POST",
+          headers: { "x-planner-upload": "1" },
+          body: form,
+        }),
+      );
+    },
+    onSuccess: () => invalidateLessonNotes(qc),
+  });
+}
+
+export function useRemoveMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      call<{ ok: true }>(() =>
+        api.api.materials[":id"].$delete({ param: { id } }),
+      ),
+    onSuccess: () => invalidateLessonNotes(qc),
+  });
+}
+
+export function useLessonNoteSummary() {
+  return useQuery({
+    queryKey: ["lesson-notes-summary"],
+    queryFn: () =>
+      call<{ items: LessonNoteSummary[] }>(() =>
+        api.api["lesson-notes"].summary.$get(),
+      ),
+  });
+}
+
+export function useRemovedLessonNotes() {
+  return useQuery({
+    queryKey: ["lesson-notes-removed"],
+    queryFn: () =>
+      call<{ items: RemovedLessonNote[] }>(() =>
+        api.api["lesson-notes"].removed.$get(),
+      ),
+  });
+}

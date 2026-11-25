@@ -32,6 +32,8 @@ export interface CardModel {
   /** An in-lesson assessment is a chip on the lesson; a whole-slot one is its own card. */
   assessment: { title: string; slotUse: "whole" | "in-lesson" } | null;
   provenance: Provenance;
+  /** How many files are attached to its lessons: the paper clip's number. */
+  clips?: number;
 }
 
 /** "2 of 4", "2 and 3 of 3", or "4 of 4 and 1 of 3" when the pair spans two items. */
@@ -119,6 +121,29 @@ export function cardsFor(
   return cards;
 }
 
+/**
+ * The cards with their paper-clip counts: the files attached to each of a
+ * card's lessons, added up. `counts` is keyed by group and lesson id.
+ */
+export function withClips(
+  cards: ReadonlyMap<SlotKey, CardModel>,
+  counts: ReadonlyMap<string, number>,
+): Map<SlotKey, CardModel> {
+  const out = new Map<SlotKey, CardModel>();
+  for (const [slotKey, card] of cards) {
+    const clips = card.lessonIds.reduce(
+      (n, id) => n + (counts.get(clipKey(card.groupId, id)) ?? 0),
+      0,
+    );
+    out.set(slotKey, clips > 0 ? { ...card, clips } : card);
+  }
+  return out;
+}
+
+/** The key `withClips` reads: a lesson of one group. */
+export const clipKey = (groupId: string, lessonId: string) =>
+  `${groupId}\u0000${lessonId}`;
+
 /** Two periods hold the same card: one lesson across both, or nothing in either. */
 export function sameCard(a: CardModel | null, b: CardModel | null): boolean {
   if (a === null || b === null) return a === b;
@@ -149,5 +174,9 @@ export function describeCard(card: CardModel, status: SlotStatus): string {
   if (card.assessment && card.kind !== "assessment")
     parts.push(`with ${card.assessment.title} in the lesson`);
   if (card.pinned) parts.push("pinned");
+  if (card.clips)
+    parts.push(
+      `${card.clips === 1 ? "1 file" : `${card.clips} files`} attached`,
+    );
   return parts.join(", ");
 }

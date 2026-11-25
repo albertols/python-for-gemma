@@ -116,6 +116,24 @@ export function LessonCard({
           </span>
         ) : null}
         {card.pinned ? <span>Pinned</span> : null}
+        {card.clips ? (
+          <span className="inline-flex items-center gap-0.5" data-clips>
+            <svg
+              viewBox="0 0 24 24"
+              width="12"
+              height="12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+            {card.clips}
+          </span>
+        ) : null}
       </span>
       {ai ? <AiBadge review={ai.review} /> : null}
     </>

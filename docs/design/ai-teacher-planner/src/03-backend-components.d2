@@ -14,7 +14,7 @@ title: |md
 
 direction: down
 
-http: "HTTP routes\nHono + OpenAPI: today (the plan's lesson and assessment),\ncalendar, corrections, events, disruptions, exams, todos,\nslots, AI jobs and review; courses, packs, scheme + import\npreview + suggest-counts (starts the AI job), positions, plans\n(+ lessons without a slot), placements (+ declared), check-in" {class: concept}
+http: "HTTP routes\nHono + OpenAPI: today (the plan's lesson and assessment),\ncalendar, corrections, events, disruptions, exams, todos,\nslots, lesson notes + materials (uploads),\nAI jobs and review; courses, packs, scheme + import\npreview + suggest-counts (starts the AI job), positions, plans\n(+ lessons without a slot), placements (+ declared), check-in" {class: concept}
 
 core: "Core of apps/api" {
   class: group
@@ -30,7 +30,7 @@ engine: "Engine: packages/domain\npure TypeScript, no IO" {class: concept}
 adapters: "Driven adapters, each behind a port" {
   class: group
 
-  repo: "Repository ports\n+ SQLite adapter (Drizzle)\nmigrations 0001-0009: M1b rows, AI runs\nand items, courses, scheme, decisions,\nfacts, plan revisions" {class: concept}
+  repo: "Repository ports\n+ SQLite adapter (Drizzle)\nmigrations 0001-0011: M1b rows, AI runs\nand items, courses, scheme, decisions,\nfacts, plan revisions, lesson notes" {class: concept}
   packs: "PackStore\npack JSON files,\nlocked hash in SQLite" {class: concept}
   importers: "packages/importers\ncalendar xlsx, specification PDF text,\nplanning xlsx, assessment schedule docx\n(to scheme items), resource index" {class: concept}
   exporters: "packages/exporters\nxlsx, docx, pptx, Teams text" {class: concept}
@@ -40,6 +40,7 @@ adapters: "Driven adapters, each behind a port" {
   content -> port: {class: aiflow}
 }
 
+materials: "MaterialStore\ndata/materials/<uuid>.<ext>\nextension + magic bytes, 25 MB\nstreamed, never leaves data/" {class: warn}
 db: "SQLite file + pack files\ndata/, git-ignored" {
   class: win
   shape: cylinder
@@ -56,6 +57,8 @@ core.usecases -> adapters.exporters: {class: flow}
 core.jobs -> adapters.content: {class: aiflow}
 core.jobs -> adapters.port: "text in,\nJSON out" {class: aiflow}
 adapters.repo -> db: {class: flow}
+core.usecases -> materials: "uploads, downloads" {class: flow}
+materials -> db: "files, not in backups" {class: flow}
 core.usecases -> adapters.packs: {class: flow}
 adapters.packs -> db: "data/packs/" {class: flow}
 adapters.importers -> gateway: "every file read" {class: flow}

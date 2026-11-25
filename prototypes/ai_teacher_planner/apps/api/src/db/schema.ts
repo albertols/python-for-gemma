@@ -2,7 +2,8 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // Mirrors migrations/0001, 0002 and 0004. Tables used only through their repositories, with no Drizzle mirror:
 // 0003 (disruptions), 0005 to 0007 (event classifications, official exams, to-do notes), 0008 (AI runs and items) and
-// 0009 (courses, pack_locks, sow_items, group_overrides, plan_decisions, positions, lesson_log, plans, plan_revisions).
+// 0009 (courses, pack_locks, sow_items, group_overrides, plan_decisions, positions, lesson_log, plans, plan_revisions),
+// 0010 (a note column on AI runs) and 0011 (lesson_notes, lesson_materials).
 // The SQL files are the source of truth.
 
 export const settings = sqliteTable("settings", {

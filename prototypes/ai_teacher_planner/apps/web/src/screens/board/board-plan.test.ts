@@ -17,7 +17,13 @@ import { expect, test } from "vitest";
 import type { AssessmentView, PlacementView } from "../../api/queries.ts";
 import { SPARE_EXPLANATION, STATE_LABEL } from "../../lib/plan-words.ts";
 import { boardFor } from "./board-model.ts";
-import { type CardModel, cardsFor, declaredFor } from "./board-plan.ts";
+import {
+  type CardModel,
+  cardsFor,
+  clipKey,
+  declaredFor,
+  withClips,
+} from "./board-plan.ts";
 import { SlotCell } from "./SlotCell.tsx";
 
 const days = toCalendarDays(syntheticRows(), SYNTHETIC_TERMS);
@@ -393,4 +399,46 @@ test("a spare lesson's purpose is on the card's face", () => {
   );
   expect(face).toContain("Support activities");
   expect(face).toContain(">Spare lesson</button>");
+});
+
+test("a card carries the number of files attached to its lessons, added up for a merged pair, and none for a spare lesson", () => {
+  const world = paceWorld();
+  world.merges = [{ id: "m1", groupId: "13 1", first: "c1#2", second: "c1#3" }];
+  const cards = cardsOf(world);
+  const counts = new Map([
+    [clipKey("13 1", "c1#1"), 2],
+    [clipKey("13 1", "c1#2"), 1],
+    [clipKey("13 1", "c1#3"), 3],
+    // the same lesson id in another group is another lesson
+    [clipKey("13 3", "c1#1"), 5],
+  ]);
+  const clipped = withClips(cards, counts);
+  const of = (group: string, lesson: string) =>
+    [...clipped.values()].find(
+      (c) => c.groupId === group && c.lessonIds.includes(lesson),
+    );
+  expect(of("13 1", "c1#1")?.clips).toBe(2);
+  expect(of("13 1", "c1#3")?.clips).toBe(4);
+  expect(of("13 3", "c1#1")?.clips).toBe(5);
+  expect(of("13 5", "c1#1")?.clips).toBeUndefined();
+  expect(clipped.get("13 3|2026-11-26|4")?.clips).toBeUndefined();
+  // the paper clip is drawn on the card and told to a reader
+  const { slots } = world;
+  const board = boardFor(
+    { w1: "2026-11-09", w2: "2026-11-16", breakBefore: false },
+    days,
+    slots,
+    [SEED_TIMETABLE],
+    () => [],
+    { cards: clipped },
+  );
+  const two = of("13 1", "c1#1");
+  const cell = cellAt(
+    board,
+    two?.slotKey.split("|")[1] ?? "",
+    Number(two?.slotKey.split("|")[2]),
+  );
+  const markup = html(cell);
+  expect(markup).toMatch(/data-clips[^>]*>.*2<\/span>/s);
+  expect(described(markup)).toMatch(/, 2 files attached$/);
 });

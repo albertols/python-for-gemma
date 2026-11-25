@@ -33,7 +33,7 @@ Look for the two things that import the engine (the web app and the API) and the
 
 Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) and the M2 ones (courses, scheme, positions, plans, check-in) all live in the same routes, use cases and repository box; curriculum packs are JSON files behind the PackStore, with only the locked hash in SQLite.
 
-![Backend components: HTTP routes (today with the plan's lesson and assessment for each slot, calendar, corrections, events, disruptions, exams, todos, AI jobs and review; courses, packs, scheme, import preview and suggest-counts, positions, plans with the lessons that lost their slot, placements with declared topics, check-in), use cases (loadPlanInputs, propose, accept, undo, check-in, seedM2), job queue, engine, driven adapters (importers read calendar, specification PDF text, planning sheets and assessment schedules) with migrations 0001-0009 and the PackStore, ResourceGateway (finds planning files under Planning/ only), SQLite file and pack files, AI providers](03-backend-components.svg)
+![Backend components: HTTP routes (today with the plan's lesson and assessment for each slot, calendar, corrections, events, disruptions, exams, todos, lesson notes and materials uploads, AI jobs and review; courses, packs, scheme, import preview and suggest-counts, positions, plans with the lessons that lost their slot, placements with declared topics, check-in), use cases (loadPlanInputs, propose, accept, undo, check-in, seedM2), job queue, engine, driven adapters (importers read calendar, specification PDF text, planning sheets and assessment schedules) with migrations 0001-0011, the MaterialStore for uploads and the PackStore, ResourceGateway (finds planning files under Planning/ only), SQLite file and pack files, AI providers](03-backend-components.svg)
 
 ## 4. Frontend components
 
@@ -61,9 +61,9 @@ Look for what crosses to the model (extracted text) and what comes back (JSON), 
 
 ## 8. Data and privacy
 
-Look for the red dashed arrows: each one ends at a guard.
+Look for the red dashed arrows: each one ends at a guard. Files she attaches to a lesson are checked on the way in, kept in their own folder and never read by a model.
 
-![Data and privacy: what stays on the Mac, what reaches the model, and what is denied](08-data-and-privacy.svg)
+![Data and privacy: what stays on the Mac (including attached lesson materials, checked on upload and never sent to a model), what reaches the model, and what is denied](08-data-and-privacy.svg)
 
 ## 9. Tech stack
 
