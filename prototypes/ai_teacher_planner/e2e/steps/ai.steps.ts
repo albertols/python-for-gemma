@@ -1,4 +1,8 @@
 import { expect, type Page } from "@playwright/test";
+import type {
+  AiRun,
+  PublicProgress,
+} from "../../apps/api/src/usecases/ai-jobs.ts";
 import { Given, Then, When } from "../support/fixtures.ts";
 
 const TEST = { "x-planner-test": "1" };
@@ -8,7 +12,6 @@ const drawer = (page: Page) =>
   page.getByRole("dialog", { name: "AI activity" });
 const suggestions = (page: Page) =>
   drawer(page).getByRole("list", { name: "Suggestions" }).getByRole("listitem");
-const suggestion = (page: Page) => suggestions(page);
 
 Given("the fake AI has suggested a lesson count", async ({ request }) => {
   const started = await request.post("/api/ai/jobs", {
@@ -57,7 +60,7 @@ Given("Claude Code is signed out", async ({ request }) => {
 Given(
   "a job is running with the note {string}",
   async ({ page }, note: string) => {
-    const run = {
+    const run: AiRun = {
       id: "staged-run",
       skillId: SKILL,
       status: "running",
@@ -71,21 +74,21 @@ Given(
     await page.route("**/api/ai/runs", (route) =>
       route.fulfill({ json: [run] }),
     );
+    const progress: PublicProgress = { kind: "working", note };
     await page.route("**/api/ai/jobs/staged-run/events", (route) =>
       route.fulfill({
         contentType: "text/event-stream",
-        body: `event: progress\ndata: ${JSON.stringify({ kind: "working", note })}\n\n`,
+        body: `event: progress\ndata: ${JSON.stringify(progress)}\n\n`,
       }),
     );
     await page.route("**/api/ai/jobs/staged-run/cancel", (route) => {
       cancelled.add(page);
-      return route.fulfill({
-        json: {
-          ...run,
-          status: "cancelled",
-          failure: "Cancelled. Nothing was saved.",
-        },
-      });
+      const stopped: AiRun = {
+        ...run,
+        status: "cancelled",
+        failure: "Cancelled. Nothing was saved.",
+      };
+      return route.fulfill({ json: stopped });
     });
   },
 );
@@ -129,7 +132,7 @@ Then(
 Then(
   "its suggestion has the {string} badge and a dashed outline",
   async ({ page }, label: string) => {
-    const item = suggestion(page);
+    const item = suggestions(page);
     await expect(item).toHaveCount(1);
     await expect(item.getByRole("img", { name: label })).toBeVisible();
     await expect(item).toHaveCSS("border-top-style", "dashed");
@@ -137,7 +140,7 @@ Then(
 );
 
 When("I open where the suggestion came from", async ({ page }) => {
-  await suggestion(page)
+  await suggestions(page)
     .getByRole("button", { name: "Where this came from" })
     .click();
 });
@@ -145,7 +148,7 @@ When("I open where the suggestion came from", async ({ page }) => {
 Then(
   "it names the provider {string}, the model {string} and the skill {string}",
   async ({ page }, provider: string, model: string, skillId: string) => {
-    const facts = suggestion(page).getByRole("dialog", {
+    const facts = suggestions(page).getByRole("dialog", {
       name: "Where this came from",
     });
     const definitionOf = (term: string) =>
@@ -162,17 +165,17 @@ Then(
 );
 
 Then("it says there were no sources", async ({ page }) => {
-  await expect(suggestion(page).getByText("No sources")).toBeVisible();
+  await expect(suggestions(page).getByText("No sources")).toBeVisible();
 });
 
 When("I accept the suggestion", async ({ page }) => {
-  await suggestion(page).getByRole("button", { name: "Accept" }).click();
+  await suggestions(page).getByRole("button", { name: "Accept" }).click();
 });
 
 When("I edit the suggestion to {int} lessons", async ({ page }, n: number) => {
-  await suggestion(page).getByRole("button", { name: "Edit" }).click();
-  await suggestion(page).getByLabel("Lessons").fill(String(n));
-  await suggestion(page).getByRole("button", { name: "Save edit" }).click();
+  await suggestions(page).getByRole("button", { name: "Edit" }).click();
+  await suggestions(page).getByLabel("Lessons").fill(String(n));
+  await suggestions(page).getByRole("button", { name: "Save edit" }).click();
 });
 
 Then(
@@ -235,4 +238,48 @@ Then("the drawer is still open and the popover is closed", async ({ page }) => {
 
 Then("the drawer is closed", async ({ page }) => {
   await expect(drawer(page)).toHaveCount(0);
+});
+
+Then("the focus is back on {string}", async ({ page }, name: string) => {
+  await expect(page.getByRole("button", { name, exact: true })).toBeFocused();
+});
+
+When(
+  "I open the legend and then the activity drawer with the keyboard",
+  async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const legend = page.getByRole("button", { name: "Legend" });
+    await legend.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog", { name: "Legend" })).toBeVisible();
+    const activity = page.getByRole("button", { name: /^AI activity/ });
+    await activity.focus();
+    await page.keyboard.press("Enter");
+    await expect(drawer(page)).toBeVisible();
+  },
+);
+
+Then("the legend is still open", async ({ page }) => {
+  await expect(page.getByRole("dialog", { name: "Legend" })).toBeVisible();
+});
+
+Then("the legend is closed", async ({ page }) => {
+  await expect(page.getByRole("dialog", { name: "Legend" })).toHaveCount(0);
+});
+
+Then("nothing behind the drawer can take focus", async ({ page }) => {
+  // Tab round more times than there are controls: the focus is in the drawer or has left the page
+  // (the browser's own bar), and is never on the page behind.
+  const total = await drawer(page).getByRole("button").count();
+  for (let i = 0; i < total + 3; i++) {
+    await page.keyboard.press("Tab");
+    const behind = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return false;
+      return !el.closest('[role="dialog"][aria-label="AI activity"]');
+    });
+    expect(behind).toBe(false);
+  }
+  await expect(page.getByRole("main")).toHaveAttribute("inert", "");
 });

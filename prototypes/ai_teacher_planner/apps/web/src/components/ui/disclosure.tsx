@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { layers } from "./layers.ts";
 
 /**
  * A button that opens a small panel beside it. Escape or a click outside closes it and the
@@ -40,14 +41,45 @@ export function Disclosure({
     if (open) panel.current?.focus();
   }, [open]);
 
+  // After a close by keyboard or the Close button, the focus returns to the button. This runs
+  // once the page behind a side panel is reachable again.
+  const returnFocus = useRef(false);
+  useEffect(() => {
+    if (!open && returnFocus.current) {
+      returnFocus.current = false;
+      button.current?.focus();
+    }
+  }, [open]);
+
+  // A side panel is modal: everything outside it is inert while it is open.
+  useEffect(() => {
+    if (!open || !side || !panel.current) return;
+    const made: HTMLElement[] = [];
+    let node: HTMLElement | null = panel.current;
+    while (node?.parentElement) {
+      for (const sibling of node.parentElement.children)
+        if (
+          sibling !== node &&
+          sibling instanceof HTMLElement &&
+          !sibling.inert
+        ) {
+          sibling.inert = true;
+          made.push(sibling);
+        }
+      node = node.parentElement;
+    }
+    return () => {
+      for (const el of made) el.inert = false;
+    };
+  }, [open, side]);
+
   useEffect(() => {
     if (!open) return;
+    const layer = layers.open();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // Escape closes the innermost panel only: a popover inside the drawer goes first.
-      if (panel.current?.querySelector('[role="dialog"]')) return;
+      if (e.key !== "Escape" || !layers.isTop(layer)) return;
+      returnFocus.current = true;
       setOpen(false);
-      button.current?.focus();
     };
     const onClick = (e: MouseEvent) => {
       if (root.current && !root.current.contains(e.target as Node))
@@ -56,6 +88,7 @@ export function Disclosure({
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
     return () => {
+      layers.close(layer);
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onClick);
     };
@@ -80,6 +113,7 @@ export function Disclosure({
           role="dialog"
           aria-label={label}
           tabIndex={-1}
+          aria-modal={side ? true : undefined}
           className={
             side
               ? `fixed inset-y-0 right-0 z-30 w-full max-w-md overflow-y-auto border-l border-border bg-card p-4 text-sm text-card-foreground shadow-xl ${panelClassName}`
@@ -92,8 +126,8 @@ export function Disclosure({
               <button
                 type="button"
                 onClick={() => {
+                  returnFocus.current = true;
                   setOpen(false);
-                  button.current?.focus();
                 }}
                 className="rounded-md border border-border px-2 py-1 hover:bg-muted"
               >

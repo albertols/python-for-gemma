@@ -343,7 +343,7 @@ describe("run: sources come from validated data only", () => {
     schema: getSkill("content-refresh-resource").output,
   });
 
-  test("a skill whose schema declares sources gets them, http(s) only, never opened", () =>
+  test("a skill whose schema declares sources gets them, https only, never opened", () =>
     withSourcesSkill(
       {
         ok: true,
@@ -359,7 +359,6 @@ describe("run: sources come from validated data only", () => {
         const res = await t.provider.run(sourcesTask(), t.opts());
         expect(res.meta.sources).toEqual([
           { url: "https://example.org/a", title: "A page", opened: false },
-          { url: "http://example.org/b", title: null, opened: false },
         ]);
       },
     ));

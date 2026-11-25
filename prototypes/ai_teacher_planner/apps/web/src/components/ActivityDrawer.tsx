@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   type AiItemView,
   type AiRunView,
+  countOf,
   describeItem,
   provenanceOf,
   useAiItems,
@@ -16,6 +17,10 @@ import { ReviewBar } from "./ReviewBar.tsx";
 import { Button } from "./ui/button.tsx";
 import { Disclosure } from "./ui/disclosure.tsx";
 import { EmptyState, ErrorState, Loading } from "./ui/states.tsx";
+
+const MAX_LESSONS = 99;
+const RECORDED =
+  "Recorded. The scheme uses it once the scheme screen is built.";
 
 const OUTCOME: Record<AiRunView["status"], string> = {
   queued: "Waiting its turn",
@@ -34,16 +39,16 @@ function EditCount({
   onSave: (data: unknown) => void;
   onCancel: () => void;
 }) {
-  const data = item.data as { to: number };
-  const [lessons, setLessons] = useState(String(data.to));
+  const was = countOf(item) ?? 1;
+  const [lessons, setLessons] = useState(String(was));
   const n = Number(lessons);
-  const valid = Number.isInteger(n) && n >= 1;
+  const valid = Number.isInteger(n) && n >= 1 && n <= MAX_LESSONS;
   return (
     <form
       className="mt-2 flex flex-wrap items-end gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        if (valid) onSave({ ...data, to: n });
+        if (valid) onSave({ ...(item.data as object), to: n });
       }}
     >
       <label className="flex flex-col text-sm">
@@ -51,6 +56,7 @@ function EditCount({
         <input
           type="number"
           min={1}
+          max={MAX_LESSONS}
           step={1}
           value={lessons}
           onChange={(e) => setLessons(e.target.value)}
@@ -110,11 +116,15 @@ function Suggestion({
           busy={review.isPending}
           onAccept={() => decide("accepted")}
           onReject={() => decide("rejected")}
-          {...(item.kind === "lesson-count"
+          {...(countOf(item) !== null
             ? { onEdit: () => setEditing(true) }
             : {})}
         />
       )}
+      {item.kind === "lesson-count" &&
+      (item.review === "accepted" || item.review === "edited") ? (
+        <p className="mt-2 text-muted-foreground">{RECORDED}</p>
+      ) : null}
       {review.error ? (
         <p role="alert" className="mt-2 text-danger">
           {review.error.message}

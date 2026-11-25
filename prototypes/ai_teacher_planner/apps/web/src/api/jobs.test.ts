@@ -3,6 +3,7 @@ import {
   type AiItemView,
   type AiRunView,
   chipView,
+  countOf,
   describeItem,
   initialJob,
   liveRun,
@@ -208,4 +209,12 @@ test("an item and its run make the provenance the popover shows", () => {
       review: "edited",
     },
   });
+});
+
+test("a lesson count is read only from data of the right shape", () => {
+  expect(countOf(item({}))).toBe(5);
+  expect(countOf(item({ data: null }))).toBeNull();
+  expect(countOf(item({ data: { to: "5" } }))).toBeNull();
+  expect(countOf(item({ data: { to: 0 } }))).toBeNull();
+  expect(countOf(item({ kind: "mystery" }))).toBeNull();
 });

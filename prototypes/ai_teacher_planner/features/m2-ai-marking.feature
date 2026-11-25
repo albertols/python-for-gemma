@@ -20,14 +20,31 @@ Feature: AI is marked
     And I open where the suggestion came from
     And I press Escape once
     Then the drawer is still open and the popover is closed
+    And the focus is back on "Where this came from"
     When I press Escape once
     Then the drawer is closed
+    And the focus is back on "AI activity (1 to review)"
+
+  Scenario: Escape closes only the layer on top
+    Given the fake AI has suggested a lesson count
+    When I open the legend and then the activity drawer with the keyboard
+    And I press Escape once
+    Then the drawer is closed
+    And the legend is still open
+    When I press Escape once
+    Then the legend is closed
+
+  Scenario: The page behind the open drawer cannot be reached
+    Given the fake AI has suggested a lesson count
+    When I open the activity drawer
+    Then nothing behind the drawer can take focus
 
   Scenario: Accepting a suggestion changes its mark
     Given the fake AI has suggested a lesson count
     When I open the activity drawer
     And I accept the suggestion
     Then the suggestion has the "AI suggestion, accepted" badge and no dashed outline
+    And the suggestion says "Recorded. The scheme uses it once the scheme screen is built."
 
   Scenario: Editing a suggestion changes its mark
     Given the fake AI has suggested a lesson count

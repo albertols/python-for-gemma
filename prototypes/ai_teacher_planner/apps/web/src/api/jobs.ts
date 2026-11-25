@@ -114,6 +114,20 @@ export function chipView(
   return { kind: "idle" };
 }
 
+/** The suggested count of a lesson-count item, or null when the data is not of that shape. */
+export function countOf(item: AiItemView): number | null {
+  const d = item.data;
+  if (
+    item.kind === "lesson-count" &&
+    isObject(d) &&
+    typeof d.to === "number" &&
+    Number.isInteger(d.to) &&
+    d.to >= 1
+  )
+    return d.to;
+  return null;
+}
+
 /** An item in her words. Kinds that have no screen yet fall back to what they are for. */
 export function describeItem(item: AiItemView): {
   title: string;

@@ -13,6 +13,8 @@ const ai = {
     { url: "https://example.test/spec.pdf", title: "The spec", opened: true },
     { url: "https://example.test/other", title: null, opened: false },
     { url: "javascript:alert(1)", title: "Odd", opened: false },
+    { url: "http://plain.example/page", title: "Plain", opened: false },
+    { url: "https://evil.example/x", title: "gov.uk", opened: false },
   ],
   review: "suggested" as const,
 };
@@ -37,7 +39,7 @@ test("each source is a link, marked opened or not opened in words", () => {
   const out = show({ origin: "ai", ai });
   expect(out).toContain('href="https://example.test/spec.pdf"');
   expect(out).toContain("The spec");
-  expect(out).toMatch(/The spec<\/a>[\s\S]*?opened/);
+  expect(out).toMatch(/The spec — example\.test<\/a>[\s\S]*?opened/);
   expect(out).toContain("not opened");
   expect(out).toContain('rel="noreferrer noopener"');
 });
@@ -67,4 +69,24 @@ test("closed, it is one button that says it is collapsed", () => {
   );
   expect(out).toContain('aria-expanded="false"');
   expect(out).not.toContain("claude-code");
+});
+
+test("an http source is plain text marked as not a secure link, never a link", () => {
+  const out = show({ origin: "ai", ai });
+  expect(out).not.toContain('href="http://plain.example');
+  expect(out).toContain("Plain");
+  expect(out).toContain("(not a secure link)");
+});
+
+test("the link shows the real host, whatever title the model chose", () => {
+  const out = show({ origin: "ai", ai });
+  expect(out).toContain('href="https://evil.example/x"');
+  expect(out).toContain("gov.uk — evil.example");
+  // the full address is in the accessible name
+  expect(out).toContain('aria-label="gov.uk — https://evil.example/x"');
+});
+
+test("a source with no title shows its host", () => {
+  const out = show({ origin: "ai", ai });
+  expect(out).toMatch(/>example\.test<\/a>/);
 });

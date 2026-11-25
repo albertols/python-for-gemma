@@ -151,7 +151,7 @@ interface Execution<T> {
 
 /**
  * Sources from schema-validated data only: a skill whose schema declares a `sources` array
- * gets them. Only http and https URLs are kept, and none is marked as opened.
+ * gets them. Only https URLs are kept, and none is marked as opened.
  */
 function sourcesOf(data: unknown): Source[] {
   const list = (data as { sources?: unknown } | null)?.sources;
@@ -173,7 +173,7 @@ function sourcesOf(data: unknown): Source[] {
 function isWebUrl(url: string): boolean {
   try {
     const { protocol } = new URL(url);
-    return protocol === "http:" || protocol === "https:";
+    return protocol === "https:";
   } catch {
     return false;
   }

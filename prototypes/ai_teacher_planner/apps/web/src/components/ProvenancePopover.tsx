@@ -2,7 +2,18 @@ import type { Provenance } from "@planner/domain";
 import { whenOf } from "../lib/dates.ts";
 import { Disclosure } from "./ui/disclosure.tsx";
 
-const isWebAddress = (url: string) => /^https?:\/\//i.test(url);
+/**
+ * A source is a link only when it is an https address. Its text always shows the real host,
+ * so a title the model chose cannot pass one site off as another.
+ */
+function sourceLink(url: string): { host: string } | null {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" ? { host: u.host } : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Who made an AI item and from what: provider, model, skill, time and sources. Engine output has none. */
 export function ProvenancePopover({
@@ -37,25 +48,31 @@ export function ProvenancePopover({
         <p className="text-muted-foreground">No sources.</p>
       ) : (
         <ul className="mt-1 space-y-1">
-          {ai.sources.map((s) => (
-            <li key={s.url}>
-              {isWebAddress(s.url) ? (
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="break-all text-link underline"
-                >
-                  {s.title ?? s.url}
-                </a>
-              ) : (
-                <span className="break-all">{s.title ?? s.url}</span>
-              )}{" "}
-              <span className="text-muted-foreground">
-                ({s.opened ? "opened" : "not opened"})
-              </span>
-            </li>
-          ))}
+          {ai.sources.map((s) => {
+            const link = sourceLink(s.url);
+            return (
+              <li key={s.url}>
+                {link ? (
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    aria-label={`${s.title ?? link.host} — ${s.url}`}
+                    className="break-all text-link underline"
+                  >
+                    {s.title ? `${s.title} — ${link.host}` : link.host}
+                  </a>
+                ) : (
+                  <span className="break-all">
+                    {s.title ?? s.url} (not a secure link)
+                  </span>
+                )}{" "}
+                <span className="text-muted-foreground">
+                  ({s.opened ? "opened" : "not opened"})
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </Disclosure>
