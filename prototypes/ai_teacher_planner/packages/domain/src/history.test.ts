@@ -516,6 +516,50 @@ describe("assessments in the freeze horizon", () => {
       false,
     );
   });
+
+  test("a frozen assessment that she re-dated is kept and reported, not ignored", () => {
+    // 27 Nov: a1 is today for 13 1 (P6) and 13 5 (P4); 13 3's a1 is on 1 Dec, outside the horizon (to 30 Nov).
+    const prev = first;
+    const redated = (date: string): PlanInputs => {
+      const w: PlanInputs = { ...world(), today: "2026-11-27", previous: prev };
+      w.items = w.items.map((i) =>
+        i.id === "a1" && i.assessment
+          ? { ...i, assessment: { ...i.assessment, date } }
+          : i,
+      );
+      return w;
+    };
+    const same = sequence(redated("2026-11-27"));
+    expect(same.conflicts.filter((c) => c.kind === "anchor-frozen")).toEqual(
+      [],
+    );
+    const s = sequence(redated("2026-11-30"));
+    expect(
+      s.assessments
+        .filter((a) => a.itemId === "a1")
+        .map((a) => [a.groupId, a.slotKey]),
+    ).toEqual([
+      ["13 1", "13 1|2026-11-27|6"],
+      ["13 3", "13 3|2026-12-01|5"],
+      ["13 5", "13 5|2026-11-27|4"],
+    ]);
+    expect(s.conflicts.filter((c) => c.kind === "anchor-frozen")).toEqual([
+      {
+        kind: "anchor-frozen",
+        groupId: "13 1",
+        itemId: "a1",
+        date: "2026-11-30",
+        slotKey: "13 1|2026-11-27|6",
+      },
+      {
+        kind: "anchor-frozen",
+        groupId: "13 5",
+        itemId: "a1",
+        date: "2026-11-30",
+        slotKey: "13 5|2026-11-27|4",
+      },
+    ]);
+  });
 });
 
 describe("nextLesson", () => {

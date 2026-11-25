@@ -146,6 +146,19 @@ export type Conflict =
       slotKey: SlotKey;
     }
   | {
+      /**
+       * A dated assessment inside the freeze horizon was given a date that points
+       * to another slot. It stays on its frozen slot. Message: "This assessment is
+       * in the next two teaching days, so it stays where it is." `date` is the new
+       * date, `slotKey` the slot it stays on.
+       */
+      kind: "anchor-frozen";
+      groupId: GroupId;
+      itemId: string;
+      date: IsoDate;
+      slotKey: SlotKey;
+    }
+  | {
       kind: "pin-slot-unavailable";
       pinId: string;
       groupId: GroupId;

@@ -228,7 +228,26 @@ function prepareGroup(
     const slot = usableByKey.get(a.slotKey);
     if (!slot || !(markers.has(a.itemId) || datedIds.has(a.itemId))) continue;
     markers.delete(a.itemId);
-    if (datedIds.has(a.itemId)) anchorOf.set(a.itemId, slot);
+    if (datedIds.has(a.itemId)) {
+      anchorOf.set(a.itemId, slot);
+      // Her new date points somewhere else inside the horizon: the frozen anchor stays, and we say so.
+      const date = inputs.items.find((i) => i.id === a.itemId)?.assessment
+        ?.date;
+      if (date != null && date >= today) {
+        const now = usable.find(
+          (s) =>
+            s.date >= date && (s.key === a.slotKey || !reserved.has(s.key)),
+        );
+        if (now?.key !== a.slotKey)
+          out.conflicts.push({
+            kind: "anchor-frozen",
+            groupId: g.id,
+            itemId: a.itemId,
+            date,
+            slotKey: a.slotKey,
+          });
+      }
+    }
     out.assessments.push(a);
     if (a.slotUse === "whole") {
       reserved.add(a.slotKey);

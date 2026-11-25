@@ -148,7 +148,10 @@ describe("history properties", () => {
       fc.property(change, (c) => {
         const w = changed(c);
         const previous = firsts[`${c.undated}`];
-        const horizon = freezeHorizonEnd(c.today, w.slots);
+        const horizon = freezeHorizonEnd(
+          c.today,
+          w.slots.filter((s) => GROUPS.includes(s.groupId)),
+        );
         const usable = new Set(
           w.slots
             .filter((s) => s.status === "open" || s.status === "cover")
@@ -185,7 +188,10 @@ describe("history properties", () => {
     fc.assert(
       fc.property(change, (c) => {
         const w = changed(c);
-        const horizon = freezeHorizonEnd(c.today, w.slots);
+        const horizon = freezeHorizonEnd(
+          c.today,
+          w.slots.filter((s) => GROUPS.includes(s.groupId)),
+        );
         const previous = firsts[`${c.undated}`];
         const trimmed = {
           ...previous,
