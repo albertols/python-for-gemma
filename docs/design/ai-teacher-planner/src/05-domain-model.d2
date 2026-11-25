@@ -48,8 +48,8 @@ derived: "Derived by the engine" {
 
   slot: "Slot\ngroup, date, period, status" {class: concept}
   lesson: "Lesson\nitem#n, per group;\nassessments are not lessons" {class: concept}
-  placement: "Placement\nlesson, slot, state;\nspare lessons fill the rest" {class: concept}
-  anchors: "AssessmentPlacement,\nCheckpoint, Overflow, Conflict\nwhat did not fit or was refused" {class: concept}
+  placement: "Placement\nlesson, slot, state; spare lessons\nbefore checkpoints and for revision" {class: concept}
+  anchors: "AssessmentPlacement, Conflict,\nCheckpoint: assessment, block end,\nrevision, exam; Overflow, absorbed" {class: concept}
 }
 
 revision: "PlanRevision\nimmutable snapshot,\npoints to its parent" {
@@ -74,6 +74,7 @@ decisions.pin -> derived.placement: "fixes" {class: flow}
 decisions.position -> derived.lesson: "declares what is behind her" {class: flow}
 decisions.assessment -> derived.anchors: "anchored to a slot" {class: flow}
 derived.placement -> derived.anchors: "unplaced or refused" {class: flow}
+decisions.exam -> derived.anchors: "a checkpoint by its code,\nthe plan's last" {class: flow}
 derived.lesson -> derived.placement: {class: flow}
 derived.slot -> derived.placement: {class: flow}
 derived.placement -> revision: "saved on accept" {class: flow}

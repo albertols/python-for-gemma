@@ -257,7 +257,10 @@ describe("sequence properties", () => {
       run,
     ));
 
-  test("planned, declared, overflow and absorbed lessons add up to the scheme", () =>
+  // Task 2.3: overflow at a checkpoint before the last is "short there", and the
+  // lesson is first in line after it, so it can be both overflow and placed.
+  // A lesson with no placement is counted once, through the overflow.
+  test("planned, declared, absorbed and never-placed overflow lessons add up to the scheme", () =>
     fc.assert(
       fc.property(scenario, (s) => {
         const w = build(s);
@@ -268,18 +271,28 @@ describe("sequence properties", () => {
             continue;
           }
           const total = expandLessons(w.items, [], g, "core").length;
-          const planned = snap.placements.filter(
-            (p) =>
-              p.groupId === g && !isFlex(p.lessonId) && p.state !== "declared",
+          const mine = snap.placements.filter((p) => p.groupId === g);
+          const has = new Set(mine.map((p) => p.lessonId));
+          const planned = mine.filter(
+            (p) => !isFlex(p.lessonId) && p.state !== "declared",
           ).length;
-          const declared = snap.placements.filter(
-            (p) => p.groupId === g && p.state === "declared",
-          ).length;
-          const overflow = snap.overflow
+          const declared = mine.filter((p) => p.state === "declared").length;
+          const overflowed = snap.overflow
             .filter((o) => o.groupId === g)
-            .reduce((n, o) => n + o.lessonIds.length, 0);
+            .flatMap((o) => o.lessonIds);
+          const neverPlaced = new Set(overflowed.filter((id) => !has.has(id)));
           const absorbed = snap.absorbed.filter((a) => a.groupId === g).length;
-          expect(planned + declared + overflow + absorbed).toBe(total);
+          expect(planned + declared + neverPlaced.size + absorbed).toBe(total);
+          // A lesson short at a checkpoint and placed later is placed after that checkpoint's date.
+          const dateOf = new Map(w.slots.map((x) => [x.key, x.date]));
+          for (const o of snap.overflow.filter((x) => x.groupId === g)) {
+            const cp = snap.checkpoints.find((c) => c.id === o.checkpointId);
+            for (const id of o.lessonIds) {
+              const key = mine.find((p) => p.lessonId === id)?.slotKey;
+              if (key)
+                expect((dateOf.get(key) ?? "") >= (cp?.date ?? "~")).toBe(true);
+            }
+          }
         }
       }),
       run,

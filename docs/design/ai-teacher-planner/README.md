@@ -43,15 +43,15 @@ Look for the five shared pieces every screen reuses; the purple ones are where A
 
 ## 5. Domain model
 
-Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import.
+Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import. An official exam becomes the plan's last checkpoint, named by its code.
 
-![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints, overflow and conflicts, plan revisions, provenance with review state](05-domain-model.svg)
+![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints (assessment, block end, revision, official exam), overflow, absorbed buffers and conflicts, spare lessons, plan revisions, provenance with review state](05-domain-model.svg)
 
 ## 6. Scheduling pipeline
 
-Look for the amber gate: a candidate revision becomes the head revision only when Gemma accepts the diff.
+Look for the amber gate: a candidate revision becomes the head revision only when Gemma accepts the diff. Before that, the pace line keeps parallel groups level at each checkpoint and turns their free slots into spare lessons.
 
-![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, sequencing, candidate revision, diff and accept, head revision](06-scheduling-pipeline.svg)
+![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff and accept, head revision](06-scheduling-pipeline.svg)
 
 ## 7. AI flow
 

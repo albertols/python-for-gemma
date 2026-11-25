@@ -29,7 +29,9 @@ disruptions: "Disruptions\nabsence, closure,\ntrip" {class: win}
 slots: "Slots\nper group,\ndate, period" {class: concept}
 sow: "Scheme of work\norder, counts,\nanchors, pins" {class: win}
 lessons: "Lessons per group\nitem#n, overrides,\nno assessments" {class: concept}
-sequencing: "Sequencing\nper group: position, pins,\nanchors, fill, spare lessons" {class: concept}
+sequencing: "Sequencing per group\nposition, pins, dated anchors,\nrevision block" {class: concept}
+exams: "Official exams\ncode, date, groups" {class: win}
+pace: "Pace line\nparallel groups level at each\ncheckpoint; spare lessons" {class: concept}
 candidate: "Candidate\nrevision" {class: concept}
 diff: "Diff + accept\nor reject" {class: warn}
 head: "Head revision\nundo = parent" {
@@ -55,7 +57,9 @@ disruptions -> slots: "folded in" {class: flow}
 slots -> sequencing: {class: flow}
 sow -> lessons: "expanded" {class: flow}
 lessons -> sequencing: {class: flow}
-sequencing -> candidate: {class: flow}
+exams -> sequencing: "no lessons from the exam;\nrevision counted back" {class: flow}
+sequencing -> pace: "streams and windows" {class: flow}
+pace -> candidate: {class: flow}
 candidate -> diff: {class: flow}
 diff -> head: "accepted" {class: flow}
 head -> reads: {class: flow}

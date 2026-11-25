@@ -376,6 +376,8 @@ describe("slots", () => {
 
   test("what does not fit in the year is overflow at the last checkpoint", () => {
     const w = world();
+    // With no revision block (Task 2.3) the last checkpoint is the last block end.
+    w.revisionWeeks = 0;
     const c4 = w.items.find((i) => i.id === "c4");
     if (c4) c4.lessons = 400;
     const snap = sequence(w);
@@ -390,7 +392,7 @@ describe("slots", () => {
     );
   });
 
-  test("slots left after the last lesson become spare lessons", () => {
+  test("slots left after the last lesson become spare lessons, named for the checkpoint of their window", () => {
     const snap = sequence(world());
     const spare = snap.placements.filter((p) =>
       p.lessonId.startsWith("flex:13 1:"),
@@ -399,9 +401,10 @@ describe("slots", () => {
     expect(
       spare.every((p) => p.state === "planned" && p.slotKey !== null),
     ).toBe(true);
-    const last = snap.checkpoints.at(-1)?.id ?? "";
-    expect(last).toMatch(/^cp:block:T3/);
-    expect(spare[0]?.lessonId).toBe(`flex:13 1:${last}#1`);
+    expect(snap.checkpoints.at(-1)?.id).toMatch(/^cp:block:T3/);
+    // Task 2.3: the pace line plans window by window, so the first spare lesson
+    // belongs to the window where the scheme runs out (T1b), not the last checkpoint.
+    expect(spare[0]?.lessonId).toBe("flex:13 1:cp:block:T1b#1");
     const lastLesson = placementOf(snap, "13 1", "c4#2")?.slotKey ?? "";
     expect(spare.every((p) => (p.slotKey ?? "") > lastLesson)).toBe(true);
     expect(new Set(spare.map((p) => p.lessonId)).size).toBe(spare.length);
@@ -572,6 +575,7 @@ describe("checkpoints and order", () => {
   test("with no checkpoint there are no spare lessons and overflow has no checkpoint", () => {
     const w = world();
     w.blocks = [];
+    w.revisionWeeks = 0; // a revision block is a checkpoint too (Task 2.3)
     setA1(w, { status: "sat" });
     const c4 = w.items.find((i) => i.id === "c4");
     if (c4) c4.lessons = 400;
@@ -604,7 +608,7 @@ describe("checkpoints and order", () => {
     expect(cps.map((c) => c.date)).toEqual([...cps.map((c) => c.date)].sort());
   });
 
-  test("groups are planned independently", () => {
+  test("each group starts in its own first slot and sits a1 in its own slot", () => {
     const snap = sequence(world(["13 1", "13 3", "13 5"]));
     const w = world(["13 1", "13 3", "13 5"]);
     for (const g of ["13 3", "13 5"])
