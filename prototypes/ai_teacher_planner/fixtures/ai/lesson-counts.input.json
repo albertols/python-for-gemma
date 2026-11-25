@@ -1,0 +1,12 @@
+{
+  "courseTitle": "Invented Economics",
+  "mode": "differences",
+  "items": [
+    { "id": "ch1", "title": "Demand", "lessons": 3 },
+    { "id": "ch2", "title": "Supply", "lessons": 4 },
+    { "id": "ch3", "title": "Markets", "lessons": 4 },
+    { "id": "ch4", "title": "Price elasticity", "lessons": 2 },
+    { "id": "ch5", "title": "Market failure", "lessons": 4 }
+  ],
+  "unitTotals": [{ "unitId": "u1", "lessons": 17 }]
+}

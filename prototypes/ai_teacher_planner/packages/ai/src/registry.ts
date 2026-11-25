@@ -34,9 +34,7 @@ export const skills: Partial<
  * Skills whose SKILL.md (and generated schema.json) has not been written yet.
  * The task that writes a skill's SKILL.md removes its id here, in the same commit.
  */
-export const PENDING_SKILL_TEXT: readonly SkillId[] = [
-  "planner-suggest-lesson-counts",
-];
+export const PENDING_SKILL_TEXT: readonly SkillId[] = [];
 
 export function getSkill(id: SkillId): SkillDefinition<unknown, unknown> {
   const skill = skills[id];

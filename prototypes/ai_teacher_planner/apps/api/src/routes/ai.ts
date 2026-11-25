@@ -10,6 +10,8 @@ import {
   subscribeToJob,
 } from "../usecases/ai-jobs.ts";
 import { reviewItem } from "../usecases/review-item.ts";
+// registers the lesson-count item handler
+import "../usecases/suggest-counts.ts";
 import { guard, type Principal } from "./require-access.ts";
 import { createRouter } from "./router.ts";
 import { errorResponse } from "./schemas.ts";

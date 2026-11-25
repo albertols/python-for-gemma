@@ -12,6 +12,7 @@ import {
   whenIdle,
 } from "./ai-jobs.ts";
 import { reviewItem } from "./review-item.ts";
+import "./suggest-counts.ts";
 
 const SKILL = "planner-suggest-lesson-counts" as const;
 const output = {

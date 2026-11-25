@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "lessons": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "type": "string"
+          },
+          "tricky": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "itemId",
+          "lessons",
+          "reason",
+          "tricky"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "suggestions"
+  ],
+  "additionalProperties": false
+}

@@ -14,15 +14,22 @@ const suggestions = (page: Page) =>
   drawer(page).getByRole("list", { name: "Suggestions" }).getByRole("listitem");
 
 Given("the fake AI has suggested a lesson count", async ({ request }) => {
+  // accepting writes the count, so the course needs its synthetic scheme
+  const reset = await request.post("/api/test/reset", {
+    headers: TEST,
+    data: { state: "m2-no-positions" },
+  });
+  expect(reset.ok()).toBe(true);
   const started = await request.post("/api/ai/jobs", {
     data: {
       skillId: SKILL,
       input: {
-        courseTitle: "Synthetic Economics",
+        courseId: "ial-business-u4",
+        courseTitle: "IAL Business Unit 4",
         mode: "differences",
         items: [
           { id: "ch3", title: "Markets", lessons: 4 },
-          { id: "ch4", title: "Firms", lessons: 3 },
+          { id: "ch4", title: "Prices", lessons: 2 },
         ],
         unitTotals: [{ unitId: "u1", lessons: 20 }],
       },

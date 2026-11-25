@@ -19,8 +19,7 @@ import { Disclosure } from "./ui/disclosure.tsx";
 import { EmptyState, ErrorState, Loading } from "./ui/states.tsx";
 
 const MAX_LESSONS = 99;
-const RECORDED =
-  "Recorded. The scheme uses it once the scheme screen is built.";
+const RECORDED = "Saved in the scheme.";
 
 const OUTCOME: Record<AiRunView["status"], string> = {
   queued: "Waiting its turn",

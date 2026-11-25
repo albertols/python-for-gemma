@@ -5,7 +5,6 @@ import {
   type AiProgress,
   getSkill,
   type SkillId,
-  type SuggestLessonCountsOutput,
 } from "@planner/ai";
 import type { CourseId, Resource } from "@planner/domain";
 import type { Config } from "../config.ts";
@@ -32,6 +31,8 @@ export interface ItemHandler {
     output: unknown,
     input: unknown,
   ): { target: string; courseId: CourseId | null; data: unknown }[];
+  /** A sentence about what toItems left out (counts only, never the model's words), shown on the finished run. */
+  report?(output: unknown, input: unknown): string | null;
   apply(item: AiItem, ctx: JobContext): Promise<void>;
 }
 
@@ -89,41 +90,8 @@ export function getItemHandler(skillId: SkillId): ItemHandler | undefined {
   return handlers.get(skillId);
 }
 
-/**
- * Lesson counts. Storing an accepted count in the scheme arrives with the scheme (Task 2.12)
- * and the lesson-count review (Task 2.14); until then accepting records her decision only.
- */
-const lessonCountHandler: ItemHandler = {
-  kind: "lesson-count",
-  resource: "scheme-of-work",
-  toItems(output, input) {
-    const { suggestions } = output as SuggestLessonCountsOutput;
-    const given = (input ?? {}) as {
-      courseId?: unknown;
-      items?: { id: string; title: string; lessons: number | null }[];
-    };
-    // the skill's own input schema drops `courseId`, so it never reaches the model
-    const courseId =
-      typeof given.courseId === "string" ? (given.courseId as CourseId) : null;
-    return suggestions.map((s) => {
-      const was = given.items?.find((i) => i.id === s.itemId);
-      return {
-        target: s.itemId,
-        courseId,
-        data: {
-          itemId: s.itemId,
-          title: was?.title ?? null,
-          from: was?.lessons ?? null,
-          to: s.lessons,
-          reason: s.reason,
-          tricky: s.tricky,
-        },
-      };
-    });
-  },
-  async apply() {},
-};
-registerItemHandler("planner-suggest-lesson-counts", lessonCountHandler);
+// Each skill's handler registers itself in its own use case file (suggest-counts.ts, ...);
+// routes/ai.ts imports them, so every handler exists before a review can come in.
 
 // ---- jobs ----
 
@@ -291,7 +259,7 @@ async function execute(
         durationMs: result.meta.durationMs,
         provider: result.meta.provider,
         model: result.meta.model,
-        failure: null,
+        failure: handler.report?.(result.data, request.input) ?? null,
       });
     });
   } catch (e) {

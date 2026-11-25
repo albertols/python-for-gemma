@@ -44,7 +44,7 @@ Feature: AI is marked
     When I open the activity drawer
     And I accept the suggestion
     Then the suggestion has the "AI suggestion, accepted" badge and no dashed outline
-    And the suggestion says "Recorded. The scheme uses it once the scheme screen is built."
+    And the suggestion says "Saved in the scheme."
 
   Scenario: Editing a suggestion changes its mark
     Given the fake AI has suggested a lesson count
