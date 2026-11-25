@@ -162,6 +162,9 @@ function RunList({
                 : ` · ${(run.durationMs / 1000).toFixed(1)} s`}
             </p>
             {run.failure ? <p className="mt-1">{run.failure}</p> : null}
+            {run.note ? (
+              <p className="mt-1 text-muted-foreground">{run.note}</p>
+            ) : null}
             {mine.length > 0 ? (
               <ul aria-label="Suggestions" className="mt-2 space-y-2">
                 {mine.map((item) => (

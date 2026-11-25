@@ -9,11 +9,15 @@ import { ApiError } from "../errors.ts";
 import { createRepos } from "../repos/sqlite/index.ts";
 import { createPackStore } from "../repos/sqlite/pack-store.ts";
 import { migratedDb, testConfig } from "../test-support.ts";
-import { type JobContext, whenIdle } from "./ai-jobs.ts";
+import { getItemHandler, type JobContext, whenIdle } from "./ai-jobs.ts";
 import { firstRun } from "./first-run.ts";
 import { reviewItem } from "./review-item.ts";
 import { seedM2 } from "./seed-m2.ts";
-import { suggestCounts } from "./suggest-counts.ts";
+import {
+  lessonCountHandler,
+  registerLessonCountHandler,
+  suggestCounts,
+} from "./suggest-counts.ts";
 
 const SKILL = "planner-suggest-lesson-counts" as const;
 const COURSE = "ial-business-u4";
@@ -35,6 +39,7 @@ const says = (itemId: string, lessons: number, tricky = false): Suggestion => ({
 
 /** The synthetic scheme: ch1 Demand 3, ch2 Supply 4, ch3 Markets 4, ch4 Prices 2, with two assessments. */
 async function world(suggestions: Suggestion[]) {
+  registerLessonCountHandler();
   const db = migratedDb();
   const repos = createRepos(db);
   firstRun(repos);
@@ -129,12 +134,12 @@ test("accepting a suggestion changes that item's count and records AI provenance
   expect(others.find((i) => i.id === "ch4")?.provenance).toEqual(IMPORTED);
 });
 
-test("her own number is stored with review edited; a number that is not a whole 0 to 99 is refused and nothing changes", async () => {
+test("her own number is stored with review edited; a number that is not a whole 1 to 99 is refused and nothing changes", async () => {
   const w = await world([says("ch3", 5)]);
   await run(w);
   const [item] = w.repos.ai.listItems();
   if (!item) throw new Error("no item");
-  for (const to of [100, -1, 2.5, "6", null]) {
+  for (const to of [100, 0, -1, 2.5, "6", null]) {
     const refusal = await reviewItem(w.ctx, TEACHER, item.id, {
       state: "edited",
       data: { ...(item.data as object), to },
@@ -146,9 +151,9 @@ test("her own number is stored with review edited; a number that is not a whole 
   }
   await reviewItem(w.ctx, TEACHER, item.id, {
     state: "edited",
-    data: { ...(item.data as object), to: 0 },
+    data: { ...(item.data as object), to: 99 },
   });
-  expect(countsOf(w.repos)).toEqual({ ...SEEDED, ch3: 0 });
+  expect(countsOf(w.repos)).toEqual({ ...SEEDED, ch3: 99 });
   expect(
     w.repos.scheme.items(COURSE).find((i) => i.id === "ch3")?.provenance.ai
       ?.review,
@@ -182,9 +187,10 @@ test("a suggestion for an item that does not exist is dropped and reported in th
   const done = await run(w);
   expect(done?.status).toBe("done");
   expect(w.repos.ai.listItems().map((i) => i.target)).toEqual(["ch3"]);
-  expect(done?.failure).toBe(
+  expect(done?.note).toBe(
     "2 suggestions were left out: they did not match a chapter of this scheme.",
   );
+  expect(done?.failure).toBeNull();
 });
 
 test("one dropped suggestion is reported in the singular, and a repeated item counts as dropped", async () => {
@@ -195,18 +201,20 @@ test("one dropped suggestion is reported in the singular, and a repeated item co
       .listItems()
       .map((i) => [i.target, (i.data as { to: number }).to]),
   ).toEqual([["ch3", 5]]);
-  expect(done?.failure).toBe(
+  expect(done?.note).toBe(
     "2 suggestions were left out: they did not match a chapter of this scheme.",
   );
   const one = await world([says("ch9", 3), says("ch3", 5)]);
-  expect((await run(one))?.failure).toBe(
+  expect((await run(one))?.note).toBe(
     "1 suggestion was left out: it did not match a chapter of this scheme.",
   );
 });
 
 test("a run with nothing dropped reports nothing", async () => {
   const w = await world([says("ch3", 5)]);
-  expect((await run(w))?.failure).toBeNull();
+  const done = await run(w);
+  expect(done?.note).toBeNull();
+  expect(done?.failure).toBeNull();
 });
 
 test("nothing changes in the scheme until she reviews", async () => {
@@ -281,4 +289,63 @@ test("a course without a locked pack or scheme is refused before any job starts"
     ApiError,
   );
   expect(w.repos.ai.listRuns()).toEqual([]);
+});
+
+test("a suggestion made against a count she has since changed is refused with 409, nothing changes, and she can still reject it", async () => {
+  const w = await world([says("ch3", 5)]);
+  await run(w);
+  const [item] = w.repos.ai.listItems();
+  if (!item) throw new Error("no item");
+  // she set Markets to 6 after the suggestion was made against 4
+  w.repos.scheme.replace(
+    COURSE,
+    w.repos.scheme
+      .items(COURSE)
+      .map((i) => (i.id === "ch3" ? { ...i, lessons: 6 } : i)),
+    [],
+  );
+  for (const state of ["accepted", "edited"] as const) {
+    const refusal = await reviewItem(w.ctx, TEACHER, item.id, {
+      state,
+      ...(state === "edited"
+        ? { data: { ...(item.data as object), to: 7 } }
+        : {}),
+    }).catch((e: unknown) => e);
+    expect(refusal, state).toMatchObject({
+      status: 409,
+      code: "stale-count",
+      message: "The scheme changed since this suggestion. Ask again.",
+    });
+    expect(countsOf(w.repos)).toEqual({ ...SEEDED, ch3: 6 });
+    expect(w.repos.ai.getItem(item.id)?.review).toBe("suggested");
+  }
+  const rejected = await reviewItem(w.ctx, TEACHER, item.id, {
+    state: "rejected",
+  });
+  expect(rejected.review).toBe("rejected");
+  expect(countsOf(w.repos)).toEqual({ ...SEEDED, ch3: 6 });
+});
+
+test("a chapter with no link in the pack is counted under the unit id none", async () => {
+  const w = await world([says("ch3", 5)]);
+  w.repos.scheme.replace(
+    COURSE,
+    w.repos.scheme
+      .items(COURSE)
+      .map((i) => (i.id === "ch3" ? { ...i, packRefs: [] } : i)),
+    [],
+  );
+  await run(w);
+  const sent = getSkill(SKILL).input.parse(w.ai.calls[0]?.input) as {
+    unitTotals: unknown;
+  };
+  expect(sent.unitTotals).toEqual([
+    { unitId: "u1", lessons: 9 },
+    { unitId: "none", lessons: 4 },
+  ]);
+});
+
+test("registerLessonCountHandler makes the lesson-count handler the one that reviews use", () => {
+  registerLessonCountHandler();
+  expect(getItemHandler(SKILL)).toBe(lessonCountHandler);
 });

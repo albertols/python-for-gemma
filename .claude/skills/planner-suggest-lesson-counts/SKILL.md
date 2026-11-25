@@ -30,7 +30,7 @@ Her numbers are the starting point. Assume each one is right until you can say w
 
 - Return a suggestion **only** for a chapter whose number you change. Never return a chapter at her number: leave it out. An empty list is a good answer when her numbers are sound.
 - `itemId` is exactly an `id` from `items`. Never invent one.
-- `lessons` is a whole number, 0 or more, and never the same as hers.
+- `lessons` is a whole number from 1 to 99, and never the same as hers.
 - A chapter with `lessons: null` has no number to start from: suggest one only with a reason, and say in it that she gave none.
 
 ### The reason

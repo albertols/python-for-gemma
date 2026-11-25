@@ -15,7 +15,8 @@ import { provenanceOf } from "./review-item.ts";
 
 const SKILL = "planner-suggest-lesson-counts" as const;
 
-/** The most lessons one chapter can be given. */
+/** A chapter has 1 to 99 lessons. */
+export const MIN_LESSONS = 1;
 export const MAX_LESSONS = 99;
 
 /**
@@ -90,7 +91,9 @@ function sift(output: unknown, input: unknown) {
   return { kept, dropped };
 }
 
-const countData = z.object({ to: z.number().int().min(0).max(MAX_LESSONS) });
+const countData = z.object({
+  to: z.number().int().min(MIN_LESSONS).max(MAX_LESSONS),
+});
 
 /** Lesson counts: each suggestion that differs from her number is an item; accepting one writes the count. */
 export const lessonCountHandler: ItemHandler = {
@@ -132,7 +135,7 @@ export const lessonCountHandler: ItemHandler = {
       throw new ApiError(
         422,
         "invalid-count",
-        `A lesson count is a whole number from 0 to ${MAX_LESSONS}.`,
+        `A lesson count is a whole number from ${MIN_LESSONS} to ${MAX_LESSONS}.`,
       );
     const { repos } = ctx;
     const items = repos.scheme.items(item.courseId);
@@ -142,6 +145,14 @@ export const lessonCountHandler: ItemHandler = {
         422,
         "no-such-item",
         "This chapter is not in the scheme any more, so its count cannot be changed.",
+      );
+    // a suggestion made against another number must never overwrite her newer one
+    const was = (item.data as { from?: unknown } | null)?.from;
+    if (was !== target.lessons)
+      throw new ApiError(
+        409,
+        "stale-count",
+        "The scheme changed since this suggestion. Ask again.",
       );
     const provenance = provenanceOf(ctx, item);
     repos.scheme.replace(
@@ -154,4 +165,7 @@ export const lessonCountHandler: ItemHandler = {
   },
 };
 
-registerItemHandler(SKILL, lessonCountHandler);
+/** Makes this the handler for reviews of lesson-count suggestions. Called once where the app is built. */
+export function registerLessonCountHandler(): void {
+  registerItemHandler(SKILL, lessonCountHandler);
+}

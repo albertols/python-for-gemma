@@ -31,7 +31,7 @@ export interface ItemHandler {
     output: unknown,
     input: unknown,
   ): { target: string; courseId: CourseId | null; data: unknown }[];
-  /** A sentence about what toItems left out (counts only, never the model's words), shown on the finished run. */
+  /** A sentence about what toItems left out (counts only, never the model's words), kept in the finished run's `note`. */
   report?(output: unknown, input: unknown): string | null;
   apply(item: AiItem, ctx: JobContext): Promise<void>;
 }
@@ -141,6 +141,7 @@ export function startJob(ctx: JobContext, request: JobRequest): AiRun {
     provider: null,
     model: null,
     failure: null,
+    note: null,
   };
   ctx.repos.ai.insertRun(run);
   runner.queue.enqueue({
@@ -259,7 +260,8 @@ async function execute(
         durationMs: result.meta.durationMs,
         provider: result.meta.provider,
         model: result.meta.model,
-        failure: handler.report?.(result.data, request.input) ?? null,
+        failure: null,
+        note: handler.report?.(result.data, request.input) ?? null,
       });
     });
   } catch (e) {

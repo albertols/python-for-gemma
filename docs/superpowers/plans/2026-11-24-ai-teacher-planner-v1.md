@@ -426,6 +426,8 @@ export interface AiItem { id: string; runId: string; kind: string; target: strin
 export interface ItemHandler { kind: string; resource: Resource; toItems(output: unknown, input: unknown): { target: string; courseId: CourseId | null; data: unknown }[]; apply(item: AiItem, ctx: JobContext): Promise<void> }
 export function startJob(ctx: JobContext, request: { skillId: SkillId; input: unknown; text: string | null; attachments: string[] }): AiRun;
 // `AiItem.courseId` lets Task 2.19 leave out only the pending items of the course being exported.
+// Task 2.14: a `lesson-count` item's data is `{ itemId, title, from, to, reason, tricky }` (`to` is the suggested count, 1 to 99; `from` is her number when asked, and accepting refuses with 409 if the scheme's count is no longer `from`).
+// `ItemHandler.report?(output, input)` gives a counts-only sentence for the finished run's `note` (AiRun gains `note: string | null`, never a failure). Handlers are registered where the app is built (`registerLessonCountHandler()` in createApp).
 ```
 
 ### Later milestones

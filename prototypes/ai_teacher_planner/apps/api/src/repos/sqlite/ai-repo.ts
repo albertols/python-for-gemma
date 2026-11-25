@@ -11,6 +11,7 @@ interface RunRecord {
   provider: string | null;
   model: string | null;
   failure: string | null;
+  note: string | null;
 }
 interface ItemRecord {
   id: string;
@@ -52,6 +53,7 @@ export function createAiRepo(db: Database): AiRepo {
     provider: r.provider,
     model: r.model,
     failure: r.failure,
+    note: r.note,
     itemIds: itemIds(r.id),
   });
   const getItem = (id: string) => {
@@ -63,8 +65,8 @@ export function createAiRepo(db: Database): AiRepo {
   return {
     insertRun(run) {
       db.prepare(
-        `insert into ai_runs (id, skill_id, status, started_at, duration_ms, provider, model, failure)
-         values (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `insert into ai_runs (id, skill_id, status, started_at, duration_ms, provider, model, failure, note)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         run.id,
         run.skillId,
@@ -74,6 +76,7 @@ export function createAiRepo(db: Database): AiRepo {
         run.provider,
         run.model,
         run.failure,
+        run.note,
       );
     },
     getRun(id) {
@@ -96,7 +99,8 @@ export function createAiRepo(db: Database): AiRepo {
            duration_ms = case when ? then ? else duration_ms end,
            provider = case when ? then ? else provider end,
            model = case when ? then ? else model end,
-           failure = case when ? then ? else failure end
+           failure = case when ? then ? else failure end,
+           note = case when ? then ? else note end
          where id = ?`,
       ).run(
         has("status"),
@@ -109,6 +113,8 @@ export function createAiRepo(db: Database): AiRepo {
         patch.model ?? null,
         has("failure"),
         patch.failure ?? null,
+        has("note"),
+        patch.note ?? null,
         id,
       );
     },

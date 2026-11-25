@@ -20,7 +20,7 @@ const output = z.object({
   suggestions: z.array(
     z.object({
       itemId: z.string(),
-      lessons: z.number().int().min(0),
+      lessons: z.number().int().min(1).max(99),
       reason: z.string(),
       tricky: z.boolean(),
     }),

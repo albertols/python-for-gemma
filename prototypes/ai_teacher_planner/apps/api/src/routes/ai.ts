@@ -10,8 +10,6 @@ import {
   subscribeToJob,
 } from "../usecases/ai-jobs.ts";
 import { reviewItem } from "../usecases/review-item.ts";
-// registers the lesson-count item handler
-import "../usecases/suggest-counts.ts";
 import { guard, type Principal } from "./require-access.ts";
 import { createRouter } from "./router.ts";
 import { errorResponse } from "./schemas.ts";
@@ -41,6 +39,7 @@ const aiRun = z.object({
   provider: z.string().nullable(),
   model: z.string().nullable(),
   failure: z.string().nullable(),
+  note: z.string().nullable(),
   itemIds: z.array(z.string()),
 });
 const reviewState = z.enum(["suggested", "accepted", "edited", "rejected"]);

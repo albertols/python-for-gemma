@@ -76,6 +76,7 @@ Given(
       provider: "fake",
       model: null,
       failure: null,
+      note: null,
       itemIds: [],
     };
     await page.route("**/api/ai/runs", (route) =>

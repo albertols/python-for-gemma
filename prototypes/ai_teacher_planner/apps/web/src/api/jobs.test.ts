@@ -21,6 +21,7 @@ const run = (over: Partial<AiRunView>): AiRunView => ({
   provider: null,
   model: null,
   failure: null,
+  note: null,
   itemIds: [],
   ...over,
 });

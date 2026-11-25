@@ -164,6 +164,8 @@ export interface AiRun {
   provider: string | null;
   model: string | null;
   failure: string | null;
+  /** A sentence about a run that finished well but left something out. Never a failure. */
+  note: string | null;
   itemIds: string[];
 }
 
@@ -188,7 +190,10 @@ export interface AiRepo {
   updateRun(
     id: string,
     patch: Partial<
-      Pick<AiRun, "status" | "durationMs" | "provider" | "model" | "failure">
+      Pick<
+        AiRun,
+        "status" | "durationMs" | "provider" | "model" | "failure" | "note"
+      >
     >,
   ): void;
   insertItem(item: AiItem): void;

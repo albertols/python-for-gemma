@@ -12,6 +12,7 @@ const run = (id: string, startedAt = "2026-11-24T10:00:00.000Z") => ({
   provider: null,
   model: null,
   failure: null,
+  note: null,
 });
 const item = (
   id: string,

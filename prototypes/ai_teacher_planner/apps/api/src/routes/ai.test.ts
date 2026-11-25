@@ -13,6 +13,7 @@ import {
   registerItemHandler,
 } from "../usecases/ai-jobs.ts";
 import { provenanceOf } from "../usecases/review-item.ts";
+import { registerLessonCountHandler } from "../usecases/suggest-counts.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: the tests read loose JSON
 type Json = any;
@@ -93,7 +94,9 @@ function build(
   db = migratedDb(),
   now: () => Date = () => new Date(NOW),
 ) {
-  return createApp({
+  // createApp registers the real handler; a test that staged its own keeps it
+  const staged = getItemHandler(SKILL);
+  const app = createApp({
     ai,
     config: { ...testConfig, ai: "fake", ...over },
     db,
@@ -101,6 +104,8 @@ function build(
     gateway: fakeGateway({}),
     principal,
   });
+  if (staged) registerItemHandler(SKILL, staged);
+  return app;
 }
 type App = ReturnType<typeof build>;
 
@@ -138,6 +143,7 @@ const events = async (app: App, id: string) => {
   };
 };
 
+registerLessonCountHandler();
 const original = getItemHandler(SKILL);
 afterEach(() => {
   if (original) registerItemHandler(SKILL, original);
@@ -192,6 +198,7 @@ test("a finished job stores one run and its items, each suggested", async () => 
     provider: "fake",
     model: "fake",
     failure: null,
+    note: null,
   });
   expect(typeof run.durationMs).toBe("number");
   expect(run.itemIds).toHaveLength(2);

@@ -31,6 +31,7 @@ import { todoRoutes } from "./routes/todos.ts";
 import { todayOf } from "./today.ts";
 import { failInterrupted } from "./usecases/ai-jobs.ts";
 import { firstRun } from "./usecases/first-run.ts";
+import { registerLessonCountHandler } from "./usecases/suggest-counts.ts";
 
 export interface AppDeps {
   config: Config;
@@ -88,6 +89,7 @@ export function createApp(deps: AppDeps) {
   // pack files live beside the database; nothing is written there until a pack is saved
   const packs = createPackStore(db, path.join(config.dataDir, "packs"));
   firstRun(repos);
+  registerLessonCountHandler();
   // a job that was running when the planner closed can never finish
   failInterrupted(repos);
   const ai = createAiState({ config, ai: deps.ai, repos, now });
