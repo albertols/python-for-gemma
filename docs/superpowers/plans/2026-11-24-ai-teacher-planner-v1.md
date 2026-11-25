@@ -374,7 +374,8 @@ export function byCheckpointOrder(a: Checkpoint, b: Checkpoint): number;        
 export interface PlanDiffEntry { groupId: GroupId; lessonId: LessonId; change: "moved" | "added" | "removed" | "state" | "correction"; from: SlotKey | null; to: SlotKey | null; fromState: PlacementState | null; toState: PlacementState | null; hitByDisruption: boolean }
 export interface PlanDiff { entries: PlanDiffEntry[]; changedByGroup: Record<GroupId, number> }
 export interface PlanMetrics { perGroup: Record<GroupId, { placed: number; spare: number; overflow: number; lastContentDate: IsoDate | null; officialExam: { code: string; date: IsoDate } | null }> }
-export function sameExceptHistoryStates(a: PlanSnapshot, b: PlanSnapshot): boolean;   // via snapshotKey of a copy with history states normalised; Task 2.12's upToDate uses it
+export function sameExceptHistoryStates(a: PlanSnapshot, b: PlanSnapshot): boolean;   // via snapshotKey of a copy with history states normalised, except `skipped` (a skip is a change); Task 2.12's upToDate uses it
+export function isUpToDate(args: { head: PlanSnapshot; fresh: PlanSnapshot /* sequence of today's inputs on top of head */; slots: readonly Slot[]; flexEdits: readonly FlexEdit[] }): boolean;   // Task 2.12: sameExceptHistoryStates(fresh, the head as of fresh.today: past planned lessons assumed, past spare lessons, assessments and checkpoints gone), and every head lesson or assessment from today still on a usable slot
 export interface Proposal { planId: string; baseRevisionId: string | null; label: string; candidate: PlanSnapshot; diff: PlanDiff; before: PlanMetrics | null; after: PlanMetrics; conflicts: Conflict[] }
 export function diffSnapshots(before: PlanSnapshot | null, after: PlanSnapshot, slots: readonly Slot[]): PlanDiff;
 export function planMetrics(s: PlanSnapshot, slots: readonly Slot[]): PlanMetrics;

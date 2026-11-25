@@ -27,15 +27,15 @@ days: "Calendar days\nweek label,\npupil day" {class: concept}
 timetable: "Timetable\nWeek 1 | Week 2" {class: win}
 disruptions: "Disruptions\nabsence, closure,\ntrip" {class: win}
 slots: "Slots\nper group,\ndate, period" {class: concept}
-sow: "Scheme of work\norder, counts,\nanchors, pins" {class: win}
+sow: "Scheme of work\norder, counts, anchors,\npins; from a locked pack" {class: win}
 lessons: "Lessons per group\nitem#n, overrides,\nno assessments" {class: concept}
 history: "History and freeze\nlog or assumed, past spare\nlessons dropped; today and\nnext day frozen" {class: concept}
 previous: "Previous plan\n+ lesson log" {class: win}
 sequencing: "Sequencing per group\nposition, pins, dated anchors,\nrevision block" {class: concept}
-exams: "Official exams\ncode, date, groups" {class: win}
+exams: "Official exams\n+ course revision weeks" {class: win}
 pace: "Pace line\nparallel groups level at each\ncheckpoint; spare lessons" {class: concept}
 candidate: "Candidate\nrevision" {class: concept}
-diff: "Diff, metrics + accept\nor reject (stale refused)" {class: warn}
+diff: "Diff, metrics + accept\nrefused when the head or\nthe candidate changed" {class: warn}
 head: "Head revision\nundo = parent" {
   class: win
   shape: cylinder
@@ -46,6 +46,9 @@ reads: "Read from the head revision" {
   grid-columns: 1
   grid-gap: 12
 
+  board: "Board placements" {class: concept}
+  checkin: "Check-in: assumed lessons" {class: concept}
+  uptodate: "Up to date? a fresh plan\nagainst the head" {class: warn}
   parity: "Parity" {class: concept}
   coverage: "Coverage" {class: concept}
   reminders: "Reminders" {class: concept}

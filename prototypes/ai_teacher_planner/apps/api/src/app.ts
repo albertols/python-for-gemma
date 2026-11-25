@@ -10,13 +10,19 @@ import type { Database } from "./db/connection.ts";
 import { ApiError } from "./errors.ts";
 import type { ResourceGateway } from "./gateway/resource-gateway.ts";
 import { createRepos } from "./repos/sqlite/index.ts";
+import { createPackStore } from "./repos/sqlite/pack-store.ts";
 import { aiRoutes } from "./routes/ai.ts";
 import { calendarRoutes } from "./routes/calendar.ts";
+import { checkInRoutes } from "./routes/checkin.ts";
+import { courseRoutes } from "./routes/courses.ts";
 import { disruptionRoutes } from "./routes/disruptions.ts";
 import { eventRoutes } from "./routes/events.ts";
 import { examRoutes } from "./routes/exams.ts";
+import { packRoutes } from "./routes/packs.ts";
+import { planRoutes } from "./routes/plans.ts";
 import type { Principal } from "./routes/require-access.ts";
 import { createRouter } from "./routes/router.ts";
+import { schemeRoutes } from "./routes/scheme.ts";
 import { slotRoutes } from "./routes/slots.ts";
 import { testRoutes } from "./routes/test-reset.ts";
 import { timetableRoutes } from "./routes/timetable.ts";
@@ -79,6 +85,8 @@ const configRoute = createRoute({
 export function createApp(deps: AppDeps) {
   const { config, now, db, gateway, webDir } = deps;
   const repos = createRepos(db);
+  // pack files live beside the database; nothing is written there until a pack is saved
+  const packs = createPackStore(db, path.join(config.dataDir, "packs"));
   firstRun(repos);
   // a job that was running when the planner closed can never finish
   failInterrupted(repos);
@@ -111,9 +119,18 @@ export function createApp(deps: AppDeps) {
     .route("/", examRoutes({ repos }))
     .route("/", todoRoutes({ repos, now }))
     .route("/", todayRoutes({ config, repos, now }))
-    .route("/", aiRoutes({ state: ai }));
+    .route("/", aiRoutes({ state: ai }))
+    .route("/", courseRoutes({ repos, packs }))
+    .route("/", packRoutes({ repos, packs, now }))
+    .route("/", schemeRoutes({ config, repos, packs, now }))
+    .route("/", planRoutes({ config, repos, packs, now }))
+    .route("/", checkInRoutes({ config, repos, packs, now }));
 
-  if (config.testRoutes) app.route("/", testRoutes({ db, repos, now, ai }));
+  if (config.testRoutes)
+    app.route(
+      "/",
+      testRoutes({ db, repos, packs, dataDir: config.dataDir, now, ai }),
+    );
 
   app.doc("/openapi.json", {
     openapi: "3.1.0",

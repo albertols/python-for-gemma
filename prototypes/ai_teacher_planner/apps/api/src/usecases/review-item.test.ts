@@ -24,14 +24,22 @@ const input = {
   unitTotals: [{ unitId: "u1", lessons: 20 }],
 };
 
-async function suggestedItem() {
+async function suggestedItem(courseId?: string) {
   const ctx: JobContext = {
     repos: createRepos(migratedDb()),
     ai: new FakeAiProvider({ [SKILL]: output }),
     now: () => new Date("2026-11-24T10:00:00Z"),
     config: testConfig,
   };
-  startJob(ctx, { skillId: SKILL, input, text: null, attachments: [] });
+  ctx.repos.courses.seed([
+    { id: "ial-business-u4", title: "IAL", board: "IAL", revisionWeeks: 2 },
+  ]);
+  startJob(ctx, {
+    skillId: SKILL,
+    input: courseId === undefined ? input : { ...input, courseId },
+    text: null,
+    attachments: [],
+  });
   await whenIdle(ctx);
   const [item] = ctx.repos.ai.listItems();
   if (!item) throw new Error("the job stored no item");
@@ -88,6 +96,39 @@ test("a timetable-grid item needs lesson-plans: the head of department only view
       state: "rejected",
     });
     expect(teacher.review).toBe("rejected");
+  } finally {
+    restore();
+  }
+});
+
+test("an item naming a course that does not exist is refused when she accepts it, and nothing is applied", async () => {
+  const { ctx, item } = await suggestedItem("no-such-course");
+  expect(item.courseId).toBe("no-such-course");
+  const { applied, restore } = handlerFor("scheme-of-work");
+  try {
+    const refusal = await reviewItem(ctx, { role: "teacher" }, item.id, {
+      state: "accepted",
+    }).catch((e: unknown) => e);
+    expect(refusal).toBeInstanceOf(ApiError);
+    expect(refusal).toMatchObject({ status: 422, code: "unknown-course" });
+    expect(applied).toEqual([]);
+    expect(ctx.repos.ai.getItem(item.id)?.review).toBe("suggested");
+    // rejecting applies nothing, so it is allowed
+    const rejected = await reviewItem(ctx, { role: "teacher" }, item.id, {
+      state: "rejected",
+    });
+    expect(rejected.review).toBe("rejected");
+  } finally {
+    restore();
+  }
+});
+
+test("an item naming one of her courses is applied", async () => {
+  const { ctx, item } = await suggestedItem("ial-business-u4");
+  const { applied, restore } = handlerFor("scheme-of-work");
+  try {
+    await reviewItem(ctx, { role: "teacher" }, item.id, { state: "accepted" });
+    expect(applied).toEqual([item.id]);
   } finally {
     restore();
   }

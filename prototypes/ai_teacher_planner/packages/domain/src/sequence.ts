@@ -68,18 +68,25 @@ function declaredLessons(
 }
 
 /**
- * Merges that can be honoured: both lessons are in the stream and neither is in another merge.
- * An invalid merge moves nothing, so ignoring it is safe; Task 2.12 refuses such merges on save.
+ * Merges that can be honoured: both lessons are in the stream, neither is a
+ * buffer lesson and neither is in another merge. A buffer lesson can be dropped
+ * to make room, and a lesson merged with it would be dropped with it, so such a
+ * merge is never honoured. An invalid merge moves nothing, so ignoring it is
+ * safe; the API refuses such merges on save.
  */
 function usableMerges(
   merges: readonly Merge[],
-  inStream: ReadonlySet<LessonId>,
+  inStream: ReadonlyMap<LessonId, Lesson>,
 ): Map<LessonId, LessonId> {
   const secondOf = new Map<LessonId, LessonId>();
   const used = new Set<LessonId>();
+  const ok = (id: LessonId) => {
+    const lesson = inStream.get(id);
+    return lesson !== undefined && lesson.kind !== "buffer";
+  };
   for (const m of [...merges].sort(byId)) {
     if (m.first === m.second) continue;
-    if (!inStream.has(m.first) || !inStream.has(m.second)) continue;
+    if (!ok(m.first) || !ok(m.second)) continue;
     if (used.has(m.first) || used.has(m.second)) continue;
     used.add(m.first);
     used.add(m.second);
@@ -318,7 +325,7 @@ function prepareGroup(
   );
   const secondOf = usableMerges(
     inputs.merges.filter((m) => m.groupId === g.id),
-    new Set(stream.map((l) => l.id)),
+    new Map(stream.map((l) => [l.id, l])),
   );
   const seconds = new Set(secondOf.values());
 

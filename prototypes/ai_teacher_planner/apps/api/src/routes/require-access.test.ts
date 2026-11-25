@@ -63,6 +63,11 @@ test("every guarded write refuses a head of department who may only view", async
     ["POST", "/api/todos"],
     ["PATCH", "/api/todos/x"],
     ["DELETE", "/api/todos/x"],
+    ["PUT", "/api/positions/ial-business-u4"],
+    ["POST", "/api/plans/ial-business-u4/proposals"],
+    ["POST", "/api/plans/ial-business-u4/accept"],
+    ["POST", "/api/plans/ial-business-u4/undo"],
+    ["POST", "/api/checkin"],
   ];
   const statuses: Record<string, number> = {};
   for (const [method, p] of calls) {

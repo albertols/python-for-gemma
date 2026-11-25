@@ -14,12 +14,12 @@ title: |md
 
 direction: down
 
-http: "HTTP routes\nHono + OpenAPI: calendar, corrections,\nevents, disruptions, exams, todos, slots,\nAI jobs, events (SSE) and review" {class: concept}
+http: "HTTP routes\nHono + OpenAPI: calendar, corrections, events,\ndisruptions, exams, todos, slots, AI jobs and review;\ncourses, packs, scheme, positions, plans, check-in" {class: concept}
 
 core: "Core of apps/api" {
   class: group
 
-  usecases: "Use cases\nimport, sequence, corrections,\ndisruptions, events, exams, todos,\nreview AI item, propose, accept, undo, export" {class: concept}
+  usecases: "Use cases\nimport, corrections, disruptions, events,\nexams, todos, review AI item; loadPlanInputs,\npropose, accept, undo, check-in, seedM2" {class: concept}
   jobs: "Job queue\none AI job at a time,\nasks available() first,\nplain-words progress (SSE)" {class: concept}
 
   usecases -> jobs: "AI work" {class: flow}
@@ -30,7 +30,8 @@ engine: "Engine: packages/domain\npure TypeScript, no IO" {class: concept}
 adapters: "Driven adapters, each behind a port" {
   class: group
 
-  repo: "Repository ports\n+ SQLite adapter (Drizzle)\nmigrations 0001-0008: disruptions,\ncorrections, events, exams, todos,\nAI runs and items" {class: concept}
+  repo: "Repository ports\n+ SQLite adapter (Drizzle)\nmigrations 0001-0009: M1b rows, AI runs\nand items, courses, scheme, decisions,\nfacts, plan revisions" {class: concept}
+  packs: "PackStore\npack JSON files,\nlocked hash in SQLite" {class: concept}
   importers: "packages/importers\ncalendar xlsx, specification PDF text,\nplanning xlsx, assessment docx,\nresource index" {class: concept}
   exporters: "packages/exporters\nxlsx, docx, pptx, Teams text" {class: concept}
   content: "packages/content-creator\nrefresher, cover lesson,\nindependent task" {class: ai}
@@ -39,7 +40,7 @@ adapters: "Driven adapters, each behind a port" {
   content -> port: {class: aiflow}
 }
 
-db: "SQLite file\ndata/, git-ignored" {
+db: "SQLite file + pack files\ndata/, git-ignored" {
   class: win
   shape: cylinder
 }
@@ -55,6 +56,8 @@ core.usecases -> adapters.exporters: {class: flow}
 core.jobs -> adapters.content: {class: aiflow}
 core.jobs -> adapters.port: "text in,\nJSON out" {class: aiflow}
 adapters.repo -> db: {class: flow}
+core.usecases -> adapters.packs: {class: flow}
+adapters.packs -> db: "data/packs/" {class: flow}
 adapters.importers -> gateway: "every file read" {class: flow}
 adapters.port -> cli: {class: aiflow}
 adapters.port -> fake: {class: aiflow}

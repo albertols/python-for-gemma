@@ -1,5 +1,7 @@
 // Fills a data folder with the synthetic school year, through the same use
-// cases the routes call. Run: pnpm seed:synthetic --data-dir <dir>
+// cases the routes call: the calendar, then the synthetic M2 data (a locked
+// pack, the scheme, positions and a first plan; see seedM2).
+// Run: pnpm seed:synthetic --data-dir <dir>
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -10,8 +12,10 @@ import { openDatabase } from "../apps/api/src/db/connection.ts";
 import { migrate } from "../apps/api/src/db/migrate.ts";
 import { createResourceGateway } from "../apps/api/src/gateway/resource-gateway.ts";
 import { createRepos } from "../apps/api/src/repos/sqlite/index.ts";
+import { createPackStore } from "../apps/api/src/repos/sqlite/pack-store.ts";
 import { firstRun } from "../apps/api/src/usecases/first-run.ts";
 import { importCalendar } from "../apps/api/src/usecases/import-calendar.ts";
+import { seedM2 } from "../apps/api/src/usecases/seed-m2.ts";
 
 const MIGRATIONS = path.resolve(
   import.meta.dirname,
@@ -53,6 +57,13 @@ export async function seedSynthetic(options: {
       repos,
       now,
     });
+    // once: a folder seeded before keeps its plan and the revisions made on it
+    if (summary.ok && repos.plans.heads().length === 0)
+      await seedM2(
+        repos,
+        createPackStore(db, path.join(dataDir, "packs")),
+        now,
+      );
     return { ok: summary.ok, counts: summary.counts };
   } finally {
     db.close();

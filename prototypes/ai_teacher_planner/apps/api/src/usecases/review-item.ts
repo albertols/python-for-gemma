@@ -58,6 +58,18 @@ export async function reviewItem(
       "Only an edited suggestion takes data.",
     );
 
+  // Applying an item writes to its course, so the course must be one of hers.
+  if (
+    body.state !== "rejected" &&
+    item.courseId !== null &&
+    repos.courses.get(item.courseId) === null
+  )
+    throw new ApiError(
+      422,
+      "unknown-course",
+      `This suggestion is for a course the planner does not have (${item.courseId}), so it cannot be applied.`,
+    );
+
   const before = repos.ai.claimReview(
     itemId,
     body.state,

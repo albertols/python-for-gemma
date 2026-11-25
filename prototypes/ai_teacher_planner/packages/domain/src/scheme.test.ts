@@ -45,6 +45,13 @@ test("a 12-mark IAL question takes 18 minutes and sits inside a lesson", () => {
   expect(defaultSlotUse(18)).toBe("in-lesson");
 });
 
+test("a default length with half a minute is rounded up to whole minutes", () => {
+  // 15 marks x 1.5 = 22.5 minutes: lengths are stored in whole minutes, and rounding up never cuts her time.
+  expect(defaultDuration("IAL", 15)).toBe(23);
+  expect(defaultDuration("IAL", 1)).toBe(2);
+  expect(Number.isInteger(defaultDuration("IAL", 7))).toBe(true);
+});
+
 test("only IAL has a marks-to-minutes rule, and it needs the marks", () => {
   expect(defaultDuration("IAL", null)).toBeNull();
   expect(defaultDuration("IB", 12)).toBeNull();

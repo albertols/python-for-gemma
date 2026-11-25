@@ -3,6 +3,7 @@ import { isHistory, slotDate } from "./history.ts";
 import type { LessonId } from "./lessons.ts";
 import type {
   Conflict,
+  FlexEdit,
   Placement,
   PlacementState,
   PlanInputs,
@@ -345,7 +346,11 @@ export function snapshotKey(s: PlanSnapshot): string {
   return JSON.stringify(canon(s));
 }
 
-/** True when the two plans differ in nothing but the state of history placements (assumed to taught, and so on). */
+/**
+ * True when the two plans differ in nothing but the state of history placements
+ * (assumed to taught, cover or homework, and so on). A skip is not one of them:
+ * a skipped lesson has to be taught again, so the plan behind it changes.
+ */
 export function sameExceptHistoryStates(
   a: PlanSnapshot,
   b: PlanSnapshot,
@@ -353,8 +358,82 @@ export function sameExceptHistoryStates(
   const normal = (s: PlanSnapshot): PlanSnapshot => ({
     ...s,
     placements: s.placements.map((p) =>
-      isHistory(p) ? { ...p, state: "taught" } : p,
+      isHistory(p) && p.state !== "skipped" ? { ...p, state: "taught" } : p,
     ),
   });
   return snapshotKey(normal(a)) === snapshotKey(normal(b));
+}
+
+/**
+ * The head as a new plan made today would show it if nothing else had changed:
+ * lessons dated before today that were only planned are assumed, past spare
+ * lessons she did not edit are dropped (a new plan drops them), and past
+ * assessments, checkpoints and the overflow at those checkpoints are gone.
+ */
+function headAsOf(
+  head: PlanSnapshot,
+  today: IsoDate,
+  editedFlex: ReadonlySet<LessonId>,
+): PlanSnapshot {
+  const past = (key: SlotKey | null) => key !== null && slotDate(key) < today;
+  const checkpoints = head.checkpoints.filter((c) => c.date >= today);
+  const kept = new Set(checkpoints.map((c) => c.id));
+  return {
+    ...head,
+    today,
+    placements: head.placements
+      .filter(
+        (p) =>
+          !(
+            past(p.slotKey) &&
+            isFlex(p.lessonId) &&
+            p.state === "planned" &&
+            !editedFlex.has(p.lessonId)
+          ),
+      )
+      .map((p) =>
+        past(p.slotKey) && p.state === "planned"
+          ? { ...p, state: "assumed" as const }
+          : p,
+      ),
+    assessments: head.assessments.filter((a) => !past(a.slotKey)),
+    checkpoints,
+    overflow: head.overflow.filter(
+      (o) => o.checkpointId === null || kept.has(o.checkpointId),
+    ),
+  };
+}
+
+/**
+ * Whether the accepted plan still is the plan: `fresh` is a new plan made
+ * today on top of `head` (`sequence` with `previous: head`). It is up to date
+ * when the two differ in nothing but the passing of time and history states
+ * (`sameExceptHistoryStates`; a skip is a change), and every lesson and
+ * assessment of the head from today on still has a usable slot in `slots`.
+ * The second rule covers lessons she cancelled after the plan was accepted:
+ * the plan does not move until she accepts a new one.
+ */
+export function isUpToDate(args: {
+  head: PlanSnapshot;
+  fresh: PlanSnapshot;
+  slots: readonly Slot[];
+  flexEdits: readonly FlexEdit[];
+}): boolean {
+  const { head, fresh } = args;
+  const today = fresh.today;
+  const status = new Map(args.slots.map((s) => [s.key, s.status]));
+  const lost = (key: SlotKey) => {
+    if (slotDate(key) < today) return false;
+    const s = status.get(key);
+    return s !== "open" && s !== "cover";
+  };
+  if (
+    head.placements.some(
+      (p) => p.slotKey !== null && !isHistory(p) && lost(p.slotKey),
+    ) ||
+    head.assessments.some((a) => lost(a.slotKey))
+  )
+    return false;
+  const edited = new Set(args.flexEdits.map((e) => e.flexId));
+  return sameExceptHistoryStates(fresh, headAsOf(head, today, edited));
 }

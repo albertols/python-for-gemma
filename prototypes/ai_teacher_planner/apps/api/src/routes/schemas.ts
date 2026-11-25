@@ -1,5 +1,11 @@
 import { z } from "@hono/zod-openapi";
-import { isIsoDate } from "@planner/domain";
+import {
+  type CurriculumPack,
+  isIsoDate,
+  type PlanInputs,
+  type PlanSnapshot,
+  type Proposal,
+} from "@planner/domain";
 
 export const isoDate = z
   .string()
@@ -218,4 +224,150 @@ export const todoLists = z.object({
   today: z.array(todoNote),
   week: z.array(todoNote),
   stillToDo: z.array(todoNote),
+});
+
+// ---- M2: courses, packs, scheme, positions, plans ----
+
+/** Engine shapes the API only passes through; their TypeScript type comes from the domain. */
+const passThrough = <T>(description: string) =>
+  z.custom<T>(() => true).openapi({ type: "object", description });
+
+export const planSnapshot = passThrough<PlanSnapshot>(
+  "A PlanSnapshot (packages/domain plan.ts)",
+);
+export const planInputs = passThrough<PlanInputs>(
+  "The PlanInputs for today (packages/domain plan.ts), for fitFor in the browser",
+);
+export const proposal = passThrough<Proposal & { candidateKey: string }>(
+  "A Proposal (packages/domain revisions.ts) and the key of its candidate",
+);
+export const curriculumPack = passThrough<CurriculumPack>(
+  "A CurriculumPack (packages/domain pack.ts)",
+);
+
+const origin = z.enum(["engine", "ai", "teacher", "import"]);
+export const provenance = z.object({
+  origin,
+  ai: z
+    .object({
+      runId: z.string(),
+      provider: z.string(),
+      model: z.string(),
+      skillId: z.string(),
+      at: z.string(),
+      sources: z.array(
+        z.object({
+          url: z.string(),
+          title: z.string().nullable(),
+          opened: z.boolean(),
+        }),
+      ),
+      review: z.enum(["suggested", "accepted", "edited", "rejected"]),
+    })
+    .nullable(),
+});
+
+export const course = z.object({
+  id: z.string(),
+  title: z.string(),
+  board: z.enum(["IAL", "IB", "IGCSE"]),
+  revisionWeeks: z.number().int().nonnegative(),
+});
+
+const wholeCount = z.number().int();
+export const sowItem = z.object({
+  id: z.string().min(1),
+  courseId: z.string().min(1),
+  order: z.number(),
+  kind: z.enum(["teaching", "project", "revision", "buffer", "assessment"]),
+  title: z.string(),
+  lessons: wholeCount,
+  track: z.enum(["core", "hl"]),
+  packRefs: z.array(z.string()),
+  prerequisites: z.array(z.string()),
+  availableFrom: isoDate.nullable(),
+  note: z.string().nullable(),
+  assessment: z
+    .object({
+      date: isoDate.nullable(),
+      type: z.string(),
+      marks: z.number().int().nonnegative().nullable(),
+      /** Whole minutes: a computed default with half a minute is rounded up before it is stored. */
+      durationMinutes: z.number().int().positive().nullable(),
+      slotUse: z.enum(["whole", "in-lesson"]),
+      status: z.enum(["planned", "sat"]),
+      covers: z.array(z.string()),
+    })
+    .nullable(),
+  provenance,
+});
+export const groupOverride = z.object({
+  groupId: z.string(),
+  itemId: z.string(),
+  lessons: wholeCount,
+});
+export const position = z.object({
+  groupId: z.string(),
+  nextLessonId: z.string().nullable(),
+  doneItemIds: z.array(z.string()),
+  asOf: isoDate,
+});
+export const planRevision = z.object({
+  id: z.string(),
+  planId: z.string(),
+  parentId: z.string().nullable(),
+  label: z.string(),
+  createdAt: z.string(),
+  snapshot: planSnapshot,
+});
+export const planStatus = z.object({
+  head: planRevision.nullable(),
+  canUndo: z.boolean(),
+  upToDate: z.boolean(),
+});
+
+const placementState = z.enum([
+  "planned",
+  "assumed",
+  "taught",
+  "cover",
+  "homework",
+  "skipped",
+  "declared",
+]);
+export const placementView = z.object({
+  courseId: z.string(),
+  groupId: z.string(),
+  lessonId: z.string(),
+  slotKey: z.string().nullable(),
+  date: isoDate,
+  period: z.number().int(),
+  state: placementState,
+  pinned: z.boolean(),
+  mergedInto: z.string().nullable(),
+  viaCover: z.boolean(),
+  itemId: z.string().nullable(),
+  index: z.number().int().nullable(),
+  of: z.number().int().nullable(),
+  title: z.string(),
+  kind: z.enum([
+    "teaching",
+    "project",
+    "revision",
+    "buffer",
+    "assessment",
+    "flex",
+  ]),
+  provenance,
+});
+export const assessmentView = z.object({
+  courseId: z.string(),
+  groupId: z.string(),
+  itemId: z.string(),
+  slotKey: z.string(),
+  date: isoDate,
+  period: z.number().int(),
+  slotUse: z.enum(["whole", "in-lesson"]),
+  title: z.string(),
+  provenance,
 });

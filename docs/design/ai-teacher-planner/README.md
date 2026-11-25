@@ -31,9 +31,9 @@ Look for the two things that import the engine (the web app and the API) and the
 
 ## 3. Backend components
 
-Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) all live in the same routes, use cases and repository box.
+Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) and the M2 ones (courses, scheme, positions, plans, check-in) all live in the same routes, use cases and repository box; curriculum packs are JSON files behind the PackStore, with only the locked hash in SQLite.
 
-![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review), use cases, job queue, engine, driven adapters (importers read calendar and specification PDF text) with migrations 0001-0008, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
+![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review; courses, packs, scheme, positions, plans, check-in), use cases (loadPlanInputs, propose, accept, undo, check-in, seedM2), job queue, engine, driven adapters (importers read calendar and specification PDF text) with migrations 0001-0009 and the PackStore, ResourceGateway, SQLite file and pack files, AI providers](03-backend-components.svg)
 
 ## 4. Frontend components
 
@@ -43,15 +43,15 @@ Look for the six shared pieces every screen reuses; the purple ones are where AI
 
 ## 5. Domain model
 
-Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import. An official exam becomes the plan's last checkpoint, named by its code. A proposal (candidate, diff and before-and-after metrics) is never stored; accepting it adds an immutable revision to the plan's chain, and undo moves the head back to the parent.
+Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import. An official exam becomes the plan's last checkpoint, named by its code. A course record carries the exam board and the revision weeks its plan keeps. A proposal (candidate, diff and before-and-after metrics) is never stored; accepting it adds an immutable revision to the plan's chain, only if the head and the candidate are still the ones she saw, and undo moves the head back to the parent.
 
-![Domain model: calendar and timetable, curriculum pack (units, chapters, spec points, hash lock), her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints (assessment, block end, revision, official exam), overflow, absorbed buffers and conflicts, spare lessons, proposals with metrics, plan chain and revisions, provenance with review state, stored AI runs and items](05-domain-model.svg)
+![Domain model: calendar and timetable, courses (exam board, revision weeks), curriculum pack (a JSON file; units, chapters, spec points, hash lock in SQLite), her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions and the lesson log, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints (assessment, block end, revision, official exam), overflow, absorbed buffers and conflicts, spare lessons, proposals with metrics, plan chain and revisions, provenance with review state, stored AI runs and items](05-domain-model.svg)
 
 ## 6. Scheduling pipeline
 
-Look for the amber gate: a candidate revision becomes the head revision only when Gemma accepts the diff. Before that, the pace line keeps parallel groups level at each checkpoint and turns their free slots into spare lessons.
+Look for the amber gates: a candidate revision becomes the head revision only when Gemma accepts the diff, and the accept is refused when the head or the candidate changed after the preview. Before that, the pace line keeps parallel groups level at each checkpoint and turns their free slots into spare lessons. The board, the check-in and the "up to date?" check read the head.
 
-![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, history and the freeze horizon, per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff with metrics and accept, head revision](06-scheduling-pipeline.svg)
+![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, history and the freeze horizon, per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff with metrics and accept (refused when stale), head revision, read by the board placements, the check-in, the up-to-date check, parity, coverage and reminders](06-scheduling-pipeline.svg)
 
 ## 7. AI flow
 

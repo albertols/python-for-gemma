@@ -83,3 +83,32 @@ test("a planner seeded before exams existed gets them on the next start, once", 
   firstRun(repos);
   expect(repos.exams.list()).toEqual([]);
 });
+
+test("first run seeds the three courses, and a planner seeded before courses existed still gets them, once", () => {
+  const repos = createRepos(migratedDb());
+  repos.settings.setFlag("seeded"); // seeded by an older version, with no course record
+  firstRun(repos);
+  expect(repos.courses.list()).toEqual([
+    {
+      id: "ial-business-u4",
+      title: "IAL Business Unit 4",
+      board: "IAL",
+      revisionWeeks: 2,
+    },
+    {
+      id: "ib-business",
+      title: "IB Business Management",
+      board: "IB",
+      revisionWeeks: 2,
+    },
+    {
+      id: "igcse-business",
+      title: "International GCSE Business",
+      board: "IGCSE",
+      revisionWeeks: 2,
+    },
+  ]);
+  repos.courses.setRevisionWeeks("ib-business", 3);
+  firstRun(repos);
+  expect(repos.courses.get("ib-business")?.revisionWeeks).toBe(3);
+});

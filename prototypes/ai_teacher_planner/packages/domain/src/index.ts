@@ -5,6 +5,7 @@ export * from "./corrections.ts";
 export * from "./dates.ts";
 export * from "./events.ts";
 export * from "./exams.ts";
+export * from "./fit.ts";
 export * from "./history.ts";
 export * from "./lessons.ts";
 export * from "./pace.ts";

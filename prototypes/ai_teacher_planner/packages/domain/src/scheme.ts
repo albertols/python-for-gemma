@@ -37,6 +37,18 @@ export interface SowItem {
   provenance: Provenance;
 }
 
+/**
+ * A course she teaches: its exam board and how many revision weeks its plan keeps
+ * before the official exam (0 turns the revision block off). Groups name it with
+ * `Group.courseId`; `board` is the exam board, `Group.programme` stays as it is.
+ */
+export interface Course {
+  id: CourseId;
+  title: string;
+  board: "IAL" | "IB" | "IGCSE";
+  revisionWeeks: number;
+}
+
 /** One group teaches an item for a different number of lessons. 0 removes it for that group. */
 export interface GroupOverride {
   groupId: GroupId;
@@ -48,13 +60,17 @@ const DEFAULT_PERIOD_MINUTES = 55;
 /** Half of a 55-minute lesson: an assessment that needs more than this (with extra time) takes the whole lesson. */
 const IN_LESSON_LIMIT = 27;
 
-/** IAL papers allow 1.5 minutes a mark. The other boards have no such rule, so the teacher sets the length. */
+/**
+ * IAL papers allow 1.5 minutes a mark. The other boards have no such rule, so the teacher sets the length.
+ * Lengths are whole minutes: an odd number of marks gives half a minute, which is rounded up
+ * (15 marks: 22.5, so 23), so the default never takes time away from her students.
+ */
 export function defaultDuration(
   board: "IAL" | "IB" | "IGCSE",
   marks: number | null,
 ): number | null {
   if (board !== "IAL" || marks === null) return null;
-  return marks * 1.5;
+  return Math.ceil(marks * 1.5);
 }
 
 /** The length with 25% extra time, rounded down as she counts it. */

@@ -1,17 +1,30 @@
 import type { SkillId } from "@planner/ai";
 import type {
   CalendarRow,
+  Course,
   CourseId,
+  CoverChoice,
+  CurriculumPack,
   Disruption,
   EventClassification,
   ExternalExam,
   FindingResolution,
+  FlexEdit,
   Group,
+  GroupOverride,
+  HomeworkMode,
   LabelCorrection,
+  LessonLogEntry,
+  Merge,
+  PaceHold,
   ParentsEvening,
+  Pin,
+  PlanRevision,
+  Position,
   ReportWindow,
   ReviewState,
   Source,
+  SowItem,
   Term,
   TimetableVersion,
   TodoNote,
@@ -199,6 +212,89 @@ export interface AiRepo {
   failUnfinished(failure: string): number;
 }
 
+/** Her courses. Seeded once, like the groups; she changes the revision weeks. */
+export interface CourseRepo {
+  /** Sorted by id. */
+  list(): Course[];
+  get(id: CourseId): Course | null;
+  /** Adds the courses that are not stored yet; never changes one that is. */
+  seed(courses: readonly Course[]): void;
+  /** False when there is no such course. */
+  setRevisionWeeks(id: CourseId, weeks: number): boolean;
+}
+
+/** A course's scheme of work: its items and the groups' own lesson counts. */
+export interface SchemeRepo {
+  /** Sorted by order, then id. */
+  items(courseId: CourseId): SowItem[];
+  /** Sorted by group, then item. */
+  overrides(courseId: CourseId): GroupOverride[];
+  /** Replaces both, together. */
+  replace(
+    courseId: CourseId,
+    items: readonly SowItem[],
+    overrides: readonly GroupOverride[],
+  ): void;
+}
+
+/** Her decisions about one course's plan. Each list is sorted by its key. */
+export interface Decisions {
+  pins: Pin[];
+  merges: Merge[];
+  flexEdits: FlexEdit[];
+  coverChoices: CoverChoice[];
+  homework: HomeworkMode[];
+  holds: PaceHold[];
+}
+export interface DecisionRepo {
+  forCourse(courseId: CourseId): Decisions;
+  /** Replaces every decision of one kind for the course. */
+  replace<K extends keyof Decisions>(
+    courseId: CourseId,
+    kind: K,
+    rows: Decisions[K],
+  ): void;
+}
+
+/** Facts: where each group is, and what happened in her lessons. */
+export interface FactRepo {
+  /** Sorted by group. */
+  positions(courseId: CourseId): Position[];
+  /** Replaces the positions of the course's groups. */
+  setPositions(courseId: CourseId, positions: readonly Position[]): void;
+  /** Every entry for these groups, in the order recorded. */
+  log(groupIds: readonly string[]): LessonLogEntry[];
+  append(entries: readonly LessonLogEntry[]): void;
+}
+
+/** Accepted plans: one per course (the plan id is the course id), as immutable revisions. */
+export interface PlanRepo {
+  head(planId: string): PlanRevision | null;
+  get(revisionId: string): PlanRevision | null;
+  /** Every plan with a head, by plan id. */
+  heads(): PlanRevision[];
+  /** Stores a new revision and makes it the head, together. */
+  insertHead(revision: PlanRevision, courseId: CourseId): void;
+  /** Moves the head to a revision already stored. */
+  setHead(planId: string, revisionId: string): void;
+}
+
+/**
+ * Curriculum packs, as JSON files in `data/packs/` (`<courseId>.draft.json` and
+ * `<courseId>.json`). The database keeps only the locked pack's hash, so a file
+ * changed after locking is not taken as locked.
+ */
+export interface PackStore {
+  draft(courseId: CourseId): CurriculumPack | null;
+  /** The locked pack, or null when there is none or its file no longer matches the stored hash. */
+  locked(courseId: CourseId): CurriculumPack | null;
+  saveDraft(pack: CurriculumPack): void;
+  /** Writes the file and the hash. The pack must be locked (`lockPack`). */
+  saveLocked(pack: CurriculumPack): void;
+  /** Removes every pack file (the browser-test reset). */
+  clear(): void;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
@@ -209,6 +305,11 @@ export interface Repos {
   exams: ExamRepo;
   todos: TodoRepo;
   ai: AiRepo;
+  courses: CourseRepo;
+  scheme: SchemeRepo;
+  decisions: DecisionRepo;
+  facts: FactRepo;
+  plans: PlanRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }

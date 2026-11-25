@@ -6,6 +6,7 @@ import {
   acceptProposal,
   diffSnapshots,
   headSnapshot,
+  isUpToDate,
   type PlanChain,
   planMetrics,
   propose,
@@ -386,6 +387,106 @@ describe("same except history states", () => {
     expect(sameExceptHistoryStates(later, planned)).toBe(false);
     const todayChanged = { ...later, today: "2026-11-17" };
     expect(sameExceptHistoryStates(later, todayChanged)).toBe(false);
+  });
+});
+
+describe("a skip is a real change", () => {
+  test("sameExceptHistoryStates sees a lone skip: skipped is not just another history state", () => {
+    const later = sequence({ ...world, today: "2026-11-16", previous: first });
+    const isC11 = (p: { groupId: string; lessonId: string }) =>
+      p.groupId === "13 1" && p.lessonId === "c1#1";
+    expect(later.placements.find(isC11)?.state).toBe("assumed");
+    const skipped = {
+      ...later,
+      placements: later.placements.map((p) =>
+        isC11(p) ? { ...p, state: "skipped" as const } : p,
+      ),
+    };
+    expect(sameExceptHistoryStates(later, skipped)).toBe(false);
+    expect(sameExceptHistoryStates(skipped, later)).toBe(false);
+    // and the other history states still count as the same
+    const cover = {
+      ...later,
+      placements: later.placements.map((p) =>
+        isC11(p) ? { ...p, state: "cover" as const } : p,
+      ),
+    };
+    expect(sameExceptHistoryStates(later, cover)).toBe(true);
+  });
+});
+
+describe("is the plan up to date", () => {
+  const at = (today: string, over: Partial<PlanInputs> = {}) =>
+    sequence({ ...world, today, previous: first, ...over });
+  const check = (fresh: PlanSnapshot, slots = world.slots) =>
+    isUpToDate({ head: first, fresh, slots, flexEdits: [] });
+  const c11 = first.placements.find(
+    (p) => p.groupId === "13 1" && p.lessonId === "c1#1",
+  );
+
+  test("a week later with nothing changed it is up to date: lessons in the past are only assumed", () => {
+    expect(check(at("2026-11-16"))).toBe(true);
+  });
+
+  test("after the assessment date, with it marked sat, past spare lessons and checkpoints are not changes", () => {
+    const items = world.items.map((i) =>
+      i.assessment
+        ? { ...i, assessment: { ...i.assessment, status: "sat" as const } }
+        : i,
+    );
+    // every group has sat a1 by 2 Dec (13 3 on 1 Dec), and 13 3's spare lesson on
+    // 26 Nov is in the past, so a new plan drops it
+    expect(
+      first.placements.some(
+        (p) =>
+          p.lessonId.startsWith("flex:13 3:cp:a1") &&
+          slotDate(p.slotKey ?? "") < "2026-12-02",
+      ),
+    ).toBe(true);
+    expect(check(at("2026-12-02", { items }))).toBe(true);
+    // still planned, the past assessment is a conflict: she has not said it was sat
+    expect(check(at("2026-12-02"))).toBe(false);
+  });
+
+  test("a lesson logged as taught or cover keeps it up to date", () => {
+    const log = (outcome: LessonLogEntry["outcome"]): LessonLogEntry[] => [
+      {
+        groupId: "13 1",
+        lessonId: "c1#1",
+        slotKey: c11?.slotKey ?? null,
+        outcome,
+        recordedOn: "2026-11-16",
+        note: null,
+      },
+    ];
+    expect(check(at("2026-11-16", { log: log("taught") }))).toBe(true);
+    expect(check(at("2026-11-16", { log: log("cover") }))).toBe(true);
+  });
+
+  test("a lone skip makes it out of date", () => {
+    const log: LessonLogEntry[] = [
+      {
+        groupId: "13 1",
+        lessonId: "c1#1",
+        slotKey: c11?.slotKey ?? null,
+        outcome: "skipped",
+        recordedOn: "2026-11-16",
+        note: null,
+      },
+    ];
+    expect(check(at("2026-11-16", { log }))).toBe(false);
+  });
+
+  test("a head lesson on a slot that is no longer usable makes it out of date, even before a new plan moves it", () => {
+    const fresh = at("2026-11-16");
+    const ahead = first.placements.find(
+      (p) => p.groupId === "13 1" && p.lessonId === "c3#1",
+    );
+    const cancelled = cancel(world, ahead?.slotKey ?? "");
+    expect(check(fresh, cancelled.slots)).toBe(false);
+    expect(
+      check(at("2026-11-16", { slots: cancelled.slots }), cancelled.slots),
+    ).toBe(false);
   });
 });
 

@@ -338,6 +338,31 @@ describe("pins and merges", () => {
       "13 1|2026-11-13|6",
     );
   });
+
+  test("a merge that includes a buffer lesson is ignored, so dropping the buffer never drops a content lesson", () => {
+    // b1 (4 buffer lessons) sits before a1: 3 + 3 + 4 lessons are due in 13 1's 8 slots,
+    // so buffer lessons are dropped to make room. Merged with b1#4, c2#1 would travel
+    // with it and be dropped too, without anyone seeing it go.
+    const w = world();
+    w.items.push({
+      ...(w.items.find((i) => i.id === "c2") as (typeof w.items)[number]),
+      id: "b1",
+      kind: "buffer",
+      order: 2.5,
+      lessons: 4,
+      title: "b1",
+    });
+    w.merges = [{ id: "m1", groupId: "13 1", first: "b1#4", second: "c2#1" }];
+    const snap = sequence(w);
+    const absorbed = snap.absorbed.map((a) => a.lessonId);
+    expect(absorbed).toEqual(["b1#3", "b1#4"]);
+    expect(placementOf(snap, "13 1", "c2#1")).toMatchObject({
+      state: "planned",
+      mergedInto: null,
+    });
+    expect(placementOf(snap, "13 1", "c2#1")?.slotKey).not.toBeNull();
+    expect(snap.placements.some((p) => p.mergedInto !== null)).toBe(false);
+  });
 });
 
 describe("slots", () => {
