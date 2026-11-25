@@ -9,7 +9,7 @@ import type { Config } from "./config.ts";
 import type { Database } from "./db/connection.ts";
 import { ApiError } from "./errors.ts";
 import type { ResourceGateway } from "./gateway/resource-gateway.ts";
-import { createMaterialStore } from "./materials/store.ts";
+import { createMaterialStore, createPictureStore } from "./materials/store.ts";
 import { createRepos } from "./repos/sqlite/index.ts";
 import { createPackStore } from "./repos/sqlite/pack-store.ts";
 import { aiRoutes } from "./routes/ai.ts";
@@ -34,6 +34,7 @@ import { todoRoutes } from "./routes/todos.ts";
 import { todayOf } from "./today.ts";
 import { failInterrupted } from "./usecases/ai-jobs.ts";
 import { firstRun } from "./usecases/first-run.ts";
+import { registerTimetableGridHandler } from "./usecases/import-timetable-image.ts";
 import { registerLessonCountHandler } from "./usecases/suggest-counts.ts";
 
 export interface AppDeps {
@@ -93,6 +94,8 @@ export function createApp(deps: AppDeps) {
   const packs = createPackStore(db, path.join(config.dataDir, "packs"));
   // attached files live beside the database; the folder is made when the first file arrives
   const materials = createMaterialStore(path.join(config.dataDir, "materials"));
+  // pictures she uploads for Claude to read: only PNG or JPEG, only here
+  const uploads = createPictureStore(path.join(config.dataDir, "uploads"));
   firstRun(repos);
   // files a crash left behind: old half-written uploads go, files with no row are only counted
   const swept = materials.sweep({
@@ -103,7 +106,9 @@ export function createApp(deps: AppDeps) {
     console.warn(
       `${swept.withoutRow} file${swept.withoutRow === 1 ? "" : "s"} in data/materials has no entry in the planner. They were left alone.`,
     );
+  uploads.sweep({ knownStoredNames: new Set(), now: now() });
   registerLessonCountHandler();
+  registerTimetableGridHandler();
   // a job that was running when the planner closed can never finish
   failInterrupted(repos);
   const ai = createAiState({ config, ai: deps.ai, repos, now });
@@ -149,7 +154,7 @@ export function createApp(deps: AppDeps) {
       );
     })
     .route("/", calendarRoutes({ config, repos, gateway, now }))
-    .route("/", timetableRoutes({ repos }))
+    .route("/", timetableRoutes({ repos, ai, uploads }))
     .route("/", slotRoutes({ repos }))
     .route("/", disruptionRoutes({ repos, now }))
     .route("/", eventRoutes({ repos, now }))

@@ -5,7 +5,12 @@ import { Readable } from "node:stream";
 import { strToU8, zipSync } from "fflate";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { ApiError } from "../errors.ts";
-import { createMaterialStore, MAX_MATERIAL_BYTES } from "./store.ts";
+import {
+  createMaterialStore,
+  createPictureStore,
+  MAX_MATERIAL_BYTES,
+  MAX_PICTURE_BYTES,
+} from "./store.ts";
 import {
   CT,
   GOOD,
@@ -761,3 +766,48 @@ function crc32(data: Uint8Array): number {
   }
   return ~c >>> 0;
 }
+
+test("the picture store keeps only PNG and JPEG, by their first bytes, and nothing else", async () => {
+  const store = createPictureStore(dir);
+  expect(store.maxBytes).toBe(MAX_PICTURE_BYTES);
+  expect(MAX_PICTURE_BYTES).toBe(10 * 1024 * 1024);
+  const saved = await store.save({
+    name: "Timetable.PNG",
+    stream: from(png()),
+  });
+  expect(saved.storedName).toMatch(/^[0-9a-f-]{36}\.png$/);
+  expect(
+    (await store.save({ name: "a.jpeg", stream: from(jpg()) })).storedName,
+  ).toMatch(/\.jpg$/);
+  // a type the materials store takes, refused here
+  const pdfErr = await refusal(
+    store.save({ name: "a.pdf", stream: from(pdf()) }),
+  );
+  expect(pdfErr.code).toBe("material-type");
+  expect(pdfErr.message).toMatch(/PNG or JPG/);
+  expect(pdfErr.message).not.toMatch(/Word|Excel|PDF/);
+  // a PDF renamed .png has the wrong first bytes
+  const fake = await refusal(
+    store.save({ name: "a.png", stream: from(pdf()) }),
+  );
+  expect(fake.code).toBe("material-content");
+  expect(files().filter((f) => f.endsWith(".part"))).toEqual([]);
+});
+
+test("a picture over 10 MB is stopped while it streams", async () => {
+  const store = createPictureStore(dir);
+  const chunk = Buffer.alloc(64 * 1024);
+  chunk.set(png());
+  let produced = 0;
+  const endless = new Readable({
+    read() {
+      produced += chunk.length;
+      this.push(produced > 100 * 1024 * 1024 ? null : chunk);
+    },
+  });
+  const err = await refusal(store.save({ name: "huge.png", stream: endless }));
+  expect(err.status).toBe(413);
+  expect(err.message).toMatch(/10 MB/);
+  expect(produced).toBeLessThan(MAX_PICTURE_BYTES + 8 * 1024 * 1024);
+  expect(files()).toEqual([]);
+});

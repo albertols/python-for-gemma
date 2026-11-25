@@ -34,6 +34,10 @@ stays: "Stays on the Mac" {
     class: win
     shape: cylinder
   }
+  uploads: "Timetable pictures\ndata/uploads/, uuid names,\nnot in backups" {
+    class: win
+    shape: cylinder
+  }
   packs: "Curriculum packs\nbuilt locally,\nnot committed" {
     class: win
     shape: cylinder
@@ -49,7 +53,7 @@ denied: "Denied" {
 }
 
 gateway: "ResourceGateway\nallowlist" {class: warn}
-upload: "Upload checks\ntype, first bytes, 25 MB,\nname never a path" {class: warn}
+upload: "Upload checks\ntype, first bytes, 25 MB\n(pictures 10 MB),\nname never a path" {class: warn}
 she: "Gemma attaches a file" {class: concept}
 denyrules: "Claude deny rules" {class: warn}
 gitignore: ".gitignore" {class: warn}
@@ -58,6 +62,7 @@ leaves: "Reaches the model" {
   class: group
 
   text: "Extracted text of\nallowlisted files" {class: ai}
+  picture: "Her timetable picture\n(from data/uploads/ only)" {class: ai}
   typed: "What she types\ninto a request" {class: ai}
 }
 
@@ -68,8 +73,11 @@ stays.resources -> gateway: "planning sheets,\nspecs, chapter slides" {class: fl
 gateway -> leaves.text: {class: aiflow}
 leaves.text -> model: {class: aiflow}
 leaves.typed -> model: {class: aiflow}
+leaves.picture -> model: "PNG or JPEG, path checked" {class: aiflow}
 she -> upload: "multipart, x-planner-upload" {class: flow}
 upload -> stays.materials: "stored by uuid" {class: flow}
+upload -> stays.uploads: "pictures, stored by uuid" {class: flow}
+stays.uploads -> leaves.picture: "only the adapter reads it" {class: aiflow}
 stays.materials -> leaves: "never read by a model" {class: blocked}
 denied.student -> gateway: "refused" {class: blocked}
 denied.textbooks -> gateway: "refused" {class: blocked}

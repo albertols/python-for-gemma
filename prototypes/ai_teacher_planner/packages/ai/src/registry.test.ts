@@ -31,7 +31,10 @@ const input = {
   unitTotals: [{ unitId: "u1", lessons: 12 }],
 };
 /** Registered skills the temporary roots below do not hold: they count as pending there. */
-const OTHER_SKILLS: SkillId[] = ["planner-build-curriculum-pack"];
+const OTHER_SKILLS: SkillId[] = [
+  "planner-build-curriculum-pack",
+  "planner-import-timetable",
+];
 const registered = Object.values(skills).filter((s) => s !== undefined);
 const withText = registered.filter((s) => !PENDING_SKILL_TEXT.includes(s.id));
 

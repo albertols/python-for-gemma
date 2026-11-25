@@ -1,10 +1,15 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { validateTimetable } from "@planner/domain";
+import type { AiState } from "../ai-state.ts";
 import { ApiError } from "../errors.ts";
+import type { MaterialStore } from "../materials/store.ts";
+import { receiveUpload } from "../materials/upload.ts";
 import type { Repos } from "../repos/ports.ts";
+import { suggestGridFromPicture } from "../usecases/import-timetable-image.ts";
 import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
 import {
+  aiRun,
   dutyEntry,
   errorResponse,
   group,
@@ -71,8 +76,31 @@ const postVersion = createRoute({
   },
 });
 
-export function timetableRoutes(deps: { repos: Repos }) {
-  const { repos } = deps;
+const postImage = createRoute({
+  method: "post",
+  path: "/api/timetable/image",
+  ...guard("lesson-plans", "edit"),
+  description:
+    "A multipart form with one field called `file` and the header `x-planner-upload: 1`: a picture of her timetable. Accepted: .png, .jpg, checked by first bytes; at most 10 MB, enforced while the body streams in. Stored as data/uploads/<uuid>.<ext>. Claude reads it and suggests a grid as one AI item; the timetable does not change until she accepts it",
+  request: { query: z.object({ versionId: z.string() }) },
+  responses: {
+    202: { description: "The job is queued", content: json(aiRun) },
+    403: errorResponse(
+      "Not allowed, or the x-planner-upload header is missing",
+    ),
+    404: errorResponse("There is no such version"),
+    409: errorResponse("The AI is switched off or not available, with why"),
+    413: errorResponse("The picture is over 10 MB"),
+    422: errorResponse("The type, the name or the contents are not acceptable"),
+  },
+});
+
+export function timetableRoutes(deps: {
+  repos: Repos;
+  ai: AiState;
+  uploads: MaterialStore;
+}) {
+  const { repos, ai, uploads } = deps;
   return (
     createRouter()
       .openapi(getTimetable, (c) =>
@@ -104,6 +132,41 @@ export function timetableRoutes(deps: { repos: Repos }) {
         const created = { ...source, id: `from-${validFrom}`, validFrom };
         repos.timetable.saveVersion(created);
         return c.json(created, 201);
+      })
+      .openapi(postImage, async (c) => {
+        // A custom header cannot be set by a cross-site form post, which a multipart form can be.
+        if (c.req.header("x-planner-upload") !== "1")
+          return c.json(
+            {
+              error: {
+                code: "forbidden",
+                message:
+                  "Pictures can only be uploaded from the planner itself.",
+              },
+            },
+            403,
+          );
+        const { versionId } = c.req.valid("query");
+        if (!repos.timetable.versions().some((v) => v.id === versionId))
+          throw new ApiError(
+            404,
+            "no-such-version",
+            `There is no timetable version "${versionId}".`,
+          );
+        // nothing is read from the body, or kept, unless the AI can take the job
+        const gate = await ai.check();
+        if (!gate.ok) throw new ApiError(409, gate.code, gate.reason);
+        const saved = await receiveUpload(c.req.raw, uploads);
+        try {
+          const run = suggestGridFromPicture(ai.ctx, {
+            versionId,
+            picturePath: uploads.pathOf(saved.storedName),
+          });
+          return c.json(run, 202);
+        } catch (err) {
+          uploads.remove(saved.storedName);
+          throw err;
+        }
       })
       .openapi(putVersion, (c) => {
         const { id } = c.req.valid("param");

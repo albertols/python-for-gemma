@@ -1,7 +1,15 @@
-import { readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 import { recordedLines, withResult } from "./__fixtures__/recorded.ts";
 import {
@@ -53,6 +61,16 @@ class FakeChild implements ChildLike {
   readonly err = channel();
   stdout = this.out.iterable;
   stderr = this.err.iterable;
+  /** What the adapter wrote to standard input, and whether it closed it. */
+  written: string[] = [];
+  stdinEnded = false;
+  stdin = {
+    end: (data: string) => {
+      this.written.push(data);
+      this.stdinEnded = true;
+    },
+    on: () => {},
+  };
   signals: string[] = [];
   ignoreTerm = false;
   get killed(): string | undefined {
@@ -106,11 +124,14 @@ interface SpawnCall {
 
 function spawnReturning(make: () => ChildLike) {
   const calls: SpawnCall[] = [];
+  const children: ChildLike[] = [];
   const spawn = vi.fn<SpawnLike>((command, args, options) => {
     calls.push({ command, args, options });
-    return make();
+    const child = make();
+    children.push(child);
+    return child;
   });
-  return { spawn, calls };
+  return { spawn, calls, children };
 }
 
 // ---- the task and the provider ----
@@ -153,21 +174,26 @@ const task: AiTask<unknown> = {
 
 function setup(
   make: () => ChildLike,
-  extra: { env?: Record<string, string | undefined>; timeoutMs?: number } = {},
+  extra: {
+    env?: Record<string, string | undefined>;
+    timeoutMs?: number;
+    uploadsDir?: string;
+  } = {},
 ) {
-  const { spawn, calls } = spawnReturning(make);
+  const { spawn, calls, children } = spawnReturning(make);
   const provider = new ClaudeCodeCliProvider({
     spawn,
     env: extra.env ?? { PATH: "/bin" },
     readSkillText: async () => SKILL_FILE,
     timeoutMs: extra.timeoutMs ?? 5_000,
+    ...(extra.uploadsDir ? { uploadsDir: extra.uploadsDir } : {}),
   });
   const progress: AiProgress[] = [];
   const opts = (signal = new AbortController().signal) => ({
     signal,
     onProgress: (p: AiProgress) => progress.push(p),
   });
-  return { provider, spawn, calls, progress, opts };
+  return { provider, spawn, calls, children, progress, opts };
 }
 
 async function rejection(p: Promise<unknown>): Promise<AiError> {
@@ -434,28 +460,6 @@ describe("run: the child's world", () => {
 });
 
 describe("run: refusals before anything is spawned", () => {
-  test("every attachment is refused for now, before anything is spawned", async () => {
-    // Task 2.20 proves an image path and replaces this test. Until then:
-    // when 2.20 allows attachments, their paths must be confined to data/uploads/.
-    const t = setup(() => scripted(answerStream()));
-    await expect(
-      t.provider.run(
-        {
-          ...task,
-          attachments: [{ path: "data/uploads/a.png", mediaType: "image/png" }],
-        },
-        t.opts(),
-      ),
-    ).rejects.toMatchObject({
-      reason: "failed",
-      message: expect.stringContaining("not supported yet"),
-    });
-    expect(t.spawn).not.toHaveBeenCalled();
-    expect(t.progress).toContainEqual(
-      expect.objectContaining({ kind: "failed" }),
-    );
-  });
-
   test("a task whose schema or tools differ from the registered skill is refused", async () => {
     const { z } = await import("zod");
     const t = setup(() => scripted(answerStream()));
@@ -974,5 +978,240 @@ describe("available", () => {
     });
     await t.provider.available();
     expect(t.calls[0]?.options.env).toEqual({ PATH: "/bin" });
+  });
+});
+
+// ---- tasks with an image (ADR-007: --input-format stream-json, one line on a piped stdin) ----
+
+const imageFixture = JSON.parse(
+  readFileSync(join(here, "__fixtures__/claude-stdin-image.ndjson"), "utf8"),
+) as {
+  type: string;
+  message: {
+    role: string;
+    content: [
+      {
+        type: string;
+        source: { type: string; media_type: string; data: string };
+      },
+      { type: string; text: string },
+    ];
+  };
+};
+const PNG_BYTES = Buffer.from(
+  imageFixture.message.content[0].source.data,
+  "base64",
+);
+
+const roots: string[] = [];
+afterAll(() => {
+  for (const r of roots) rmSync(r, { recursive: true, force: true });
+});
+/** A data folder with an uploads folder, and a file outside it. */
+function world() {
+  const root = mkdtempSync(join(tmpdir(), "planner-ai-uploads-"));
+  roots.push(root);
+  const uploads = join(root, "data", "uploads");
+  mkdirSync(uploads, { recursive: true });
+  const outside = join(root, "elsewhere");
+  mkdirSync(outside);
+  return { root, uploads, outside };
+}
+const withImage = (path: string, mediaType = "image/png"): AiTask<unknown> => ({
+  ...task,
+  attachments: [{ path, mediaType }],
+});
+
+describe("run: a task with an image", () => {
+  test("the image and the prompt travel as ONE stream-json line on a piped standard input, and every other flag is unchanged", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000001.png");
+    writeFileSync(file, PNG_BYTES);
+    const t = setup(() => scripted(answerStream()), { uploadsDir: w.uploads });
+    await t.provider.run(withImage(file), t.opts());
+
+    const call = t.calls[0];
+    expect(call?.options.stdio).toEqual(["pipe", "pipe", "pipe"]);
+    // no prompt argument: it travels on standard input
+    expect(call?.args.slice(0, 3)).toEqual([
+      "-p",
+      "--input-format",
+      "stream-json",
+    ]);
+    const plain = buildArgs("P", "sonnet", jsonSchemaFor(lessonCounts), []);
+    // exactly the plain set, with `--input-format stream-json` after -p and no prompt
+    expect(call?.args).toEqual([
+      "-p",
+      "--input-format",
+      "stream-json",
+      ...plain.slice(2),
+    ]);
+
+    const child = t.children[0] as FakeChild;
+    expect(child.written).toHaveLength(1);
+    expect(child.stdinEnded).toBe(true);
+    const sent = child.written[0] ?? "";
+    // one line, then the end of input
+    expect(sent.trimEnd().split("\n")).toHaveLength(1);
+    const line = JSON.parse(sent) as typeof imageFixture;
+    // the same shape the controller proved against the real CLI
+    expect(line.type).toBe(imageFixture.type);
+    expect(line.message.role).toBe(imageFixture.message.role);
+    expect(line.message.content[0]).toEqual(imageFixture.message.content[0]);
+    const prompt = line.message.content[1].text;
+    expect(prompt.startsWith(`${FIRST_LINE}\n`)).toBe(true);
+    expect(prompt).toContain("BODY MARKER");
+    expect(prompt).not.toContain(imageFixture.message.content[0].source.data);
+  });
+
+  test("a JPEG goes as image/jpeg", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000002.jpg");
+    writeFileSync(file, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]));
+    const t = setup(() => scripted(answerStream()), { uploadsDir: w.uploads });
+    await t.provider.run(withImage(file, "image/jpeg"), t.opts());
+    const line = JSON.parse(
+      (t.children[0] as FakeChild).written[0] ?? "",
+    ) as typeof imageFixture;
+    expect(line.message.content[0].source.media_type).toBe("image/jpeg");
+  });
+
+  test("a task without an image keeps the old arguments, and standard input stays closed", async () => {
+    const t = setup(() => scripted(answerStream()));
+    await t.provider.run(task, t.opts());
+    expect(t.calls[0]?.args[0]).toBe("-p");
+    expect(t.calls[0]?.args[1]?.startsWith(FIRST_LINE)).toBe(true);
+    expect(t.calls[0]?.args).not.toContain("--input-format");
+    expect(t.calls[0]?.options.stdio).toEqual(["ignore", "pipe", "pipe"]);
+    expect((t.children[0] as FakeChild).written).toEqual([]);
+  });
+
+  test("a path outside data/uploads is refused before anything is read or spawned", async () => {
+    const w = world();
+    const outside = join(w.outside, "t.png");
+    writeFileSync(outside, PNG_BYTES);
+    // a link inside uploads that leads out
+    const link = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000003.png");
+    symlinkSync(outside, link);
+    for (const path of [
+      outside,
+      link,
+      join(w.uploads, "..", "elsewhere", "t.png"),
+      join(w.uploads, "missing.png"),
+    ]) {
+      const t = setup(() => scripted(answerStream()), {
+        uploadsDir: w.uploads,
+      });
+      const e = await rejection(t.provider.run(withImage(path), t.opts()));
+      expect(e.reason, path).toBe("failed");
+      expect(e.message, path).toMatch(/uploads/);
+      expect(e.message).not.toContain(w.root);
+      expect(t.spawn, path).not.toHaveBeenCalled();
+    }
+  });
+
+  test("with no uploads folder configured, any attachment is refused", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000004.png");
+    writeFileSync(file, PNG_BYTES);
+    const t = setup(() => scripted(answerStream()));
+    const e = await rejection(t.provider.run(withImage(file), t.opts()));
+    expect(e.reason).toBe("failed");
+    expect(t.spawn).not.toHaveBeenCalled();
+  });
+
+  test("only a PNG or JPEG whose first bytes agree, at most 10 MB, is sent", async () => {
+    const w = world();
+    const cases: [string, Buffer, string][] = [
+      [
+        "0b6f1e0e-0000-4000-8000-000000000005.png",
+        Buffer.from("%PDF-1.4 not a png"),
+        "image/png",
+      ],
+      [
+        "0b6f1e0e-0000-4000-8000-000000000006.pdf",
+        Buffer.from("%PDF-1.4"),
+        "application/pdf",
+      ],
+      [
+        "0b6f1e0e-0000-4000-8000-000000000007.png",
+        Buffer.concat([PNG_BYTES, Buffer.alloc(10 * 1024 * 1024)]),
+        "image/png",
+      ],
+    ];
+    for (const [name, bytes, mediaType] of cases) {
+      const file = join(w.uploads, name);
+      writeFileSync(file, bytes);
+      const t = setup(() => scripted(answerStream()), {
+        uploadsDir: w.uploads,
+      });
+      const e = await rejection(
+        t.provider.run(withImage(file, mediaType), t.opts()),
+      );
+      expect(e.reason, name).toBe("failed");
+      expect(t.spawn, name).not.toHaveBeenCalled();
+    }
+  });
+
+  test("the picture's data is never shown: not in stderr, not in the model's own words, and every message is cut to 300 characters", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000008.png");
+    writeFileSync(file, PNG_BYTES);
+    const data = imageFixture.message.content[0].source.data;
+    // a CLI error that repeats part of the request, in the middle of other words
+    const echo = scripted([], {
+      code: 1,
+      stderr: `bad request ${data.slice(10, 90)} end\n`,
+    });
+    const t = setup(() => echo, { uploadsDir: w.uploads });
+    const e = await rejection(t.provider.run(withImage(file), t.opts()));
+    expect(e.message).not.toContain(data.slice(10, 50));
+    expect(e.message).toBe(
+      "Claude could not read the request. Please tell Alberto.",
+    );
+
+    // an error result whose text holds the data
+    const bad = withResult((r) => {
+      r.is_error = true;
+      r.subtype = "error_during_execution";
+      r.result = `trouble ${data}`;
+      delete r.structured_output;
+    });
+    const t2 = setup(() => scripted(bad), { uploadsDir: w.uploads });
+    const e2 = await rejection(t2.provider.run(withImage(file), t2.opts()));
+    expect(e2.message).not.toContain(data.slice(0, 40));
+    expect(e2.message.length).toBeLessThanOrEqual(300);
+  });
+
+  test("a stdin that cannot be written to does not crash the planner", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000009.png");
+    writeFileSync(file, PNG_BYTES);
+    const t = setup(
+      () => {
+        const child = scripted([], { code: 1, stderr: "closed early" });
+        child.stdin = {
+          end: () => {
+            throw new Error("EPIPE: write after end");
+          },
+          on: () => {},
+        };
+        return child;
+      },
+      { uploadsDir: w.uploads },
+    );
+    const e = await rejection(t.provider.run(withImage(file), t.opts()));
+    expect(e.reason).toBe("failed");
+    expect(e.message).not.toContain("EPIPE");
+  });
+});
+
+describe("buildArgs for a task whose prompt is on standard input", () => {
+  test("starts -p --input-format stream-json, has no prompt argument, and keeps every other flag", () => {
+    const args = buildArgs("P", "sonnet", { type: "object" }, [], true);
+    expect(args.slice(0, 3)).toEqual(["-p", "--input-format", "stream-json"]);
+    expect(args).not.toContain("P");
+    expect(args).toContain("--no-session-persistence");
+    expect(args).not.toContain("--bare");
   });
 });

@@ -55,15 +55,15 @@ Look for the amber gates: a candidate revision becomes the head revision only wh
 
 ## 7. AI flow
 
-Look for what crosses to the model (extracted text) and what comes back (JSON), the Claude Code adapter that starts `claude -p` and checks the answer against the schema, then the review step at the end. The job queue runs one job at a time, asks the provider whether it is available before each one, and tells the browser only plain-word progress; a suggestion is applied once, with its provenance, only after Gemma accepts or edits it.
+Look for what crosses to the model (extracted text, or one timetable picture from data/uploads) and what comes back (JSON), the Claude Code adapter that starts `claude -p` and checks the answer against the schema, then the review step at the end. The job queue runs one job at a time, asks the provider whether it is available before each one, and tells the browser only plain-word progress; a suggestion is applied once, with its provenance, only after Gemma accepts or edits it.
 
-![AI flow sequence: ask (refused when AI is off), run (one at a time, availability check, provider, Claude Code adapter, claude -p, schema check), store, review (once, with provenance)](07-ai-flow.svg)
+![AI flow sequence: ask (refused when AI is off; a timetable picture is kept in data/uploads), run (one at a time, availability check, provider, Claude Code adapter, claude -p, schema check), store, review (once, with provenance; a suggested timetable sits beside hers)](07-ai-flow.svg)
 
 ## 8. Data and privacy
 
-Look for the red dashed arrows: each one ends at a guard. Files she attaches to a lesson are checked on the way in, kept in their own folder and never read by a model.
+Look for the red dashed arrows: each one ends at a guard. Files she attaches to a lesson are checked on the way in, kept in their own folder and never read by a model. The one exception is the timetable picture she uploads on purpose: it lives in data/uploads and only the Claude adapter reads it.
 
-![Data and privacy: what stays on the Mac (including attached lesson materials, checked on upload and never sent to a model), what reaches the model, and what is denied](08-data-and-privacy.svg)
+![Data and privacy: what stays on the Mac (including attached lesson materials, checked on upload and never sent to a model, and timetable pictures in data/uploads that only the Claude adapter reads), what reaches the model, and what is denied](08-data-and-privacy.svg)
 
 ## 9. Tech stack
 

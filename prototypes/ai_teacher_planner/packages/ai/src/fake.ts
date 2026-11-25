@@ -42,12 +42,6 @@ export class FakeAiProvider implements AiProvider {
       throw new AiError(reason, message);
     };
 
-    // like the real adapter, until an image path is proven (Task 2.20)
-    if (task.attachments.length > 0)
-      fail(
-        "failed",
-        "Attachments are not supported yet by the Claude Code adapter",
-      );
     if (opts.signal.aborted) fail("cancelled");
     if (this.opts.delayMs) await wait(this.opts.delayMs, opts.signal, fail);
     if (this.opts.fail) fail(this.opts.fail);

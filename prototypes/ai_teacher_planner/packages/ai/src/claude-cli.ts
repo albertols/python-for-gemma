@@ -1,4 +1,6 @@
 import { spawn as nodeSpawnProcess } from "node:child_process";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { dirname, sep } from "node:path";
 import type { Source } from "@planner/domain";
 import {
   AiError,
@@ -20,6 +22,11 @@ import { cutForUser, linesOf, parseStream } from "./stream.ts";
 export interface ChildLike {
   stdout: AsyncIterable<string | Uint8Array>;
   stderr: AsyncIterable<string | Uint8Array>;
+  /** Present when the child was started with a piped standard input (a task with a picture). */
+  stdin?: {
+    end(data: string): unknown;
+    on(event: "error", listener: (e: Error) => void): unknown;
+  } | null;
   kill(signal?: NodeJS.Signals): boolean;
   once(event: "error", listener: (e: Error) => void): unknown;
   once(
@@ -28,16 +35,20 @@ export interface ChildLike {
   ): unknown;
 }
 
-// Task 2.20 may widen stdio[0] to "ignore" | "pipe".
+/** Standard input is closed ("ignore") for every task except one with a picture, which pipes it (ADR-007). */
 export type SpawnLike = (
   command: string,
   args: string[],
-  options: { env: Record<string, string>; stdio: ["ignore", "pipe", "pipe"] },
+  options: {
+    env: Record<string, string>;
+    stdio: ["ignore" | "pipe", "pipe", "pipe"];
+  },
 ) => ChildLike;
 
 /** The real thing: Node's child_process. Tests never use it. */
 export const nodeSpawn: SpawnLike = (command, args, options) =>
-  nodeSpawnProcess(command, args, options);
+  // stdout and stderr are always piped; the wider stdio[0] type hides that from node's overloads
+  nodeSpawnProcess(command, args, options) as unknown as ChildLike;
 
 const UNAVAILABLE =
   "Claude Code is not installed on this Mac. Everything else still works.";
@@ -55,6 +66,16 @@ const SIGKILL_AFTER_MS = 5_000;
 export const PROMPT_PREAMBLE = "You are a skill of the AI Teacher Planner app.";
 const AUTH_STATUS_TIMEOUT_MS = 30_000;
 const SECRETS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"];
+/** A picture may be at most this big (10 MB). */
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const NOT_IN_UPLOADS =
+  "That picture is not in the planner's uploads folder, so it was not sent.";
+const IMAGE_TYPES: Record<string, readonly number[]> = {
+  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  "image/jpeg": [0xff, 0xd8, 0xff],
+};
+/** 40 or more base64 characters in a row: a piece of a picture, which is never shown. */
+const BASE64_RUN = /[A-Za-z0-9+/=]{40,}/;
 
 /** 120 seconds without tools, 300 with. */
 export function defaultTimeoutMs(tools: readonly string[]): number {
@@ -70,6 +91,8 @@ export function buildArgs(
   model: string,
   schema: object,
   tools: readonly string[],
+  /** A task with a picture: the prompt goes on standard input as stream-json, so it is not an argument. */
+  fromStdin = false,
 ): string[] {
   if (prompt.startsWith("-"))
     throw new AiError(
@@ -77,8 +100,7 @@ export function buildArgs(
       "The request cannot start with a dash, because Claude would read it as an option",
     );
   return [
-    "-p",
-    prompt,
+    ...(fromStdin ? ["-p", "--input-format", "stream-json"] : ["-p", prompt]),
     "--model",
     model,
     "--tools",
@@ -128,13 +150,20 @@ function lastLine(text: string): string {
  * error, so a line holding 40 characters of the prompt, or an "unknown option" error, is
  * replaced by a fixed sentence. Otherwise the line, cut to 300 characters.
  */
-function safeStderr(line: string, prompt: string): string {
-  return unsafeToShow(line, prompt) ? UNREADABLE_REQUEST : cutForUser(line);
+function safeStderr(line: string, prompt: string, hasImage: boolean): string {
+  return unsafeToShow(line, prompt, hasImage)
+    ? UNREADABLE_REQUEST
+    : cutForUser(line);
 }
 
 /** Does this text hold 40 characters of the prompt, or is it an "unknown option" error? */
-function unsafeToShow(text: string, prompt: string): boolean {
+function unsafeToShow(
+  text: string,
+  prompt: string,
+  hasImage: boolean,
+): boolean {
   if (text.startsWith("error: unknown option")) return true;
+  if (hasImage && BASE64_RUN.test(text)) return true;
   const window = Math.min(40, prompt.length);
   if (window > 0)
     for (let i = 0; i + window <= prompt.length; i++)
@@ -180,6 +209,78 @@ function isWebUrl(url: string): boolean {
   }
 }
 
+/** One picture as it goes into the request. */
+interface ImageBlock {
+  type: "image";
+  source: { type: "base64"; media_type: string; data: string };
+}
+
+const startsWithBytes = (head: Uint8Array, bytes: readonly number[]) =>
+  bytes.every((b, i) => head[i] === b);
+
+/**
+ * The pictures of a task, read only from `uploadsDir`. The path must resolve (every symlink
+ * followed) to a file directly inside the folder, before anything is read; the type must be
+ * PNG or JPEG with matching first bytes; at most 10 MB. A refusal never names a path.
+ */
+function readImages(
+  attachments: AiTask<unknown>["attachments"],
+  uploadsDir: string | undefined,
+): ImageBlock[] {
+  const refuse = (why: string) => new AiError("failed", why);
+  if (uploadsDir === undefined) throw refuse(NOT_IN_UPLOADS);
+  let root: string;
+  try {
+    root = realpathSync(uploadsDir);
+  } catch {
+    throw refuse(NOT_IN_UPLOADS);
+  }
+  const blocks: ImageBlock[] = [];
+  for (const a of attachments) {
+    const signature = IMAGE_TYPES[a.mediaType];
+    if (!signature)
+      throw refuse("Only a PNG or JPEG picture can be sent to Claude.");
+    let real: string;
+    try {
+      real = realpathSync(a.path);
+    } catch {
+      throw refuse(NOT_IN_UPLOADS);
+    }
+    if (dirname(real) !== root || !real.startsWith(`${root}${sep}`))
+      throw refuse(NOT_IN_UPLOADS);
+    const info = statSync(real);
+    if (!info.isFile()) throw refuse(NOT_IN_UPLOADS);
+    if (info.size > MAX_IMAGE_BYTES)
+      throw refuse("That picture is over 10 MB, so it was not sent.");
+    const bytes = readFileSync(real);
+    if (!startsWithBytes(bytes, signature))
+      throw refuse("That file is not really a picture of its type.");
+    blocks.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: a.mediaType,
+        data: bytes.toString("base64"),
+      },
+    });
+  }
+  return blocks;
+}
+
+/** The one line of standard input: the pictures, then the prompt, as a single user message. */
+export function buildImageStdin(
+  prompt: string,
+  images: readonly ImageBlock[],
+): string {
+  return `${JSON.stringify({
+    type: "user",
+    message: {
+      role: "user",
+      content: [...images, { type: "text", text: prompt }],
+    },
+  })}\n`;
+}
+
 export class ClaudeCodeCliProvider implements AiProvider {
   readonly id = "claude-code-cli";
   private readonly spawn: SpawnLike;
@@ -187,6 +288,7 @@ export class ClaudeCodeCliProvider implements AiProvider {
   private readonly readSkillText: (promptPath: string) => Promise<string>;
   private readonly timeoutMs: number | undefined;
   private readonly command: string;
+  private readonly uploadsDir: string | undefined;
 
   constructor(opts: {
     spawn: SpawnLike;
@@ -195,11 +297,14 @@ export class ClaudeCodeCliProvider implements AiProvider {
     /** Overrides the default: 120 seconds without tools, 300 with. */
     timeoutMs?: number;
     command?: string;
+    /** The only folder a task's pictures may come from (data/uploads). Without it, every attachment is refused. */
+    uploadsDir?: string;
   }) {
     this.spawn = opts.spawn;
     this.readSkillText = opts.readSkillText;
     this.timeoutMs = opts.timeoutMs;
     this.command = opts.command ?? "claude";
+    this.uploadsDir = opts.uploadsDir;
     // The child never sees an API key or auth token: a stray key could cause a bill.
     this.env = {};
     for (const [k, v] of Object.entries(opts.env))
@@ -263,13 +368,6 @@ export class ClaudeCodeCliProvider implements AiProvider {
     opts: { signal: AbortSignal; onProgress: (p: AiProgress) => void },
   ): Promise<AiResult<T>> {
     const startedAt = new Date();
-    // Task 2.20 proves an image path and replaces this refusal. When it allows attachments,
-    // their paths must be confined to data/uploads/ (resolved, no symlink out, no resources).
-    if (task.attachments.length > 0)
-      throw new AiError(
-        "failed",
-        "Attachments are not supported yet by the Claude Code adapter",
-      );
     if (opts.signal.aborted) throw new AiError("cancelled");
 
     const skill = getSkill(task.skillId);
@@ -299,6 +397,11 @@ export class ClaudeCodeCliProvider implements AiProvider {
     }
     const skillText = `${PROMPT_PREAMBLE}\n\n${stripFrontMatter(raw).trim()}`;
     const prompt = buildPrompt(skill, skillText, task.input, task.text);
+    // Pictures come only from data/uploads and are read in memory: the request line is never written to disk.
+    const hasImage = task.attachments.length > 0;
+    const images = hasImage
+      ? readImages(task.attachments, this.uploadsDir)
+      : [];
     if (opts.signal.aborted) throw new AiError("cancelled");
 
     const args = buildArgs(
@@ -306,16 +409,18 @@ export class ClaudeCodeCliProvider implements AiProvider {
       skill.model,
       jsonSchemaFor(skill),
       task.tools,
+      hasImage,
     );
     const run = await this.execute(
       args,
       {
         signal: opts.signal,
         timeoutMs: this.timeoutMs ?? defaultTimeoutMs(task.tools),
+        ...(hasImage ? { stdin: buildImageStdin(prompt, images) } : {}),
       },
       (lines) =>
         parseStream(lines, opts.onProgress, (text) =>
-          unsafeToShow(text, prompt) ? UNREADABLE_REQUEST : text,
+          unsafeToShow(text, prompt, hasImage) ? UNREADABLE_REQUEST : text,
         ),
     );
 
@@ -325,10 +430,11 @@ export class ClaudeCodeCliProvider implements AiProvider {
         .split(/\r?\n/)
         .map((l) => l.trim())
         .filter((l) => l !== "");
-      if (lines.some((l) => unsafeToShow(l, prompt)))
+      if (lines.some((l) => unsafeToShow(l, prompt, hasImage)))
         throw new AiError("failed", UNREADABLE_REQUEST);
       const said = lastLine(run.stderr);
-      if (said !== "") throw new AiError("failed", safeStderr(said, prompt));
+      if (said !== "")
+        throw new AiError("failed", safeStderr(said, prompt, hasImage));
       const exit =
         run.code === null
           ? "Claude Code was stopped before it finished"
@@ -368,14 +474,14 @@ export class ClaudeCodeCliProvider implements AiProvider {
    */
   private async execute<T>(
     args: string[],
-    limits: { signal?: AbortSignal; timeoutMs?: number },
+    limits: { signal?: AbortSignal; timeoutMs?: number; stdin?: string },
     consume: (lines: AsyncIterable<string>) => Promise<T>,
   ): Promise<Execution<T>> {
     let child: ChildLike;
     try {
       child = this.spawn(this.command, args, {
         env: { ...this.env },
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: [limits.stdin === undefined ? "ignore" : "pipe", "pipe", "pipe"],
       });
     } catch (e) {
       throw spawnProblem(e);
@@ -412,6 +518,26 @@ export class ClaudeCodeCliProvider implements AiProvider {
           );
     const onAbort = () => interrupt(new AiError("cancelled"));
     limits.signal?.addEventListener("abort", onAbort, { once: true });
+
+    if (limits.stdin !== undefined) {
+      const stdin = child.stdin;
+      const closedEarly = () =>
+        interrupt(
+          new AiError(
+            "failed",
+            "Claude Code closed before it took the picture.",
+          ),
+        );
+      if (!stdin) closedEarly();
+      else {
+        stdin.on("error", closedEarly);
+        try {
+          stdin.end(limits.stdin);
+        } catch {
+          closedEarly();
+        }
+      }
+    }
 
     const closed = new Promise<number | null>((resolve, reject) => {
       child.once("error", (e) => {

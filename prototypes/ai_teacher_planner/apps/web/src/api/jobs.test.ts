@@ -184,6 +184,23 @@ test("an item is described in her words, with a fallback for kinds not built yet
   });
 });
 
+test("a timetable suggestion is described as one, with how many cells were unreadable", () => {
+  const grid = (unsure: unknown[]) =>
+    item({
+      kind: "timetable-grid",
+      target: "2026-27",
+      data: { versionId: "2026-27", entries: [], duties: [], unsure },
+    });
+  expect(describeItem(grid([]))).toEqual({
+    title: "Timetable grid from your picture",
+    detail: null,
+  });
+  expect(describeItem(grid([{}, {}])).detail).toBe(
+    "2 cells could not be read.",
+  );
+  expect(describeItem(grid([{}])).detail).toBe("1 cell could not be read.");
+});
+
 test("an item and its run make the provenance the popover shows", () => {
   const r = run({
     status: "done",

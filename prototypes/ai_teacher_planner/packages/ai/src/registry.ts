@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import type { SkillId } from "./port.ts";
 import { buildCurriculumPack } from "./skills/planner-build-curriculum-pack.ts";
+import { importTimetable } from "./skills/planner-import-timetable.ts";
 import { suggestLessonCounts } from "./skills/planner-suggest-lesson-counts.ts";
 
 export interface SkillDefinition<I, O> {
@@ -28,6 +29,7 @@ export const skills: Partial<
 > = {
   "planner-suggest-lesson-counts": register(suggestLessonCounts),
   "planner-build-curriculum-pack": register(buildCurriculumPack),
+  "planner-import-timetable": register(importTimetable),
 };
 
 /**

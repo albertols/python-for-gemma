@@ -9,6 +9,8 @@ import { ApiError } from "../errors.ts";
 
 /** Each file may be at most this big (25 MB). */
 export const MAX_MATERIAL_BYTES = 25 * 1024 * 1024;
+/** A picture she uploads for the AI to read may be at most this big (10 MB). */
+export const MAX_PICTURE_BYTES = 10 * 1024 * 1024;
 const MAX_NAME_LENGTH = 200;
 /** A half-written upload older than this was left by a crash. */
 const PARTIAL_MAX_AGE_MS = 60 * 60 * 1000;
@@ -105,6 +107,10 @@ export interface SavedMaterial {
 }
 
 export interface MaterialStore {
+  /** The most bytes one file may have; the upload reader stops a body that passes it. */
+  readonly maxBytes: number;
+  /** "25 MB" or "10 MB": the limit in her words. */
+  readonly maxWords: string;
   /** Streams one upload to disk, checks it, and keeps it only if every check passed. */
   save(input: { name: string; stream: Readable }): Promise<SavedMaterial>;
   /** The stream and the size of the file on disk. */
@@ -119,6 +125,8 @@ export interface MaterialStore {
   };
   /** Removes a stored file; one that is already gone is not an error. */
   remove(storedName: string): void;
+  /** The full path of a stored file, for code that reads it in the same process. */
+  pathOf(storedName: string): string;
 }
 
 const refuse = (code: string, message: string, status: 413 | 422 = 422) =>
@@ -142,15 +150,16 @@ export function checkedName(raw: string): string {
   return name;
 }
 
-function extensionOf(name: string): Extension {
+function extensionOf(
+  name: string,
+  accepts: readonly Extension[],
+  words: string,
+): Extension {
   const dot = name.lastIndexOf(".");
   const raw = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
   const ext = Object.hasOwn(ALIASES, raw) ? ALIASES[raw] : raw;
-  if (!ext || !isExtension(ext))
-    throw refuse(
-      "material-type",
-      `Only ${ACCEPTED_WORDS} files can be attached.`,
-    );
+  if (!ext || !isExtension(ext) || !accepts.includes(ext))
+    throw refuse("material-type", `Only ${words} files can be attached.`);
   return ext;
 }
 
@@ -362,8 +371,32 @@ function isPlainOffice(
   return hasMain;
 }
 
-export function createMaterialStore(dir: string): MaterialStore {
+interface StoreOptions {
+  /** The types this store keeps (default: all of them). */
+  accepts?: readonly Extension[];
+  /** The words for them in a refusal. */
+  words?: string;
+  maxBytes?: number;
+}
+
+/** Pictures she uploads for Claude to read (data/uploads): PNG or JPEG, at most 10 MB. */
+export function createPictureStore(dir: string): MaterialStore {
+  return createMaterialStore(dir, {
+    accepts: ["png", "jpg"],
+    words: "PNG or JPG",
+    maxBytes: MAX_PICTURE_BYTES,
+  });
+}
+
+export function createMaterialStore(
+  dir: string,
+  options: StoreOptions = {},
+): MaterialStore {
   const root = path.resolve(dir);
+  const accepts = options.accepts ?? ACCEPTED_EXTENSIONS;
+  const words = options.words ?? ACCEPTED_WORDS;
+  const maxBytes = options.maxBytes ?? MAX_MATERIAL_BYTES;
+  const maxWords = `${maxBytes / (1024 * 1024)} MB`;
   /** The path of a stored name, which must be exactly `<uuid>.<ext>` and stay inside the folder. */
   const pathOf = (storedName: string) => {
     if (!STORED_NAME.test(storedName))
@@ -374,9 +407,11 @@ export function createMaterialStore(dir: string): MaterialStore {
     return file;
   };
   return {
+    maxBytes,
+    maxWords,
     async save({ name: given, stream }) {
       const name = checkedName(given);
-      const ext = extensionOf(name);
+      const ext = extensionOf(name, accepts, words);
       const id = randomUUID();
       const storedName = `${id}.${ext}`;
       const final = pathOf(storedName);
@@ -387,11 +422,11 @@ export function createMaterialStore(dir: string): MaterialStore {
       const counter = new Transform({
         transform(chunk: Buffer, _encoding, done) {
           size += chunk.length;
-          if (size > MAX_MATERIAL_BYTES)
+          if (size > maxBytes)
             done(
               refuse(
                 "material-too-large",
-                "That file is over 25 MB, so it was not attached.",
+                `That file is over ${maxWords}, so it was not attached.`,
                 413,
               ),
             );
@@ -455,5 +490,6 @@ export function createMaterialStore(dir: string): MaterialStore {
     remove(storedName) {
       fs.rmSync(pathOf(storedName), { force: true });
     },
+    pathOf,
   };
 }

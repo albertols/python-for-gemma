@@ -144,6 +144,35 @@ export function useSaveTimetable() {
   });
 }
 
+/** A reviewed grid replaced the stored one: the timetable is fetched again (the promise settles when it has arrived), and what is built from it is stale. */
+export function refreshAfterTimetableChange(qc: QueryClient): Promise<void> {
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  invalidateBoard(qc);
+  return qc.refetchQueries({ queryKey: ["timetable"] });
+}
+
+/** A picture of her timetable goes up as a multipart form, so this call is made by hand; the `x-planner-upload` header is what the API checks. The job it starts only suggests a grid. */
+export function useUploadTimetablePicture(versionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return call<{ id: string }>(() =>
+        fetch(
+          `/api/timetable/image?versionId=${encodeURIComponent(versionId)}`,
+          {
+            method: "POST",
+            headers: { "x-planner-upload": "1" },
+            body: form,
+          },
+        ),
+      );
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["ai"] }),
+  });
+}
+
 export function useCreateTimetableVersion() {
   const qc = useQueryClient();
   return useMutation({

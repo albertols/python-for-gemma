@@ -1,4 +1,5 @@
-// Runs one skill through the real Claude Code CLI, by hand: `pnpm ai:try <skill-id> <input.json>`.
+// Runs one skill through the real Claude Code CLI, by hand: `pnpm ai:try <skill-id> <input.json> [picture]`.
+// A picture must be a PNG or JPEG inside <PLANNER_DATA_DIR or data>/uploads/ (the only folder the adapter reads pictures from).
 // This is the only place that starts `claude` outside the app. No test does.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -6,9 +7,9 @@ import { ClaudeCodeCliProvider, nodeSpawn } from "../src/claude-cli.ts";
 import type { SkillId } from "../src/port.ts";
 import { getSkill, readSkillFile } from "../src/registry.ts";
 
-const [skillId, inputFile] = process.argv.slice(2);
+const [skillId, inputFile, picture] = process.argv.slice(2);
 if (!skillId || !inputFile) {
-  console.error("Usage: pnpm ai:try <skill-id> <input.json>");
+  console.error("Usage: pnpm ai:try <skill-id> <input.json> [picture]");
   process.exit(2);
 }
 
@@ -18,6 +19,7 @@ const provider = new ClaudeCodeCliProvider({
   spawn: nodeSpawn,
   env: process.env,
   readSkillText: async (promptPath) => readSkillFile(promptPath),
+  uploadsDir: resolve(process.env.PLANNER_DATA_DIR ?? "data", "uploads"),
 });
 
 const status = await provider.available();
@@ -31,7 +33,14 @@ try {
       skillId: skill.id,
       input,
       text: null,
-      attachments: [],
+      attachments: picture
+        ? [
+            {
+              path: resolve(picture),
+              mediaType: /\.jpe?g$/i.test(picture) ? "image/jpeg" : "image/png",
+            },
+          ]
+        : [],
       schema: skill.output,
       tools: skill.tools,
     },

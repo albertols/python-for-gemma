@@ -67,7 +67,8 @@ Every task's requirements include this section.
 - Tests and CI use `FakeAiProvider`. CI has no access to Claude or to `prototypes/resources/`.
 - The Claude adapter uses exactly this flag set, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` removed from the child environment, and never `--bare`:
   `claude -p "<prompt>" --model <alias> --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`
-- Task 2.8 tests exactly this flag set, plus `--tools "WebSearch,WebFetch"` for a web skill (ADR-007), and no `--allowedTools`. Every task that runs a headless skill passes `--model <alias>` from its `SkillDefinition.model`. Attachments are refused until Task 2.20 proves an image path.
+  A task with attachments (Task 2.20, ADR-007 amendment) uses `claude -p --input-format stream-json` with every other flag unchanged, no prompt argument, and standard input piped (`stdio[0]` is `"pipe"`, otherwise `"ignore"`): one JSON line holds the image block and then the prompt text, which still starts with the fixed first line. Pictures come only from `data/uploads/`.
+- Task 2.8 tests exactly this flag set, plus `--tools "WebSearch,WebFetch"` for a web skill (ADR-007), and no `--allowedTools`. Every task that runs a headless skill passes `--model <alias>` from its `SkillDefinition.model`. Attachments are PNG or JPEG pictures from `data/uploads/` only, sent as in the ADR-007 amendment.
 - Every stored item has an origin: `engine`, `ai`, `teacher` or `import`. AI items also carry provider, model, skill, time, sources and a review state: `suggested`, `accepted`, `edited` or `rejected`.
 
 **Interface (spec section 12)**

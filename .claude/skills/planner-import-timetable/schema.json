@@ -1,0 +1,125 @@
+{
+  "type": "object",
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "week": {
+            "type": "string",
+            "enum": [
+              "W1",
+              "W2"
+            ]
+          },
+          "weekday": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "groupId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "room": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "week",
+          "weekday",
+          "period",
+          "groupId",
+          "room"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "duties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "week": {
+            "type": "string",
+            "enum": [
+              "W1",
+              "W2"
+            ]
+          },
+          "weekday": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "week",
+          "weekday",
+          "period",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "unsure": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "week": {
+            "type": "string",
+            "enum": [
+              "W1",
+              "W2"
+            ]
+          },
+          "weekday": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "week",
+          "weekday",
+          "period",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "entries",
+    "duties",
+    "unsure"
+  ],
+  "additionalProperties": false
+}

@@ -1,11 +1,7 @@
 import { pipeline, Readable, Transform } from "node:stream";
 import busboy from "busboy";
 import { ApiError } from "../errors.ts";
-import {
-  MAX_MATERIAL_BYTES,
-  type MaterialStore,
-  type SavedMaterial,
-} from "./store.ts";
+import type { MaterialStore, SavedMaterial } from "./store.ts";
 
 /** Room for the form's own framing around a file of the largest size. */
 const FRAMING_BYTES = 1024 * 1024;
@@ -53,12 +49,12 @@ export function receiveUpload(
     const counter = new Transform({
       transform(chunk: Buffer, _encoding, done) {
         total += chunk.length;
-        if (total > MAX_MATERIAL_BYTES + FRAMING_BYTES)
+        if (total > store.maxBytes + FRAMING_BYTES)
           done(
             new ApiError(
               413,
               "material-too-large",
-              "That file is over 25 MB, so it was not attached.",
+              `That file is over ${store.maxWords}, so it was not attached.`,
             ),
           );
         else done(null, chunk);

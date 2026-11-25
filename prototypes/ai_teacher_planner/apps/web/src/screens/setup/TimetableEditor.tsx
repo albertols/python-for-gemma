@@ -19,6 +19,7 @@ import {
 import { Button } from "../../components/ui/button.tsx";
 import { ErrorState, Loading } from "../../components/ui/states.tsx";
 import { longDate } from "../../lib/dates.ts";
+import { TimetablePicture } from "./TimetablePicture.tsx";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] as const;
 const PERIODS: Period[] = [1, 2, 3, 4, 5, 6];
@@ -294,6 +295,8 @@ function NewVersion({
 export function TimetableEditor() {
   const timetable = useTimetable();
   const [chosen, setChosen] = useState<string | null>(null);
+  // bumped when an accepted suggestion replaced the stored grid, so the editor starts again from it
+  const [applied, setApplied] = useState(0);
   const save = useSaveTimetable();
   const data = timetable.data;
   const versions = data?.versions ?? [];
@@ -339,8 +342,15 @@ export function TimetableEditor() {
               From {longDate(version.validFrom)}
             </p>
           )}
+          <TimetablePicture
+            version={version}
+            onApplied={() => {
+              save.reset();
+              setApplied((n) => n + 1);
+            }}
+          />
           <VersionEditor
-            key={version.id}
+            key={`${version.id}-${applied}`}
             version={version}
             groups={data.groups}
             save={save}

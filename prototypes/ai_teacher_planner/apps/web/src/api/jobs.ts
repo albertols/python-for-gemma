@@ -143,6 +143,16 @@ export function describeItem(item: AiItemView): {
       detail: typeof d.reason === "string" ? d.reason : null,
     };
   }
+  if (item.kind === "timetable-grid") {
+    const unsure = isObject(d) && Array.isArray(d.unsure) ? d.unsure.length : 0;
+    return {
+      title: "Timetable grid from your picture",
+      detail:
+        unsure === 0
+          ? null
+          : `${unsure} ${unsure === 1 ? "cell" : "cells"} could not be read.`,
+    };
+  }
   return { title: `${item.kind} for ${item.target}`, detail: null };
 }
 

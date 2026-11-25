@@ -165,15 +165,10 @@ describe("FakeAiProvider", () => {
   });
 });
 
-test("attachments are refused, like the real adapter, and nothing is answered", async () => {
+test("a task with a picture is answered like any other, and the fake records the attachment it was given", async () => {
   const fake = new FakeAiProvider({ "planner-suggest-lesson-counts": good });
-  await expect(
-    fake.run(
-      { ...task, attachments: [{ path: "a.png", mediaType: "image/png" }] },
-      opts().opts,
-    ),
-  ).rejects.toMatchObject({
-    reason: "failed",
-    message: "Attachments are not supported yet by the Claude Code adapter",
-  });
+  const attachments = [{ path: "data/uploads/a.png", mediaType: "image/png" }];
+  const res = await fake.run({ ...task, attachments }, opts().opts);
+  expect(res.data).toEqual(good);
+  expect(fake.calls[0]?.attachments).toEqual(attachments);
 });

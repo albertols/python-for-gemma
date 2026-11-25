@@ -795,7 +795,7 @@ test("the test route needs its header and exists only when test routes are on", 
 });
 
 test("with PLANNER_AI=fake the running app answers from fixtures/src/fake-ai.ts", async () => {
-  const provider = providerFor({ ai: "fake" }, {});
+  const provider = providerFor({ ai: "fake", dataDir: "/unused" }, {});
   expect(provider?.id).toBe("fake");
   const app = build(provider);
   const run = await finished(app, (await start(app)).body.id);

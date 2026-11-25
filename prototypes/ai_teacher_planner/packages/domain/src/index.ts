@@ -19,4 +19,5 @@ export * from "./scheme.ts";
 export * from "./sequence.ts";
 export * from "./slots.ts";
 export * from "./timetable.ts";
+export * from "./timetable-diff.ts";
 export * from "./todos.ts";
