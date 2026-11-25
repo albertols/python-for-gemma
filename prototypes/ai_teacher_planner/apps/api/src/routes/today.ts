@@ -4,7 +4,14 @@ import type { Repos } from "../repos/ports.ts";
 import { todayOf } from "../today.ts";
 import { todayView } from "../usecases/today-view.ts";
 import { createRouter } from "./router.ts";
-import { isoDate, reminder, slot, todayLesson, weekLabel } from "./schemas.ts";
+import {
+  isoDate,
+  reminder,
+  slot,
+  todayAssessment,
+  todayLesson,
+  weekLabel,
+} from "./schemas.ts";
 
 const getToday = createRoute({
   method: "get",
@@ -32,6 +39,7 @@ const getToday = createRoute({
                 start: z.string(),
                 end: z.string(),
                 lesson: todayLesson,
+                assessment: todayAssessment,
               }),
             ),
             nextTeachingDay: isoDate.nullable(),

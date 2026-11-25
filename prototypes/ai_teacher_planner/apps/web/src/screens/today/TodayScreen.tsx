@@ -11,7 +11,7 @@ import {
   useToday,
 } from "../../api/queries.ts";
 import { GroupBadge } from "../../components/GroupBadge.tsx";
-import { OutOfDatePlans } from "../../components/PlanNotices.tsx";
+import { PlanArea } from "../../components/PlanNotices.tsx";
 import { Button } from "../../components/ui/button.tsx";
 import {
   EmptyState,
@@ -104,7 +104,7 @@ function Lessons({ today }: { today: TodayData }) {
           </tr>
         </thead>
         <tbody>
-          {today.lessons.map(({ slot, start, end, lesson }) => (
+          {today.lessons.map(({ slot, start, end, lesson, assessment }) => (
             <tr key={slot.key} className="border-b border-border">
               <th scope="row" className="py-2 pr-4 font-medium">
                 {slot.period}
@@ -141,12 +141,20 @@ function Lessons({ today }: { today: TodayData }) {
                 {lesson ? (
                   <>
                     {lesson.title}
+                    {assessment ? (
+                      <span className="ml-2 rounded-full border border-border px-1.5 text-sm">
+                        with {assessment.title}
+                      </span>
+                    ) : null}
                     {slot.status === "cancelled" ? (
                       <span className="ml-2 text-sm text-muted-foreground">
                         not moved until you accept a new plan
                       </span>
                     ) : null}
                   </>
+                ) : assessment ? (
+                  // a whole-slot assessment fills the lesson, as on the board
+                  `${assessment.title} (assessment, whole lesson)`
                 ) : (
                   <span className="text-muted-foreground">
                     No lesson planned
@@ -241,7 +249,7 @@ export function TodayScreen() {
       ) : null}
       <CancelLessons today={data.date} />
       <div className="mt-4">
-        <OutOfDatePlans />
+        <PlanArea />
       </div>
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div>

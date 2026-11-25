@@ -17,7 +17,22 @@ import {
   summaryRows,
 } from "./ProposalDiff.tsx";
 
-const names = namesFrom(syntheticScheme("ial-business-u4"), []);
+const scheme = syntheticScheme("ial-business-u4");
+const undated = {
+  ...(scheme.find((i) => i.id === "a-ch2") as (typeof scheme)[number]),
+  id: "a-mock",
+  title: "Mock",
+};
+const names = namesFrom(
+  [
+    ...scheme,
+    {
+      ...undated,
+      assessment: undated.assessment && { ...undated.assessment, date: null },
+    },
+  ],
+  [],
+);
 const metrics = (
   placed: number,
   overflow: number,
@@ -38,6 +53,7 @@ const entry = (over: Partial<PlanDiffEntry>): PlanDiffEntry => ({
   fromState: "planned",
   toState: "planned",
   hitByDisruption: false,
+  slotGone: false,
   ...over,
 });
 
@@ -133,6 +149,53 @@ test("every kind of conflict is one plain sentence naming the group and the less
     expect(conflictSentence(conflict, names)).toBe(sentence);
 });
 
+test("a lesson past the end of a known item is named by its title, and an undated assessment has no date", () => {
+  expect(
+    conflictSentence(
+      { kind: "position-unknown", groupId: "13 1", lessonId: "ch3#5" },
+      names,
+    ),
+  ).toBe(
+    "13 1: the position names Markets lesson 5, but Markets has 4 lessons, so nothing is planned for this group.",
+  );
+  expect(
+    conflictSentence(
+      {
+        kind: "pin-lesson-unknown",
+        pinId: "p1",
+        groupId: "13 1",
+        lessonId: "ch3#5",
+        slotKey: null,
+      },
+      names,
+    ),
+  ).toBe(
+    "13 1: a pin names Markets lesson 5, but Markets has 4 lessons, so the pin is not used.",
+  );
+  // an undated assessment is dated today in the conflict; the sentence leaves the date out
+  expect(
+    conflictSentence(
+      {
+        kind: "assessment-no-slot",
+        groupId: "13 3",
+        itemId: "a-mock",
+        date: "2026-11-20",
+      },
+      names,
+    ),
+  ).toBe('13 3: there is no lesson left for "Mock".');
+});
+
+test("when only some groups sit an official exam, each value says which count it is", () => {
+  const rows = summaryRows(null, {
+    perGroup: { "11D": metrics(30, 2, false), "13 1": metrics(13, 0, true) },
+  });
+  expect(rows[2]).toEqual({
+    label: "Lessons that do not fit",
+    values: { "11D": "2", "13 1": "0 after the official exam" },
+  });
+});
+
 test("the summary says lessons after the official exam when there is one, and do not fit when there is none", () => {
   const before: PlanMetrics = {
     perGroup: { "13 1": metrics(12, 1, true), "13 3": metrics(13, 0, true) },
@@ -172,21 +235,45 @@ test("the summary says lessons after the official exam when there is one, and do
   });
 });
 
-test("changes are grouped by group, with lessons hit by a disruption first", () => {
+test("lessons hit by a change come first across all groups, then the rest by group", () => {
   const entries = [
-    entry({ groupId: "13 3", lessonId: "ch3#3" }),
-    entry({ lessonId: "ch3#4" }),
-    entry({ lessonId: "ch3#3", hitByDisruption: true }),
+    entry({ groupId: "13 1", lessonId: "ch3#4" }),
+    entry({ groupId: "13 3", lessonId: "ch3#3", hitByDisruption: true }),
+    entry({ groupId: "13 1", lessonId: "ch3#3" }),
   ];
+  const { hit, byGroup } = changesByGroup({ entries, changedByGroup: {} });
+  expect(hit.map((e) => `${e.groupId} ${e.lessonId}`)).toEqual(["13 3 ch3#3"]);
   expect(
-    changesByGroup({ entries, changedByGroup: {} }).map((g) => [
-      g.groupId,
-      g.entries.map((e) => e.lessonId),
-    ]),
-  ).toEqual([
-    ["13 1", ["ch3#3", "ch3#4"]],
-    ["13 3", ["ch3#3"]],
-  ]);
+    byGroup.map((g) => [g.groupId, g.entries.map((e) => e.lessonId)]),
+  ).toEqual([["13 1", ["ch3#4", "ch3#3"]]]);
+});
+
+test("a lesson whose slot no longer exists says so", () => {
+  expect(
+    changeSentence(entry({ hitByDisruption: true, slotGone: true }), names),
+  ).toBe(
+    "Markets 3 of 4: its lesson slot no longer exists. Monday 23 November, period 5 → Wednesday 25 November, period 2",
+  );
+});
+
+test("the dialog lists the hit lessons first under their own heading, with the group", () => {
+  const proposal = noChanges();
+  proposal.diff = {
+    entries: [
+      entry({ groupId: "13 3", hitByDisruption: true, slotGone: true }),
+    ],
+    changedByGroup: { "13 3": 1 },
+  };
+  const out = renderToStaticMarkup(
+    createElement(ProposalDiff, { proposal, names }),
+  );
+  expect(out).toContain('aria-label="Lessons that lost their slot"');
+  expect(out).toContain(
+    "<li>13 3, Markets 3 of 4: its lesson slot no longer exists.",
+  );
+  expect(out.indexOf("Lessons that lost their slot")).toBeLessThan(
+    out.indexOf("Changes for 13 1"),
+  );
 });
 
 test("a change gives the old and the new date", () => {
@@ -201,8 +288,8 @@ test("a change gives the old and the new date", () => {
   );
 });
 
-test("a proposal with no conflicts and no changes says so", () => {
-  const proposal: Proposal = {
+function noChanges(): Proposal {
+  return {
     planId: "ial-business-u4",
     baseRevisionId: null,
     label: "First plan",
@@ -221,8 +308,11 @@ test("a proposal with no conflicts and no changes says so", () => {
     after: { perGroup: { "13 1": metrics(13, 0, true) } },
     conflicts: [],
   };
+}
+
+test("a proposal with no conflicts and no changes says so", () => {
   const out = renderToStaticMarkup(
-    createElement(ProposalDiff, { proposal, names }),
+    createElement(ProposalDiff, { proposal: noChanges(), names }),
   );
   expect(out).toContain("No conflicts.");
   expect(out).toContain("Nothing moves for 13 1.");

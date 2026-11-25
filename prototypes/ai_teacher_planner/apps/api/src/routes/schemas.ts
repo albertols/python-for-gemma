@@ -328,6 +328,15 @@ export const planStatus = z.object({
   head: planRevision.nullable(),
   canUndo: z.boolean(),
   upToDate: z.boolean(),
+  /** Head lessons and assessments from today on whose slot no longer exists. */
+  withoutSlot: z.array(
+    z.object({
+      groupId: z.string(),
+      id: z.string(),
+      kind: z.enum(["lesson", "assessment"]),
+      slotKey: z.string(),
+    }),
+  ),
 });
 
 const placementState = z.enum([
@@ -384,6 +393,14 @@ export const declaredView = z.object({
   before: isoDate,
   topics: z.array(z.string()),
 });
+/** The assessment a plan puts in one of today's slots (whole slot, or inside the lesson), or null. */
+export const todayAssessment = z
+  .object({
+    itemId: z.string(),
+    title: z.string(),
+    slotUse: z.enum(["whole", "in-lesson"]),
+  })
+  .nullable();
 /** The lesson a plan puts in one of today's slots, or null when no plan does. */
 export const todayLesson = z
   .object({

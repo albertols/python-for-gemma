@@ -201,18 +201,6 @@ When("I press {string} on the board", async ({ page }, name: string) => {
   await page.getByRole("button", { name, exact: true }).click();
 });
 
-Then(
-  "the proposal lists 13 1's lesson from Monday 23 November first",
-  async ({ page }) => {
-    const changes = proposalDialog(page).getByRole("region", {
-      name: "Changes for 13 1",
-    });
-    await expect(changes.getByRole("listitem").first()).toHaveText(
-      "Markets 3 of 4: its lesson was cancelled. Monday 23 November, period 5 → Wednesday 25 November, period 2",
-    );
-  },
-);
-
 When("I ask for a new plan in Setup", async ({ page }) => {
   await askForPlanInSetup(page);
 });
@@ -231,3 +219,116 @@ Then(
     expect(status.canUndo).toBe(false);
   },
 );
+
+Then("the proposal lists {string} first", async ({ page }, text: string) => {
+  const hit = proposalDialog(page).getByRole("region", {
+    name: "Lessons that lost their slot",
+  });
+  await expect(hit.getByRole("listitem").first()).toHaveText(text);
+});
+
+When("I close the proposal with Escape", async ({ page }) => {
+  await expect(proposalDialog(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(proposalDialog(page)).toBeHidden();
+});
+
+When("I accept the new plan from Today", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "See what changes" }).click();
+  await proposalDialog(page).getByRole("button", { name: "Accept" }).click();
+});
+
+/** The screen's plan status line says it, and the keyboard is on it. */
+async function saysWithFocus(page: Page, text: string) {
+  await expect(proposalDialog(page)).toBeHidden();
+  const line = page.getByRole("status").filter({ hasText: text });
+  await expect(line).toHaveText(text);
+  await expect(line).toBeFocused();
+}
+Then(
+  "Today says {string} with the focus on it",
+  async ({ page }, text: string) => {
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("2026");
+    await saysWithFocus(page, text);
+  },
+);
+Then(
+  "the board says {string} with the focus on it",
+  async ({ page }, text: string) => {
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Board");
+    await saysWithFocus(page, text);
+  },
+);
+
+Then("undo goes back to the first plan", async ({ page, request }) => {
+  const now = await planStatus(request);
+  expect(now.head?.id).not.toBe(SEED_HEAD);
+  expect(now.canUndo).toBe(true);
+  await page.getByRole("button", { name: "Undo last change" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Undid" }),
+  ).toBeFocused();
+  expect((await planStatus(request)).head?.id).toBe(SEED_HEAD);
+});
+
+When(
+  "13 1's Week 2 Monday period 5 is taken out of the timetable",
+  async ({ request }) => {
+    const timetable = (await (await request.get("/api/timetable")).json()) as {
+      versions: {
+        id: string;
+        entries: {
+          week: string;
+          weekday: number;
+          period: number;
+          groupId: string;
+        }[];
+        duties: unknown[];
+      }[];
+    };
+    const version = timetable.versions[0];
+    if (!version) throw new Error("no timetable");
+    const entries = version.entries.filter(
+      (e) =>
+        !(
+          e.groupId === "13 1" &&
+          e.week === "W2" &&
+          e.weekday === 1 &&
+          e.period === 5
+        ),
+    );
+    expect(entries).toHaveLength(version.entries.length - 1);
+    const res = await request.put(`/api/timetable/${version.id}`, {
+      data: { entries, duties: version.duties },
+    });
+    expect(res.status()).toBe(200);
+  },
+);
+
+Then("the out-of-date banner says {string}", async ({ page }, text: string) => {
+  await page.goto("/board");
+  await expect(
+    page.getByRole("region", { name: "The plan is out of date" }),
+  ).toContainText(text);
+});
+
+When(
+  "the plan status cannot be loaded and I open the board",
+  async ({ page }) => {
+    await page.route("**/api/plans/**", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: { code: "broken", message: "Something broke." },
+        }),
+      }),
+    );
+    await page.goto("/board");
+  },
+);
+
+Then("the board shows {string}", async ({ page }, text: string) => {
+  await expect(page.getByText(text, { exact: true })).toBeVisible();
+});

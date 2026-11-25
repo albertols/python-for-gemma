@@ -15,14 +15,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import type { AssessmentView, PlacementView } from "../../api/queries.ts";
+import { SPARE_EXPLANATION, STATE_LABEL } from "../../lib/plan-words.ts";
 import { boardFor } from "./board-model.ts";
-import {
-  type CardModel,
-  cardsFor,
-  declaredFor,
-  SPARE_EXPLANATION,
-  STATE_LABEL,
-} from "./board-plan.ts";
+import { type CardModel, cardsFor, declaredFor } from "./board-plan.ts";
 import { SlotCell } from "./SlotCell.tsx";
 
 const days = toCalendarDays(syntheticRows(), SYNTHETIC_TERMS);
@@ -324,4 +319,78 @@ test("dates before a group's position show a Declared band naming the topics, no
   expect(cellAt(board, "2026-11-18", 2)?.declared).toBeNull();
   // another group is not touched
   expect(cellAt(board, "2026-11-16", 6)?.declared).toBeNull();
+});
+
+/** The words drawn in a cell's state line. */
+const stateLine = (markup: string) =>
+  (/data-state-label="[^"]*">(.*?)<\/span>/.exec(markup)?.[1] ?? "").replace(
+    /<!-- -->/g,
+    "",
+  );
+
+test("each state's words are drawn in the cell, not only told to a reader", () => {
+  const { slots } = paceWorld();
+  const lesson = card("13 1|2026-11-18|2");
+  if (!lesson) throw new Error("no lesson on 18 Nov P2");
+  const drawn: Record<string, string> = {};
+  for (const state of [
+    "planned",
+    "assumed",
+    "taught",
+    "cover",
+    "homework",
+    "skipped",
+  ] as const) {
+    const cards = new Map([[lesson.slotKey, { ...lesson, state }]]);
+    const cell = cellAt(
+      boardFor(FORTNIGHT, days, slots, [SEED_TIMETABLE], () => [], { cards }),
+      "2026-11-18",
+      2,
+    );
+    drawn[state] = stateLine(html(cell));
+  }
+  expect(drawn).toEqual({
+    planned: "Planned",
+    assumed: "Assumed taught",
+    taught: "✓ Taught",
+    cover: "↔ Cover",
+    homework: "⌂ Set as homework",
+    skipped: "✕ Skipped",
+  });
+});
+
+test("a spare lesson's purpose is on the card's face", () => {
+  const view: PlacementView = {
+    courseId: "ial-business-u4",
+    groupId: "13 3",
+    lessonId: "flex:13 3:cp:a1#1",
+    slotKey: "13 3|2026-11-26|4",
+    date: "2026-11-26",
+    period: 4,
+    state: "planned",
+    pinned: false,
+    mergedInto: null,
+    viaCover: false,
+    itemId: null,
+    index: null,
+    of: null,
+    title: "Spare lesson",
+    kind: "flex",
+    provenance: ENGINE,
+    purpose: "support",
+  };
+  const cell = cellAt(
+    boardFor(FORTNIGHT, days, paceWorld().slots, [SEED_TIMETABLE], () => [], {
+      cards: cardsFor([view], []),
+    }),
+    "2026-11-26",
+    4,
+  );
+  // the hidden description says it too; the face is what is left without it
+  const face = html(cell).replace(
+    /<span id="[^"]+" hidden="">[^<]*<\/span>/,
+    "",
+  );
+  expect(face).toContain("Support activities");
+  expect(face).toContain(">Spare lesson</button>");
 });

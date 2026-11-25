@@ -754,3 +754,45 @@ test("a pack file that cannot be read is reported in a sentence, not as a server
     `The pack file could not be read: ${COURSE}.draft.json, units: Invalid input: expected array, received string.`,
   );
 });
+
+test("a head lesson whose slot is gone from the timetable is listed in the status and first in the proposal", async () => {
+  const { app } = await planner("m2-planned");
+  expect((await status(app)).withoutSlot).toEqual([]);
+  // she takes 13 1's Week 2 Monday period 5 out of the timetable
+  const timetable = (await get(app, "/api/timetable")).body;
+  const version = timetable.versions[0];
+  const entries = version.entries.filter(
+    (e: Json) =>
+      !(
+        e.groupId === "13 1" &&
+        e.week === "W2" &&
+        e.weekday === 1 &&
+        e.period === 5
+      ),
+  );
+  expect(entries.length).toBe(version.entries.length - 1);
+  const saved = await send(app, "PUT", `/api/timetable/${version.id}`, {
+    entries,
+    duties: version.duties,
+  });
+  expect(saved.status).toBe(200);
+  const after = await status(app);
+  expect(after.upToDate).toBe(false);
+  // spare lessons on later Week 2 Mondays lose their slot too, but they are not lessons she must teach
+  expect(after.withoutSlot).toEqual([
+    {
+      groupId: "13 1",
+      id: "ch3#3",
+      kind: "lesson",
+      slotKey: "13 1|2026-11-23|5",
+    },
+  ]);
+  const p = await propose(app);
+  expect(p.diff.entries[0]).toMatchObject({
+    groupId: "13 1",
+    lessonId: "ch3#3",
+    from: "13 1|2026-11-23|5",
+    hitByDisruption: true,
+    slotGone: true,
+  });
+});

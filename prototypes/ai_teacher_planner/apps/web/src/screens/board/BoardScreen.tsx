@@ -11,10 +11,7 @@ import {
   useLastDaysBeforeBreaks,
   useTimetable,
 } from "../../api/queries.ts";
-import {
-  OutOfDatePlans,
-  UndoLastChange,
-} from "../../components/PlanNotices.tsx";
+import { PlanArea } from "../../components/PlanNotices.tsx";
 import { Button } from "../../components/ui/button.tsx";
 import {
   EmptyState,
@@ -53,8 +50,6 @@ const PRESSED =
 export function BoardScreen() {
   const [params, setParams] = useSearchParams();
   const [notice, setNotice] = useState<string | null>(null);
-  /** What the last accept or undo did. */
-  const [planNote, setPlanNote] = useState<string | null>(null);
   const config = useConfig();
   const fortnights = useFortnights();
   const timetable = useTimetable();
@@ -328,20 +323,8 @@ export function BoardScreen() {
           The plan could not be loaded, so the board shows the timetable only.
         </p>
       ) : null}
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <UndoLastChange
-          onUndone={(label) =>
-            setPlanNote(
-              `Undid "${label}". It stays in the plan's history; cancelled lessons and what you logged are kept.`,
-            )
-          }
-        />
-        {planNote ? <p role="status">{planNote}</p> : null}
-      </div>
       <div className="mt-3">
-        <OutOfDatePlans
-          onAccepted={(label) => setPlanNote(`Accepted "${label}".`)}
-        />
+        <PlanArea withUndo />
       </div>
       <div className="mt-6">
         {oneWeek ? (

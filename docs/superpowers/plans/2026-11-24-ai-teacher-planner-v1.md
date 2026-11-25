@@ -372,7 +372,7 @@ export function finalContentIndex(checkpoints: readonly Checkpoint[]): number;  
 export function byCheckpointOrder(a: Checkpoint, b: Checkpoint): number;          // date, then kind (assessment, block-end, revision, exam), then id
 
 // revisions.ts
-export interface PlanDiffEntry { groupId: GroupId; lessonId: LessonId; change: "moved" | "added" | "removed" | "state" | "correction"; from: SlotKey | null; to: SlotKey | null; fromState: PlacementState | null; toState: PlacementState | null; hitByDisruption: boolean }
+export interface PlanDiffEntry { groupId: GroupId; lessonId: LessonId; change: "moved" | "added" | "removed" | "state" | "correction"; from: SlotKey | null; to: SlotKey | null; fromState: PlacementState | null; toState: PlacementState | null; hitByDisruption: boolean; slotGone: boolean /* Task 2.17 fix: the old slot is not in `slots` at all; implies hitByDisruption */ }
 export interface PlanDiff { entries: PlanDiffEntry[]; changedByGroup: Record<GroupId, number> }
 export interface PlanMetrics { perGroup: Record<GroupId, { placed: number; spare: number; overflow: number; lastContentDate: IsoDate | null; officialExam: { code: string; date: IsoDate } | null }> }
 export function sameExceptHistoryStates(a: PlanSnapshot, b: PlanSnapshot): boolean;   // via snapshotKey of a copy with history states normalised, except `skipped` (a skip is a change); Task 2.12's upToDate uses it

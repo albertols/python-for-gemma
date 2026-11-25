@@ -33,6 +33,8 @@ export interface PlanDiffEntry {
   fromState: PlacementState | null;
   toState: PlacementState | null;
   hitByDisruption: boolean;
+  /** The lesson's old slot is not in `slots` at all (the timetable or a week label changed). Implies `hitByDisruption`. */
+  slotGone: boolean;
 }
 export interface PlanDiff {
   entries: PlanDiffEntry[];
@@ -82,9 +84,10 @@ export interface PlanChain {
  * assumed or taught and is now logged as skipped, with the slot it left and
  * the slot it now holds (null when it fits nowhere).
  *
- * `hitByDisruption`: the lesson's old slot is cancelled in `slots`, or is a
- * cover slot the lesson was not already placed on by choice. Those entries
- * come first, then the rest by date, group and lesson.
+ * `hitByDisruption`: the lesson's old slot is cancelled in `slots`, is a
+ * cover slot the lesson was not already placed on by choice, or is not in
+ * `slots` at all (`slotGone`). Those entries come first, then the rest by
+ * date, group and lesson.
  */
 export function diffSnapshots(
   before: PlanSnapshot | null,
@@ -111,6 +114,8 @@ export function diffSnapshots(
       (slot.status === "cover" && !p.viaCover)
     );
   };
+  const gone = (p: Placement | undefined): boolean =>
+    p?.slotKey != null && !slotOf.has(p.slotKey);
   const live = (list: Placement[]) => list.find((p) => !isHistory(p));
   const entries: PlanDiffEntry[] = [];
   for (const { b, a } of byLesson.values()) {
@@ -133,6 +138,7 @@ export function diffSnapshots(
         fromState: was.state,
         toState: "skipped",
         hitByDisruption: false,
+        slotGone: false,
       });
       continue;
     }
@@ -148,6 +154,7 @@ export function diffSnapshots(
         fromState: bLive.state,
         toState: null,
         hitByDisruption: hit(bLive),
+        slotGone: gone(bLive),
       });
       continue;
     }
@@ -162,6 +169,7 @@ export function diffSnapshots(
         fromState: null,
         toState: aLive.state,
         hitByDisruption: false,
+        slotGone: false,
       });
     } else if (prior.slotKey !== aLive.slotKey || prior.state !== aLive.state) {
       entries.push({
@@ -173,6 +181,7 @@ export function diffSnapshots(
         fromState: prior.state,
         toState: aLive.state,
         hitByDisruption: hit(prior),
+        slotGone: gone(prior),
       });
     }
   }

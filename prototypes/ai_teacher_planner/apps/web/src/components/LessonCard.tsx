@@ -1,10 +1,7 @@
 import type { PlacementState, SlotStatus } from "@planner/domain";
 import type { CSSProperties } from "react";
-import {
-  type CardModel,
-  SPARE_EXPLANATION,
-  STATE_LABEL,
-} from "../screens/board/board-plan.ts";
+import { SPARE_EXPLANATION, STATE_LABEL } from "../lib/plan-words.ts";
+import type { CardModel } from "../screens/board/board-plan.ts";
 import { AiBadge } from "./AiBadge.tsx";
 import { Disclosure } from "./ui/disclosure.tsx";
 
@@ -78,11 +75,12 @@ export function LessonCard({
     <>
       {spare ? (
         <span className="block">
-          {card.title === "Spare lesson" ? null : (
+          {/* her own title, or the purpose she gave it, is on the face; the explanation is in the panel */}
+          {card.title !== "Spare lesson" || card.sub ? (
             <span aria-hidden="true" className={`${SMALL} truncate`}>
-              {line}
+              {card.title === "Spare lesson" ? card.sub : line}
             </span>
-          )}
+          ) : null}
           <Disclosure
             label="Spare lesson"
             buttonClassName="!px-1 !py-0 !text-xs"

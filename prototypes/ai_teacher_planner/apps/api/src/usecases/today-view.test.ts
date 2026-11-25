@@ -47,3 +47,19 @@ test("without a plan, today's lessons carry no lesson", async () => {
   expect(view.lessons).toHaveLength(1);
   expect(view.lessons[0]?.lesson).toBeNull();
 });
+
+test("a whole-slot assessment on Today is named, so Today and the board agree", async () => {
+  const { repos } = await seeded("m2-planned");
+  const row = todayView(repos, "2026-11-27").lessons.find(
+    (l) => l.slot.key === "13 1|2026-11-27|6",
+  );
+  expect(row?.lesson).toBeNull();
+  expect(row?.assessment).toEqual({
+    itemId: "a-ch2",
+    title: "20 mark",
+    slotUse: "whole",
+  });
+  // a lesson with no assessment says so
+  const lesson = todayView(repos, "2026-11-20").lessons[0];
+  expect(lesson?.assessment).toBeNull();
+});

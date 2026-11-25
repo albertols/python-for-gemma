@@ -28,8 +28,42 @@ Feature: A plan from positions
     When 13 1's lessons on Monday 23 November 2026 are cancelled
     Then the board draws 13 1's lesson on Monday 23 November as cancelled
     And the board and Today say "The plan is out of date"
+    And the page has no serious accessibility violations
     When I press "See what changes" on the board
-    Then the proposal lists 13 1's lesson from Monday 23 November first
+    Then the proposal lists "13 1, Markets 3 of 4: its lesson was cancelled. Monday 23 November, period 5 → Wednesday 25 November, period 2" first
+    When I close the proposal with Escape
+    Then the focus is back on "See what changes"
+    And the page has no serious accessibility violations
+    When I switch to the light theme and reload
+    Then the page has no serious accessibility violations
+
+  Scenario: Accepting from Today says so and keeps my place
+    Given the course has an accepted plan
+    When 13 1's lessons on Monday 23 November 2026 are cancelled
+    And I accept the new plan from Today
+    Then Today says "Plan accepted." with the focus on it
+    And the page has no serious accessibility violations
+
+  Scenario: Undo, then a new change
+    Given I accepted a reflow
+    When I undo it
+    And I press "See what changes" on the board
+    And I accept the proposal
+    Then the board says "Plan accepted." with the focus on it
+    And undo goes back to the first plan
+
+  Scenario: A lesson whose slot is gone from the timetable is never silent
+    Given the course has an accepted plan
+    When 13 1's Week 2 Monday period 5 is taken out of the timetable
+    Then the out-of-date banner says "1 lesson no longer has a lesson slot."
+    When I press "See what changes" on the board
+    Then the proposal lists "13 1, Markets 3 of 4: its lesson slot no longer exists. Monday 23 November, period 5 → Wednesday 25 November, period 2" first
+    And the page has no serious accessibility violations
+
+  Scenario: The board says so when the plan's status cannot be loaded
+    Given the course has an accepted plan
+    When the plan status cannot be loaded and I open the board
+    Then the board shows "Could not load the plan status."
 
   Scenario: The board and dialog are accessible
     Given the course has an accepted plan

@@ -9,7 +9,11 @@ import {
   weekdayOf,
 } from "@planner/domain";
 import type { Repos } from "../repos/ports.ts";
-import { type PlacementView, placementsIn } from "./placements.ts";
+import {
+  type AssessmentView,
+  type PlacementView,
+  placementsIn,
+} from "./placements.ts";
 import { loadPlanning } from "./planning.ts";
 
 export interface TodayView {
@@ -21,6 +25,7 @@ export interface TodayView {
     start: string;
     end: string;
     lesson: TodayLesson | null;
+    assessment: TodayAssessment | null;
   }[];
   nextTeachingDay: IsoDate | null;
   reminders: Reminder[];
@@ -31,6 +36,13 @@ export interface TodayLesson {
   lessonId: string;
   title: string;
   kind: PlacementView["kind"];
+}
+
+/** The assessment a plan puts in one of today's slots. */
+export interface TodayAssessment {
+  itemId: string;
+  title: string;
+  slotUse: "whole" | "in-lesson";
 }
 
 const REMINDER_HORIZON_DAYS = 14;
@@ -54,6 +66,14 @@ function lessonIn(
   };
 }
 
+function assessmentIn(
+  views: readonly AssessmentView[],
+  slotKey: string,
+): TodayAssessment | null {
+  const a = views.find((v) => v.slotKey === slotKey);
+  return a ? { itemId: a.itemId, title: a.title, slotUse: a.slotUse } : null;
+}
+
 export function todayView(repos: Repos, today: IsoDate): TodayView {
   const { days, slots, groups } = loadPlanning(repos);
   const row = days.find((d) => d.date === today);
@@ -61,13 +81,14 @@ export function todayView(repos: Repos, today: IsoDate): TodayView {
     days.length === 0
       ? "no-calendar"
       : (row?.kind ?? (weekdayOf(today) >= 6 ? "weekend" : "outside-term"));
-  const { placements } = placementsIn(repos, today, today, today);
+  const { placements, assessments } = placementsIn(repos, today, today, today);
   const lessons = slots
     .filter((s) => s.date === today)
     .map((slot) => ({
       slot,
       ...PERIOD_TIMES[slot.period],
       lesson: lessonIn(placements, slot.key),
+      assessment: assessmentIn(assessments, slot.key),
     }));
   const next = slots.find((s) => s.date > today && s.status === "open");
   return {

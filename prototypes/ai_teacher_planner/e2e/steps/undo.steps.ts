@@ -33,6 +33,11 @@ Given("I accepted a reflow", async ({ page, request }) => {
     ) ?? "";
   await dialog.getByRole("button", { name: "Accept" }).click();
   await expect(dialog).toBeHidden();
+  // the result is said, and the keyboard lands on it rather than on the page
+  const accepted = page
+    .getByRole("status")
+    .filter({ hasText: "Plan accepted." });
+  await expect(accepted).toBeFocused();
   // the reflow moved lessons: the board is not as it was
   await expect.poll(() => boardCells(page)).not.toEqual(before);
   expect((await planStatus(request)).head?.label).toBe(reflowLabel);
@@ -56,11 +61,11 @@ Then("the plan is exactly as before", async ({ page, request }) => {
 Then(
   "the reflow is still in the history so I can see what was undone",
   async ({ page }) => {
-    await expect(
-      page.getByRole("status").filter({ hasText: "Undid" }),
-    ).toHaveText(
-      `Undid "${reflowLabel}". It stays in the plan's history; cancelled lessons and what you logged are kept.`,
+    const line = page.getByRole("status").filter({ hasText: "Undid" });
+    await expect(line).toHaveText(
+      `Undid: ${reflowLabel}. It stays in the plan's history; cancelled lessons and what you logged are kept.`,
     );
+    await expect(line).toBeFocused();
     await expect(
       page.getByRole("button", { name: "Undo last change" }),
     ).toHaveCount(0);

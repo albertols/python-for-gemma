@@ -37,6 +37,7 @@ export function ProposalDialog({
   onAccept,
   onCancel,
   busy = false,
+  accepting = false,
   stale = false,
   error = null,
   onRecompute,
@@ -47,6 +48,8 @@ export function ProposalDialog({
   onAccept: () => void;
   onCancel: () => void;
   busy?: boolean;
+  /** The accept is on its way: the dialog stays until the planner answers, so its result is never lost. */
+  accepting?: boolean;
   /** The accept was refused: the plan changed after this proposal was made. */
   stale?: boolean;
   /** Why the proposal could not be made or accepted, other than staleness. */
@@ -69,7 +72,7 @@ export function ProposalDialog({
       onCancel={(e) => {
         // Escape is Cancel: the parent closes the dialog and puts the focus back
         e.preventDefault();
-        onCancel();
+        if (!accepting) onCancel();
       }}
       className="m-auto max-h-[90vh] w-[min(48rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-border bg-card p-6 text-card-foreground backdrop:bg-black/60"
     >
@@ -111,7 +114,7 @@ export function ProposalDialog({
         >
           Accept
         </Button>
-        <Button type="button" onClick={onCancel}>
+        <Button type="button" disabled={accepting} onClick={onCancel}>
           Cancel
         </Button>
       </div>
@@ -134,7 +137,7 @@ export function ProposeButton({
   courseId: string;
   children: ReactNode;
   disabled?: boolean;
-  /** After a stored proposal, with its label. */
+  /** After a stored proposal, with its label. The caller says so and moves the focus (the button may be gone). */
   onAccepted?: ((label: string) => void) | undefined;
 }) {
   const button = useRef<HTMLButtonElement>(null);
@@ -161,8 +164,9 @@ export function ProposeButton({
     // the lessons are named from the scheme as it is now, which may have changed meanwhile
     if (open) void scheme.refetch();
   };
-  const close = () => {
-    returnFocus.current = true;
+  /** After Cancel the focus goes back to the button; after an accept the caller says what happened and takes it. */
+  const close = (back = true) => {
+    returnFocus.current = back || !onAccepted;
     setOpen(false);
     propose.reset();
     accept.reset();
@@ -189,15 +193,16 @@ export function ProposeButton({
           proposal={proposal}
           names={names}
           busy={propose.isPending || accept.isPending}
+          accepting={accept.isPending}
           stale={stale}
           error={failure ? messageOf(failure) : null}
           onRecompute={ask}
-          onCancel={close}
+          onCancel={() => close()}
           onAccept={() => {
             if (!proposal) return;
             accept.mutate(proposal, {
               onSuccess: () => {
-                close();
+                close(false);
                 onAccepted?.(proposal.label);
               },
             });

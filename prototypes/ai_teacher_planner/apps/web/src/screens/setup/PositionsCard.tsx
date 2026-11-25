@@ -10,6 +10,7 @@ import {
   useSavePositions,
   useScheme,
 } from "../../api/queries.ts";
+import { StatusLine, useAnnounce } from "../../components/PlanNotices.tsx";
 import { ProposeButton } from "../../components/ProposalDialog.tsx";
 import { Button } from "../../components/ui/button.tsx";
 
@@ -65,7 +66,7 @@ function CoursePositions({
   const stored = usePositions(course.id, true);
   const save = useSavePositions(course.id);
   const [draft, setDraft] = useState<Record<string, Choice> | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const note = useAnnounce();
 
   if (scheme.error || stored.error)
     return <p className="text-danger">The positions could not be loaded.</p>;
@@ -91,7 +92,6 @@ function CoursePositions({
     .filter((i) => i.kind !== "assessment")
     .sort((a, b) => a.order - b.order);
   const change = (groupId: string, next: Partial<Choice>) => {
-    setNote(null);
     save.reset();
     const base = choices[groupId] ?? { next: FINISHED, done: [] };
     setDraft({ ...choices, [groupId]: { ...base, ...next } });
@@ -117,7 +117,8 @@ function CoursePositions({
     save.mutate(positions, {
       onSuccess: () => {
         setDraft(null);
-        setNote("Positions saved.");
+        // the Save button stays where it is, so the focus stays on it
+        note.say("Positions saved.", { focus: false });
       },
     });
   };
@@ -216,12 +217,12 @@ function CoursePositions({
           courseId={course.id}
           disabled={!known || dirty}
           onAccepted={(label) =>
-            setNote(`Accepted "${label}". The board shows the plan.`)
+            note.say(`Accepted "${label}". The board shows the plan.`)
           }
         >
           Ask for a plan
         </ProposeButton>
-        {note ? <p role="status">{note}</p> : null}
+        <StatusLine announce={note} />
       </div>
       {!known || dirty ? (
         <p className="text-sm text-muted-foreground">

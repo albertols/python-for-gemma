@@ -1,5 +1,4 @@
 import type {
-  FlexEdit,
   GroupId,
   IsoDate,
   Lesson,
@@ -14,6 +13,7 @@ import type {
   DeclaredView,
   PlacementView,
 } from "../../api/queries.ts";
+import { PURPOSE_LABEL, STATE_LABEL } from "../../lib/plan-words.ts";
 
 /** One card on the board: the lesson (or merged pair) in a slot, or an assessment that fills it. */
 export interface CardModel {
@@ -33,28 +33,6 @@ export interface CardModel {
   assessment: { title: string; slotUse: "whole" | "in-lesson" } | null;
   provenance: Provenance;
 }
-
-/** The words for each state, so colour is never the only difference. */
-export const STATE_LABEL: Record<PlacementState, string> = {
-  planned: "Planned",
-  assumed: "Assumed taught",
-  taught: "Taught",
-  cover: "Cover",
-  homework: "Set as homework",
-  skipped: "Skipped",
-  declared: "Declared",
-};
-
-/** The index's explanation of a spare lesson, word for word. */
-export const SPARE_EXPLANATION =
-  "A lesson this group has before the next checkpoint that the other groups do not. Use it for exam practice, support activities or independent study.";
-
-export const PURPOSE_LABEL: Record<NonNullable<FlexEdit["purpose"]>, string> = {
-  "exam-practice": "Exam practice",
-  support: "Support activities",
-  "independent-study": "Independent study",
-  revision: "Revision and exam practice",
-};
 
 /** "2 of 4", "2 and 3 of 3", or "4 of 4 and 1 of 3" when the pair spans two items. */
 function subOf(lessons: readonly PlacementView[]): string {

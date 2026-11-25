@@ -104,6 +104,24 @@ describe("the diff", () => {
     );
   });
 
+  test("a lesson whose slot no longer exists is hit, marked as gone, and listed first", () => {
+    // a correction made 18 Nov a day without lessons: 13 1's slot that day is not there at all
+    const gone = "13 1|2026-11-18|2";
+    const w = { ...world, slots: world.slots.filter((s) => s.key !== gone) };
+    const { entries } = propose2(w).diff;
+    expect(entries[0]).toMatchObject({
+      groupId: "13 1",
+      lessonId: "c2#2",
+      from: gone,
+      hitByDisruption: true,
+      slotGone: true,
+    });
+    expect(entries.filter((e) => e.slotGone)).toHaveLength(1);
+    // a cancelled slot is still there: hit, but not gone
+    const cancelled = propose2(cancel(world, gone)).diff.entries[0];
+    expect(cancelled).toMatchObject({ hitByDisruption: true, slotGone: false });
+  });
+
   test("every hit lesson is listed before every other change, whatever the dates", () => {
     // 13 3 loses a slot on 24 Nov and 13 1 one on 7 Dec. Lessons that only shift in 13 3 and
     // 13 5 in between are dated before 13 1's hit lesson, but still come after it.
