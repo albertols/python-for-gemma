@@ -474,6 +474,65 @@ test("the reset takes a state and the default stays m1b", async () => {
   expect(unknown.status).toBe(422);
 });
 
+const tick = (app: App, unitId: string, checked = true) =>
+  send(app, "PUT", `/api/packs/${COURSE}/draft/checked`, { unitId, checked });
+const fixedDraft = () => ({ ...syntheticPack(), courseId: COURSE });
+
+test("a direct lock of a mapped draft whose units are not checked is refused with 409 and the unit codes", async () => {
+  const { app } = await planner("m2-draft-pack");
+  await send(app, "PUT", `/api/packs/${COURSE}/draft`, fixedDraft());
+  const refused = await send(app, "POST", `/api/packs/${COURSE}/lock`);
+  expect(refused.status).toBe(409);
+  expect(refused.body.error.code).toBe("pack-unchecked");
+  expect(refused.body.error.message).toBe("Units not checked yet: U1.");
+  expect((await get(app, `/api/packs/${COURSE}`)).body.locked).toBeNull();
+  // out-of-scope units (U2) are not asked for; ticking U1 is enough
+  expect((await tick(app, "u1")).status).toBe(200);
+  expect((await send(app, "POST", `/api/packs/${COURSE}/lock`)).status).toBe(
+    200,
+  );
+});
+
+test("an unlinked point is still a 422, even when every unit is checked", async () => {
+  const { app } = await planner("m2-draft-pack");
+  await tick(app, "u1");
+  const refused = await send(app, "POST", `/api/packs/${COURSE}/lock`);
+  expect(refused.status).toBe(422);
+  expect(refused.body.error.code).toBe("pack-not-ready");
+});
+
+test("ticking a unit is stored beside the draft and comes back; unticking removes it", async () => {
+  const { app } = await planner("m2-draft-pack");
+  expect((await tick(app, "u1")).body.checkedUnits).toEqual(["u1"]);
+  const read = (await get(app, `/api/packs/${COURSE}`)).body.review;
+  expect(read.checkedUnits).toEqual(["u1"]);
+  // the notes written beside the draft are kept
+  expect(read.linkReasons).toHaveLength(1);
+  expect((await tick(app, "u1")).body.checkedUnits).toEqual(["u1"]);
+  expect((await tick(app, "u1", false)).body.checkedUnits).toEqual([]);
+});
+
+test("a check for a unit the pack does not have, or for a locked pack, is refused", async () => {
+  const { app } = await planner("m2-draft-pack");
+  const unknown = await tick(app, "nope");
+  expect(unknown.status).toBe(422);
+  expect(unknown.body.error.message).toBe("This pack has no unit nope.");
+  const locked = await planner("m2-no-positions");
+  const refused = await tick(locked.app, "u1");
+  expect(refused.status).toBe(409);
+  expect(refused.body.error.code).toBe("pack-locked");
+});
+
+test("a role that may not edit the scheme of work cannot tick a unit", async () => {
+  const app = await buildTestApp({}, undefined, undefined, { role: "student" });
+  const res = await app.request(`/api/packs/${COURSE}/draft/checked`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ unitId: "u1", checked: true }),
+  });
+  expect(res.status).toBe(403);
+});
+
 test("a draft pack comes with the AI's reasons and doubts, and a locked-only course with none", async () => {
   const draft = await planner("m2-draft-pack");
   const { review } = (await get(draft.app, `/api/packs/${COURSE}`)).body;
@@ -502,6 +561,7 @@ test("the pack hash is async and the lock route awaits it", async () => {
   expect(
     (await send(app, "PUT", `/api/packs/${COURSE}/draft`, fixed)).status,
   ).toBe(200);
+  await tick(app, "u1");
   const locked = await send(app, "POST", `/api/packs/${COURSE}/lock`);
   expect(locked.status).toBe(200);
   expect(locked.body.hash).toBe(await packHash(fixed));

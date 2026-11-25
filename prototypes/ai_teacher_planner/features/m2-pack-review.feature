@@ -8,6 +8,16 @@ Feature: Reviewing a curriculum pack
     And I lock the pack
     Then the pack is shown as locked and cannot be edited
 
+  Scenario: A unit she checked is still checked after a reload
+    Given a draft pack with one spec point linked to no chapter
+    When I tick the unit "Markets" as checked
+    And I reload the page
+    Then the unit "Markets" is still ticked as checked
+    When I link that point to a chapter and mark every unit as checked
+    And I reload the page
+    And I lock the pack
+    Then the pack is shown as locked and cannot be edited
+
   Scenario: Every point shows its page
     Given a draft pack with one spec point linked to no chapter
     Then each spec point shows a page reference

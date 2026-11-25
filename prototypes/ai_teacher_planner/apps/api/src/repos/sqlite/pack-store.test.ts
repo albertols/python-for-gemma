@@ -92,6 +92,7 @@ test("the notes saved beside a draft are read back", () => {
       startedAt: "2026-11-24T09:00:00.000Z",
       sources: [],
     },
+    checkedUnits: [],
   });
   fs.writeFileSync(
     path.join(dir, "ial-business-u4.draft-review.json"),
@@ -100,4 +101,30 @@ test("the notes saved beside a draft are read back", () => {
   expect(() => packs.draftReview("ial-business-u4")).toThrow(
     "The pack file could not be read: ial-business-u4.draft-review.json is not JSON.",
   );
+});
+
+test("checked units are kept in the notes file, which is made if there is none, and other notes are kept", () => {
+  const { dir, packs } = setup();
+  packs.saveCheckedUnits("ial-business-u4", ["u1"]);
+  expect(packs.draftReview("ial-business-u4")).toEqual({
+    linkReasons: [],
+    unsure: [],
+    meta: null,
+    checkedUnits: ["u1"],
+  });
+  const notes = {
+    linkReasons: [
+      { chapterNumber: "1", specPointId: "sp1", reason: "Names the topic." },
+    ],
+    unsure: [],
+    meta: null,
+    checkedUnits: [],
+  };
+  packs.saveDraftReview("ial-business-u4", notes);
+  packs.saveCheckedUnits("ial-business-u4", ["u2", "u1"]);
+  expect(packs.draftReview("ial-business-u4")).toEqual({
+    ...notes,
+    checkedUnits: ["u2", "u1"],
+  });
+  expect(fs.readdirSync(dir)).toEqual(["ial-business-u4.draft-review.json"]);
 });

@@ -2,38 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import type { CourseId, CurriculumPack } from "@planner/domain";
 import { curriculumPackSchema } from "@planner/importers";
-import { z } from "zod";
+import type { z } from "zod";
 import type { Database } from "../../db/connection.ts";
 import { ApiError } from "../../errors.ts";
+import { draftNotesSchema } from "../draft-notes.ts";
 import type { PackDraftNotes, PackStore } from "../ports.ts";
-
-/** The part of `<id>.draft-review.json` that the screen uses; other fields (issues, durationMs) are left out. */
-const draftNotesSchema = z.object({
-  linkReasons: z.array(
-    z.object({
-      chapterNumber: z.string(),
-      specPointId: z.string(),
-      reason: z.string(),
-    }),
-  ),
-  unsure: z.array(z.object({ about: z.string(), note: z.string() })),
-  meta: z
-    .object({
-      provider: z.string(),
-      model: z.string(),
-      skillId: z.string(),
-      startedAt: z.string(),
-      sources: z.array(
-        z.object({
-          url: z.string(),
-          title: z.string().nullable(),
-          opened: z.boolean(),
-        }),
-      ),
-    })
-    .nullable()
-    .default(null),
-}) satisfies z.ZodType<PackDraftNotes, unknown>;
 
 /** Course ids are slugs; anything else could name a file outside the folder. */
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
@@ -54,8 +27,11 @@ export function createPackStore(db: Database, dir: string): PackStore {
       throw new Error(`"${courseId}" is not a course id`);
     return path.join(dir, `${courseId}${draft ? ".draft" : ""}.json`);
   };
-  /** A file that is not a pack is reported in a sentence she can read (422), never guessed at. */
-  const read = (p: string): CurriculumPack | null => {
+  /**
+   * Reads one JSON file and checks it with `schema`. A file that is not JSON, or does not
+   * fit, is reported in a sentence she can read (422), never guessed at. Null when absent.
+   */
+  const readFile = <T>(p: string, schema: z.ZodType<T, unknown>): T | null => {
     if (!fs.existsSync(p)) return null;
     const name = path.basename(p);
     const unreadable = (why: string) =>
@@ -70,7 +46,7 @@ export function createPackStore(db: Database, dir: string): PackStore {
     } catch {
       throw unreadable(" is not JSON");
     }
-    const parsed = curriculumPackSchema.safeParse(json);
+    const parsed = schema.safeParse(json);
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
@@ -78,6 +54,7 @@ export function createPackStore(db: Database, dir: string): PackStore {
     }
     return parsed.data;
   };
+  const read = (p: string) => readFile(p, curriculumPackSchema);
   const write = (p: string, pack: CurriculumPack | PackDraftNotes) => {
     fs.mkdirSync(dir, { recursive: true });
     // written beside it, then renamed, so a crash never leaves half a pack
@@ -86,32 +63,18 @@ export function createPackStore(db: Database, dir: string): PackStore {
   };
   return {
     draft: (courseId) => read(file(courseId, true)),
-    draftReview(courseId) {
-      const p = reviewFile(courseId);
-      if (!fs.existsSync(p)) return null;
-      const name = path.basename(p);
-      const unreadable = (why: string) =>
-        new ApiError(
-          422,
-          "pack-unreadable",
-          `The pack file could not be read: ${name}${why}.`,
-        );
-      let json: unknown;
-      try {
-        json = JSON.parse(fs.readFileSync(p, "utf8"));
-      } catch {
-        throw unreadable(" is not JSON");
-      }
-      const parsed = draftNotesSchema.safeParse(json);
-      if (!parsed.success) {
-        const issue = parsed.error.issues[0];
-        const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
-        throw unreadable(`, ${where}${issue?.message ?? "not review notes"}`);
-      }
-      return parsed.data;
-    },
+    draftReview: (courseId) => readFile(reviewFile(courseId), draftNotesSchema),
     saveDraftReview(courseId, notes) {
       write(reviewFile(courseId), notes);
+    },
+    saveCheckedUnits(courseId, unitIds) {
+      const notes = readFile(reviewFile(courseId), draftNotesSchema) ?? {
+        linkReasons: [],
+        unsure: [],
+        meta: null,
+        checkedUnits: [],
+      };
+      write(reviewFile(courseId), { ...notes, checkedUnits: unitIds });
     },
     locked(courseId) {
       const row = db

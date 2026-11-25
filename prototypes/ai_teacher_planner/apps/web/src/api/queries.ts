@@ -614,3 +614,40 @@ export function useLockPack(courseId: string) {
     },
   });
 }
+
+const NO_NOTES: PackReviewNotes = {
+  linkReasons: [],
+  unsure: [],
+  meta: null,
+  checkedUnits: [],
+};
+
+/** Ticks or unticks a unit. The box follows at once; if the planner refuses, the stored list comes back. */
+export function useSetUnitChecked(courseId: string) {
+  const qc = useQueryClient();
+  const key = ["packs", courseId];
+  return useMutation({
+    mutationFn: ({ unitId, checked }: { unitId: string; checked: boolean }) =>
+      call<{ checkedUnits: string[] }>(() =>
+        api.api.packs[":courseId"].draft.checked.$put({
+          param: { courseId },
+          json: { unitId, checked },
+        }),
+      ),
+    onMutate: ({ unitId, checked }) => {
+      qc.setQueryData<PackData>(key, (old) => {
+        if (!old) return old;
+        const notes = old.review ?? NO_NOTES;
+        const others = notes.checkedUnits.filter((id) => id !== unitId);
+        return {
+          ...old,
+          review: {
+            ...notes,
+            checkedUnits: checked ? [...others, unitId] : others,
+          },
+        };
+      });
+    },
+    onError: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+}

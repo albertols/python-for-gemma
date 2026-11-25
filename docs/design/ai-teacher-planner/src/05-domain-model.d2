@@ -75,7 +75,7 @@ decisions.item -> derived.lesson: "one per lesson" {class: flow}
 decisions.override -> derived.lesson: "changes the count\nfor one group" {class: flow}
 decisions.item -> pack.speclink: {class: flow}
 pack.speclink -> pack.chapter: {class: flow}
-pack.chapter -> pack.spec: "unmapped in-scope points\nblock the lock" {class: flow}
+pack.chapter -> pack.spec: "unmapped in-scope points and\nunchecked units block the lock" {class: flow}
 decisions.assessment -> decisions.item: "assesses" {class: flow}
 decisions.pin -> derived.placement: "fixes" {class: flow}
 decisions.position -> derived.lesson: "declares what is behind her" {class: flow}

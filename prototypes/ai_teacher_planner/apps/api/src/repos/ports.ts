@@ -305,6 +305,8 @@ export interface PackDraftNotes {
     startedAt: string;
     sources: { url: string; title: string | null; opened: boolean }[];
   } | null;
+  /** Ids of the units she has marked as checked. Locking needs every in-scope unit here. */
+  checkedUnits: string[];
 }
 
 export interface PackStore {
@@ -313,6 +315,8 @@ export interface PackStore {
   draftReview(courseId: CourseId): PackDraftNotes | null;
   /** Writes the notes beside the draft (the browser-test seed; `pnpm pack:draft` writes its own file). */
   saveDraftReview(courseId: CourseId, notes: PackDraftNotes): void;
+  /** Replaces the checked unit ids in the notes file, making the file (with empty notes) if there is none. */
+  saveCheckedUnits(courseId: CourseId, unitIds: string[]): void;
   /** The locked pack, or null when there is none or the `hash` field in its file differs from the stored hash. */
   locked(courseId: CourseId): CurriculumPack | null;
   saveDraft(pack: CurriculumPack): void;

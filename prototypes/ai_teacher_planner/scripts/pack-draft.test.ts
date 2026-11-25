@@ -48,6 +48,12 @@ const output = {
 test("the draft is saved as data/packs/<course>.draft.json, valid and unlocked, with its review notes beside it", async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pack-draft-"));
   made.push(dataDir);
+  // a draft she had ticked: a new draft replaces the notes file, so the ticks go with it
+  fs.mkdirSync(path.join(dataDir, "packs"));
+  fs.writeFileSync(
+    path.join(dataDir, "packs", "syn-econ.draft-review.json"),
+    JSON.stringify({ linkReasons: [], unsure: [], checkedUnits: ["u1"] }),
+  );
   const done = await saveDraftPack({
     dataDir,
     gateway: await syntheticGateway(),
@@ -67,6 +73,7 @@ test("the draft is saved as data/packs/<course>.draft.json, valid and unlocked, 
   expect(pack.lockedAt).toBeNull();
   expect(pack.chapters[0].specPointIds).toEqual(["sp1"]);
   const review = JSON.parse(fs.readFileSync(done.reviewFile, "utf8"));
+  expect(review.checkedUnits).toBeUndefined();
   expect(review.linkReasons).toEqual([
     {
       chapterNumber: "1",

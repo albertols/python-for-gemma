@@ -1,7 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { curriculumPackSchema } from "@planner/importers";
 import type { PackStore, Repos } from "../repos/ports.ts";
-import { lockDraft, saveDraft } from "../usecases/packs.ts";
+import { lockDraft, saveDraft, setUnitChecked } from "../usecases/packs.ts";
 import { courseOrThrow } from "../usecases/plan-inputs.ts";
 import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
@@ -45,6 +45,27 @@ const putDraft = createRoute({
     422: errorResponse("Not a pack, or a pack for another course"),
   },
 });
+const putChecked = createRoute({
+  method: "put",
+  path: "/api/packs/{courseId}/draft/checked",
+  ...guard("scheme-of-work", "edit"),
+  request: {
+    params,
+    body: {
+      content: json(z.object({ unitId: z.string(), checked: z.boolean() })),
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "The ids of the units now marked as checked",
+      content: json(z.object({ checkedUnits: z.array(z.string()) })),
+    },
+    404: errorResponse("There is no such course, or no draft"),
+    409: errorResponse("The pack is locked"),
+    422: errorResponse("The pack has no such unit"),
+  },
+});
 const lock = createRoute({
   method: "post",
   path: "/api/packs/{courseId}/lock",
@@ -56,6 +77,7 @@ const lock = createRoute({
       content: json(curriculumPack),
     },
     404: errorResponse("There is no such course, or no draft"),
+    409: errorResponse("In-scope units are not marked as checked yet"),
     422: errorResponse(
       "Broken references or spec points linked to no chapter, one sentence each",
     ),
@@ -94,6 +116,16 @@ export function packRoutes(deps: {
         200,
       ),
     )
+    .openapi(putChecked, (c) => {
+      const { courseId } = c.req.valid("param");
+      const { unitId, checked } = c.req.valid("json");
+      return c.json(
+        {
+          checkedUnits: setUnitChecked(repos, packs, courseId, unitId, checked),
+        },
+        200,
+      );
+    })
     .openapi(lock, async (c) =>
       c.json(
         await lockDraft(repos, packs, c.req.valid("param").courseId, now()),

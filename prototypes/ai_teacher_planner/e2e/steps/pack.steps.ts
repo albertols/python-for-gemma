@@ -53,7 +53,9 @@ When(
     ).toContainText("Invented chapter 5");
     for (const unit of await units(page).all()) {
       const box = unit.getByRole("checkbox", { name: "Checked" });
-      if ((await box.count()) > 0) await box.check();
+      if ((await box.count()) > 0 && !(await box.isChecked()))
+        await box.click();
+      if ((await box.count()) > 0) await expect(box).toBeChecked();
     }
   },
 );
@@ -183,3 +185,22 @@ Then("I can open and close a unit with the keyboard", async ({ page }) => {
   await page.keyboard.press("ArrowLeft");
   await expect(unit).toBeFocused();
 });
+
+When("I tick the unit {string} as checked", async ({ page }, title: string) => {
+  const unit = units(page).filter({ hasText: title }).first();
+  await unit.getByRole("checkbox", { name: "Checked" }).click();
+  await expect(unit.getByRole("checkbox", { name: "Checked" })).toBeChecked();
+});
+
+When("I reload the page", async ({ page }) => {
+  await page.reload();
+  await expect(points(page)).toHaveCount(8);
+});
+
+Then(
+  "the unit {string} is still ticked as checked",
+  async ({ page }, title: string) => {
+    const unit = units(page).filter({ hasText: title }).first();
+    await expect(unit.getByRole("checkbox", { name: "Checked" })).toBeChecked();
+  },
+);

@@ -1,5 +1,5 @@
 import type { CurriculumPack, Provenance } from "@planner/domain";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { ApiError } from "../../api/client.ts";
 import {
@@ -9,6 +9,7 @@ import {
   useLockPack,
   usePack,
   useSaveDraftPack,
+  useSetUnitChecked,
 } from "../../api/queries.ts";
 import { AiBadge } from "../../components/AiBadge.tsx";
 import { ProvenancePopover } from "../../components/ProvenancePopover.tsx";
@@ -73,8 +74,9 @@ function Doubts({ review }: { review: PackReviewNotes }) {
     >
       <h2 className="text-lg font-semibold">Where the AI was unsure</h2>
       <ul className="mt-2 space-y-2">
-        {review.unsure.map((u) => (
-          <li key={`${u.about}|${u.note}`}>
+        {review.unsure.map((u, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the same note can be listed twice
+          <li key={`${i}-${u.about}`}>
             <AiBadge review="suggested" /> <strong>{u.about}:</strong> {u.note}
           </li>
         ))}
@@ -96,9 +98,10 @@ function Draft({
 }) {
   const save = useSaveDraftPack(courseId);
   const lock = useLockPack(courseId);
-  const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
+  const setChecked = useSetUnitChecked(courseId);
+  const checked = new Set(review?.checkedUnits ?? []);
   const blockers = lockBlockers(draft, checked);
-  const failure = save.error ?? lock.error;
+  const failure = save.error ?? lock.error ?? setChecked.error;
   return (
     <div className="mt-6 space-y-6">
       <AiNotes review={review} timeZone={timeZone} />
@@ -112,8 +115,9 @@ function Draft({
           <p className="mt-2">Nothing is left. You can lock the pack.</p>
         ) : (
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            {blockers.map((b) => (
-              <li key={b}>{b}</li>
+            {blockers.map((b, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: the same sentence can be listed twice
+              <li key={`${i}-${b}`}>{b}</li>
             ))}
           </ul>
         )}
@@ -134,8 +138,9 @@ function Draft({
         >
           {failure instanceof ApiError && failure.issues.length > 0 ? (
             <ul className="mt-2 list-disc pl-5">
-              {failure.issues.map((i) => (
-                <li key={i}>{i}</li>
+              {failure.issues.map((issue, n) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: the same sentence can be listed twice
+                <li key={`${n}-${issue}`}>{issue}</li>
               ))}
             </ul>
           ) : null}
@@ -147,14 +152,7 @@ function Draft({
         readOnly={false}
         busy={save.isPending || lock.isPending}
         checked={checked}
-        onCheck={(unitId, on) =>
-          setChecked((was) => {
-            const next = new Set(was);
-            if (on) next.add(unitId);
-            else next.delete(unitId);
-            return next;
-          })
-        }
+        onCheck={(unitId, on) => setChecked.mutate({ unitId, checked: on })}
         onChange={(pack) => {
           lock.reset();
           save.mutate(pack);

@@ -22,6 +22,7 @@ const notes = (reason: string): PackReviewNotes => ({
   linkReasons: [{ chapterNumber: "1", specPointId: "sp1", reason }],
   unsure: [],
   meta: null,
+  checkedUnits: [],
 });
 
 test("a reason the model wrote is shown as text, never as HTML", () => {

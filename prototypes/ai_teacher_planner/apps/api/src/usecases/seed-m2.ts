@@ -65,6 +65,7 @@ export async function seedM2(
         startedAt: "2026-11-24T09:00:00.000Z",
         sources: [],
       },
+      checkedUnits: [],
     });
     return;
   }
