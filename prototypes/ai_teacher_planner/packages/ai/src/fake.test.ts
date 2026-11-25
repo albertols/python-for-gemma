@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { z } from "zod";
+import { z } from "zod";
 import { FakeAiProvider } from "./fake.ts";
 import type { AiProgress, AiTask } from "./port.ts";
 import { suggestLessonCounts } from "./skills/planner-suggest-lesson-counts.ts";
@@ -125,6 +125,39 @@ describe("FakeAiProvider", () => {
     });
     ac2.abort();
     await expect(pending).rejects.toMatchObject({ reason: "cancelled" });
+  });
+
+  test("the fake runs the same input and path checks as the real prompt builder", async () => {
+    const fake = new FakeAiProvider({ "planner-suggest-lesson-counts": good });
+    await expect(
+      fake.run({ ...task, input: { courseTitle: 1 } }, opts().opts),
+    ).rejects.toMatchObject({ reason: "failed" });
+    await expect(
+      fake.run({ ...task, text: "see ../resources/a.pdf" }, opts().opts),
+    ).rejects.toMatchObject({ reason: "failed" });
+  });
+
+  test("a task whose schema or tools are not the registered skill's is refused", async () => {
+    const fake = new FakeAiProvider({ "planner-suggest-lesson-counts": good });
+    await expect(
+      fake.run({ ...task, schema: z.unknown() }, opts().opts),
+    ).rejects.toMatchObject({ reason: "failed", message: /schema/ });
+    await expect(
+      fake.run({ ...task, tools: ["WebFetch"] }, opts().opts),
+    ).rejects.toMatchObject({ reason: "failed", message: /tools/ });
+  });
+
+  test("a fixture function that throws becomes a failed AiError with a failed event", async () => {
+    const fake = new FakeAiProvider({
+      "planner-suggest-lesson-counts": () => {
+        throw new Error("boom");
+      },
+    });
+    const o = opts();
+    await expect(fake.run(task, o.opts)).rejects.toMatchObject({
+      reason: "failed",
+    });
+    expect(o.progress.at(-1)).toMatchObject({ kind: "failed" });
   });
 
   test("it reports itself available", async () => {

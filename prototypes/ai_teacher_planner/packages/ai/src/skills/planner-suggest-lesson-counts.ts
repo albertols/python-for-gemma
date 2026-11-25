@@ -8,17 +8,19 @@ const input = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
-      lessons: z.number().int().nullable(),
+      lessons: z.number().int().min(0).nullable(),
     }),
   ),
-  unitTotals: z.array(z.object({ unitId: z.string(), lessons: z.number() })),
+  unitTotals: z.array(
+    z.object({ unitId: z.string(), lessons: z.number().int().min(0) }),
+  ),
 });
 
 const output = z.object({
   suggestions: z.array(
     z.object({
       itemId: z.string(),
-      lessons: z.number().int(),
+      lessons: z.number().int().min(0),
       reason: z.string(),
       tricky: z.boolean(),
     }),
