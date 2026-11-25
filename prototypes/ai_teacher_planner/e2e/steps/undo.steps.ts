@@ -4,6 +4,7 @@ import { Given, Then, When } from "../support/fixtures.ts";
 import {
   boardCells,
   cancelDay,
+  PINNED_TODAY,
   planStatus,
   proposalDialog,
   resetTo,
@@ -26,11 +27,14 @@ Given("I accepted a reflow", async ({ page, request }) => {
   await page.getByRole("button", { name: "See what changes" }).click();
   const dialog = proposalDialog(page);
   await expect(dialog).toBeVisible();
-  reflowLabel =
-    (await dialog.getByRole("heading", { level: 2 }).textContent())?.replace(
-      /^Proposal: /,
-      "",
-    ) ?? "";
+  // The dialog opens before the proposal arrives and says "Proposal: a new
+  // plan" until then, so wait for the proposal's own label rather than read
+  // the heading once. A re-plan of an accepted plan is named after today,
+  // the pinned 20 November (propose-plan.ts), never the machine's clock.
+  reflowLabel = `Re-plan on ${PINNED_TODAY}`;
+  await expect(dialog.getByRole("heading", { level: 2 })).toHaveText(
+    `Proposal: ${reflowLabel}`,
+  );
   await dialog.getByRole("button", { name: "Accept" }).click();
   await expect(dialog).toBeHidden();
   // the result is said, and the keyboard lands on it rather than on the page

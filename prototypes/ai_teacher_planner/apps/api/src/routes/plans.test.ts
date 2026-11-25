@@ -640,6 +640,27 @@ test("the fit rule is one function: GET /api/scheme totals equal fitFor on GET /
   expect((await same()).every((f) => f.over > 0)).toBe(true);
 });
 
+test("a re-plan is named after the pinned today, never the machine's clock or the time of day, and is stored under that name", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-plans-"));
+  dirs.push(dataDir);
+  // the clock says late on 24 November; today is pinned to 20 November
+  const app = await buildTestApp(
+    { fixedToday: "2026-11-20", dataDir, testRoutes: true },
+    undefined,
+    "2026-11-24T23:30:00Z",
+  );
+  const reset = await app.request("/api/test/reset", {
+    method: "POST",
+    headers: { "x-planner-test": "1", "content-type": "application/json" },
+    body: JSON.stringify({ state: "m2-planned" }),
+  });
+  expect(reset.status).toBe(200);
+  const p = await propose(app);
+  expect(p.label).toBe("Re-plan on 2026-11-20");
+  expect((await accept(app, p)).status).toBe(200);
+  expect((await status(app)).head.label).toBe("Re-plan on 2026-11-20");
+});
+
 test("a proposal on a course with no positions says positions are needed", async () => {
   // 422, not an empty plan
   const { app } = await planner("m2-no-positions");

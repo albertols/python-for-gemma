@@ -8,6 +8,8 @@ import {
 export const TEST = { "x-planner-test": "1" };
 export const COURSE = "ial-business-u4";
 export const YEAR_13 = ["13 1", "13 3", "13 5"];
+/** Today for the browser tests: PLANNER_FIXED_TODAY in support/server.ts. */
+export const PINNED_TODAY = "2026-11-20";
 /** The first plan "m2-planned" accepts. */
 export const SEED_HEAD = "r:seed-first-plan";
 
