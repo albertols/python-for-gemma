@@ -25,7 +25,12 @@ const SKILL = "planner-import-timetable" as const;
  */
 export function suggestGridFromPicture(
   ctx: JobContext,
-  args: { versionId: string; picturePath: string },
+  args: {
+    versionId: string;
+    picturePath: string;
+    /** Deletes the picture: the item keeps the grid, not the picture. */
+    onEnd: () => void;
+  },
 ): AiRun {
   return startJob(ctx, {
     skillId: SKILL,
@@ -35,6 +40,7 @@ export function suggestGridFromPicture(
     },
     text: null,
     attachments: [args.picturePath],
+    onEnd: args.onEnd,
   });
 }
 
@@ -57,6 +63,9 @@ const gridData = z.object({
   unsure: z.array(z.object({ ...cell, note: z.string() })),
 });
 
+const cellId = (c: { week: string; weekday: number; period: number }) =>
+  `${c.week}|${c.weekday}|${c.period}`;
+
 const versionOf = (input: unknown) =>
   (input as { versionId?: unknown } | null)?.versionId;
 
@@ -71,15 +80,19 @@ export const timetableGridHandler: ItemHandler = {
     const versionId = versionOf(input);
     if (typeof versionId !== "string") throw new Error("no version");
     const grid = output as ImportTimetableOutput;
-    if (grid.entries.length === 0) return [];
+    // a cell the model could not read is empty, whatever else it said about that cell
+    const unreadable = new Set(grid.unsure.map(cellId));
+    const entries = grid.entries.filter((e) => !unreadable.has(cellId(e)));
+    const duties = grid.duties.filter((d) => !unreadable.has(cellId(d)));
+    if (entries.length === 0) return [];
     return [
       {
         target: versionId,
         courseId: null,
         data: {
           versionId,
-          entries: grid.entries,
-          duties: grid.duties,
+          entries,
+          duties,
           unsure: grid.unsure,
         },
       },
@@ -90,7 +103,7 @@ export const timetableGridHandler: ItemHandler = {
       ? "No lessons could be read from the picture, so there is nothing to compare."
       : null;
   },
-  async apply(item, ctx) {
+  async apply(item, ctx, original) {
     const grid = gridData.safeParse(item.data);
     if (!grid.success)
       throw new ApiError(
@@ -98,10 +111,17 @@ export const timetableGridHandler: ItemHandler = {
         "invalid-grid",
         "This suggested timetable is not in the right shape, so it was not applied.",
       );
+    // the version the suggestion was made for, never one an edit names
+    if (grid.data.versionId !== original.target)
+      throw new ApiError(
+        422,
+        "wrong-version",
+        "This suggestion is for another timetable version, so it was not applied.",
+      );
     const { repos } = ctx;
     const current = repos.timetable
       .versions()
-      .find((v) => v.id === grid.data.versionId);
+      .find((v) => v.id === original.target);
     if (!current)
       throw new ApiError(
         404,

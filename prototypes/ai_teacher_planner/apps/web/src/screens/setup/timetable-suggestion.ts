@@ -42,3 +42,18 @@ export function cellName(c: {
 }): string {
   return `${c.week === "W1" ? "Week 1" : "Week 2"}, ${DAY_NAMES[c.weekday - 1] ?? `day ${c.weekday}`}, period ${c.period}`;
 }
+
+/** The most a picture may weigh: the Messages API image limit, the same as the server's check. */
+export const MAX_PICTURE_BYTES = 5 * 1024 * 1024;
+
+/** Why this file cannot be sent, as a sentence, or null when it can. The server checks again. */
+export function pictureProblem(file: {
+  type: string;
+  size: number;
+}): string | null {
+  if (file.type !== "image/png" && file.type !== "image/jpeg")
+    return "Choose a PNG or JPG picture.";
+  if (file.size > MAX_PICTURE_BYTES)
+    return "That picture is over 5 MB. Choose a smaller one, or a screenshot instead of a photo.";
+  return null;
+}

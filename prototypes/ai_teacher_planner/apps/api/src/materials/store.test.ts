@@ -770,7 +770,7 @@ function crc32(data: Uint8Array): number {
 test("the picture store keeps only PNG and JPEG, by their first bytes, and nothing else", async () => {
   const store = createPictureStore(dir);
   expect(store.maxBytes).toBe(MAX_PICTURE_BYTES);
-  expect(MAX_PICTURE_BYTES).toBe(10 * 1024 * 1024);
+  expect(MAX_PICTURE_BYTES).toBe(5 * 1024 * 1024);
   const saved = await store.save({
     name: "Timetable.PNG",
     stream: from(png()),
@@ -794,7 +794,7 @@ test("the picture store keeps only PNG and JPEG, by their first bytes, and nothi
   expect(files().filter((f) => f.endsWith(".part"))).toEqual([]);
 });
 
-test("a picture over 10 MB is stopped while it streams", async () => {
+test("a picture over 5 MB is stopped while it streams", async () => {
   const store = createPictureStore(dir);
   const chunk = Buffer.alloc(64 * 1024);
   chunk.set(png());
@@ -807,7 +807,20 @@ test("a picture over 10 MB is stopped while it streams", async () => {
   });
   const err = await refusal(store.save({ name: "huge.png", stream: endless }));
   expect(err.status).toBe(413);
-  expect(err.message).toMatch(/10 MB/);
+  expect(err.message).toMatch(/5 MB/);
   expect(produced).toBeLessThan(MAX_PICTURE_BYTES + 8 * 1024 * 1024);
   expect(files()).toEqual([]);
+});
+
+test("removeOlderThan deletes stored pictures past the age, and only those", async () => {
+  const store = createPictureStore(dir);
+  const old = await store.save({ name: "a.png", stream: from(png()) });
+  const fresh = await store.save({ name: "b.png", stream: from(png()) });
+  const stranger = path.join(dir, "notes.txt");
+  fs.writeFileSync(stranger, "x");
+  const longAgo = new Date(Date.now() - 25 * 3600 * 1000);
+  fs.utimesSync(store.pathOf(old.storedName), longAgo, longAgo);
+  fs.utimesSync(stranger, longAgo, longAgo);
+  expect(store.removeOlderThan(new Date(), 24 * 3600 * 1000)).toBe(1);
+  expect(files().sort()).toEqual([fresh.storedName, "notes.txt"].sort());
 });

@@ -1,4 +1,5 @@
 import {
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -7,7 +8,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
@@ -64,7 +66,7 @@ class FakeChild implements ChildLike {
   /** What the adapter wrote to standard input, and whether it closed it. */
   written: string[] = [];
   stdinEnded = false;
-  stdin = {
+  stdin: NonNullable<ChildLike["stdin"]> = {
     end: (data: string) => {
       this.written.push(data);
       this.stdinEnded = true;
@@ -1120,7 +1122,7 @@ describe("run: a task with an image", () => {
     expect(t.spawn).not.toHaveBeenCalled();
   });
 
-  test("only a PNG or JPEG whose first bytes agree, at most 10 MB, is sent", async () => {
+  test("only a PNG or JPEG whose first bytes agree, at most 5 MB, is sent", async () => {
     const w = world();
     const cases: [string, Buffer, string][] = [
       [
@@ -1135,7 +1137,7 @@ describe("run: a task with an image", () => {
       ],
       [
         "0b6f1e0e-0000-4000-8000-000000000007.png",
-        Buffer.concat([PNG_BYTES, Buffer.alloc(10 * 1024 * 1024)]),
+        Buffer.concat([PNG_BYTES, Buffer.alloc(5 * 1024 * 1024)]),
         "image/png",
       ],
     ];
@@ -1183,26 +1185,156 @@ describe("run: a task with an image", () => {
     expect(e2.message.length).toBeLessThanOrEqual(300);
   });
 
-  test("a stdin that cannot be written to does not crash the planner", async () => {
+  test("a real, asynchronous EPIPE on the pipe does not crash the planner, and the CLI's own reason is what she sees", async () => {
     const w = world();
     const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-000000000009.png");
     writeFileSync(file, PNG_BYTES);
     const t = setup(
       () => {
-        const child = scripted([], { code: 1, stderr: "closed early" });
-        child.stdin = {
-          end: () => {
-            throw new Error("EPIPE: write after end");
+        const child = scripted([], {
+          code: 1,
+          stderr: "Claude Code is signed out. Run `claude` and sign in.\n",
+        });
+        // a real stream that fails the way a closed pipe does: asynchronously, through 'error'
+        child.stdin = new Writable({
+          write(_chunk, _encoding, done) {
+            done(Object.assign(new Error("write EPIPE"), { code: "EPIPE" }));
           },
-          on: () => {},
-        };
+        });
         return child;
       },
       { uploadsDir: w.uploads },
     );
     const e = await rejection(t.provider.run(withImage(file), t.opts()));
     expect(e.reason).toBe("failed");
-    expect(e.message).not.toContain("EPIPE");
+    expect(e.message).toBe(
+      "Claude Code is signed out. Run `claude` and sign in.",
+    );
+  });
+
+  test("with a dead pipe and nothing on stderr she gets a fixed sentence, never the pipe error", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-00000000000a.png");
+    writeFileSync(file, PNG_BYTES);
+    const t = setup(
+      () => {
+        const child = scripted([], { code: 1 });
+        child.stdin = new Writable({
+          write(_c, _e, done) {
+            done(
+              Object.assign(new Error("write EPIPE /Users/x"), {
+                code: "EPIPE",
+              }),
+            );
+          },
+        });
+        return child;
+      },
+      { uploadsDir: w.uploads },
+    );
+    const e = await rejection(t.provider.run(withImage(file), t.opts()));
+    expect(e.message).toMatch(/exit code 1/);
+    expect(e.message).not.toMatch(/EPIPE|Users/);
+  });
+
+  test("base64 wrapped at 20 characters in stderr is still caught", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-00000000000b.png");
+    writeFileSync(file, PNG_BYTES);
+    const data = imageFixture.message.content[0].source.data;
+    const wrapped = (data.match(/.{1,20}/g) ?? []).join("\n");
+    const t = setup(() => scripted([], { code: 1, stderr: `${wrapped}\n` }), {
+      uploadsDir: w.uploads,
+    });
+    const e = await rejection(t.provider.run(withImage(file), t.opts()));
+    expect(e.message).toBe(
+      "Claude could not read the request. Please tell Alberto.",
+    );
+  });
+
+  test("an ordinary sentence with no digits is not mistaken for base64 once whitespace is removed", async () => {
+    const w = world();
+    const file = join(w.uploads, "0b6f1e0e-0000-4000-8000-00000000000c.png");
+    writeFileSync(file, PNG_BYTES);
+    const t = setup(
+      () =>
+        scripted([], {
+          code: 1,
+          stderr: "Claude Code is signed out and needs you to sign in again\n",
+        }),
+      { uploadsDir: w.uploads },
+    );
+    const e = await rejection(t.provider.run(withImage(file), t.opts()));
+    expect(e.message).toBe(
+      "Claude Code is signed out and needs you to sign in again",
+    );
+  });
+
+  test("a file with a second hard link is refused, and a read error never names a path", async () => {
+    const w = world();
+    const outside = join(w.outside, "t.png");
+    writeFileSync(outside, PNG_BYTES);
+    const linked = join(w.uploads, "0b6f1e0e-0000-4000-8000-00000000000d.png");
+    linkSync(outside, linked); // a hard link: realpath cannot tell it from a real upload
+    const t = setup(() => scripted(answerStream()), { uploadsDir: w.uploads });
+    const e = await rejection(t.provider.run(withImage(linked), t.opts()));
+    expect(e.reason).toBe("failed");
+    expect(e.message).toMatch(/uploads/);
+    expect(t.spawn).not.toHaveBeenCalled();
+
+    // a file she cannot read: the raw error holds the path, so it must not reach her
+    const locked = join(w.uploads, "0b6f1e0e-0000-4000-8000-00000000000e.png");
+    writeFileSync(locked, PNG_BYTES, { mode: 0o000 });
+    const t2 = setup(() => scripted(answerStream()), { uploadsDir: w.uploads });
+    const e2 = await rejection(t2.provider.run(withImage(locked), t2.opts()));
+    expect(e2.message).not.toMatch(/EACCES|Users|var\/folders|tmp/);
+    expect(t2.spawn).not.toHaveBeenCalled();
+  });
+
+  test("a relative path is resolved against the working directory and is still confined", async () => {
+    const w = world();
+    const inside = join(w.uploads, "0b6f1e0e-0000-4000-8000-00000000000f.png");
+    writeFileSync(inside, PNG_BYTES);
+    const outside = join(w.outside, "t.png");
+    writeFileSync(outside, PNG_BYTES);
+    const here = process.cwd();
+    try {
+      process.chdir(w.root);
+      // relative, inside uploads: accepted
+      const ok = setup(() => scripted(answerStream()), {
+        uploadsDir: w.uploads,
+      });
+      await ok.provider.run(
+        withImage(`data/uploads/${basename(inside)}`),
+        ok.opts(),
+      );
+      expect(ok.spawn).toHaveBeenCalledTimes(1);
+      // a ".." that comes back inside: accepted
+      const back = setup(() => scripted(answerStream()), {
+        uploadsDir: w.uploads,
+      });
+      await back.provider.run(
+        withImage(`elsewhere/../data/uploads/${basename(inside)}`),
+        back.opts(),
+      );
+      expect(back.spawn).toHaveBeenCalledTimes(1);
+      // relative, outside: refused
+      for (const path of [
+        "elsewhere/t.png",
+        "data/uploads/../../elsewhere/t.png",
+        "data/uploads",
+        "data",
+      ]) {
+        const t = setup(() => scripted(answerStream()), {
+          uploadsDir: w.uploads,
+        });
+        const e = await rejection(t.provider.run(withImage(path), t.opts()));
+        expect(e.reason, path).toBe("failed");
+        expect(t.spawn, path).not.toHaveBeenCalled();
+      }
+    } finally {
+      process.chdir(here);
+    }
   });
 });
 

@@ -46,7 +46,7 @@ So that folder gets its own four safety nets, on top of the three above:
 
 **3. The planner only opens a short allowlist.** The app reads files through one doorway, the `ResourceGateway`, which accepts your Planning folders, the three specification PDFs, your chapter PowerPoint folders and your per-topic exam practice. Everything else is refused, and a test proves it.
 
-**4. The AI gets text, never the folder.** When the planner asks Claude for help, it first pulls the words out of the one file involved (say, the slide text of a chapter PowerPoint) and sends only those words. Claude is given no way to browse your files.
+**4. The AI gets text, never the folder.** When the planner asks Claude for help, it first pulls the words out of the one file involved (say, the slide text of a chapter PowerPoint) and sends only those words. Claude is given no way to browse your files. The one exception is a picture you choose to upload of your own timetable: it is saved in `data/uploads`, checked (PNG or JPG, up to 5 MB) and read only from there, shown to Claude as an image, and deleted as soon as the job ends. See the ADR-007 amendment.
 
 ```mermaid
 flowchart LR

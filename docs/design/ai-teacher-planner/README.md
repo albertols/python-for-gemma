@@ -1,6 +1,6 @@
 # AI Teacher Planner: architecture at a glance
 
-Ten diagrams, drawn as code. Read them top to bottom for the whole picture, or jump to the one you need. They show the design agreed in `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`; when the code and a diagram disagree, fix the diagram in the same commit.
+Eleven diagrams, drawn as code. Read them top to bottom for the whole picture, or jump to the one you need. They show the design agreed in `docs/superpowers/specs/2026-11-19-ai-teacher-planner-design.md`; when the code and a diagram disagree, fix the diagram in the same commit.
 
 **Colour key, the same in every diagram:** blue is our code, green is data that stays on the Mac, amber is a boundary or guard, purple means a model is involved, grey dashed is later work, red dashed is denied.
 
@@ -13,9 +13,10 @@ Ten diagrams, drawn as code. Read them top to bottom for the whole picture, or j
 | 5 | [Domain model](#5-domain-model) | What is stored and what is derived? |
 | 6 | [Scheduling pipeline](#6-scheduling-pipeline) | How does a calendar become an accepted plan? |
 | 7 | [AI flow](#7-ai-flow) | What happens when Gemma clicks an AI action? |
-| 8 | [Data and privacy](#8-data-and-privacy) | What stays, what leaves, what is denied? |
+| 8 | [Data and privacy](#8-data-and-privacy) | What stays on the Mac, and what is denied? |
 | 9 | [Tech stack](#9-tech-stack) | Which tools, at which versions? |
 | 10 | [Roadmap](#10-roadmap) | What comes in v1, v2 and after? |
+| 11 | [What reaches the model](#11-what-reaches-the-model) | Which data can leave for the model, and which never does? |
 
 ## 1. System context
 
@@ -61,9 +62,9 @@ Look for what crosses to the model (extracted text, or one timetable picture fro
 
 ## 8. Data and privacy
 
-Look for the red dashed arrows: each one ends at a guard. Files she attaches to a lesson are checked on the way in, kept in their own folder and never read by a model. The one exception is the timetable picture she uploads on purpose: it lives in data/uploads and only the Claude adapter reads it.
+Look for the red dashed arrows: each one ends at a guard. Files she attaches to a lesson are checked on the way in, kept in their own folder and never read by a model. Her timetable picture goes to its own folder and is deleted when its job ends.
 
-![Data and privacy: what stays on the Mac (including attached lesson materials, checked on upload and never sent to a model, and timetable pictures in data/uploads that only the Claude adapter reads), what reaches the model, and what is denied](08-data-and-privacy.svg)
+![Data and privacy: what stays on the Mac (resources, database, lesson materials, timetable pictures, packs), the upload checks, and what is denied](08-data-and-privacy.svg)
 
 ## 9. Tech stack
 
@@ -76,6 +77,12 @@ Look for the exact versions: every library built in milestone M1 is pinned, and 
 Look for the order inside v1: one course end to end at a time, before any logins or hosting.
 
 ![Roadmap: v1 milestones, v2, and the 360 platform](10-roadmap.svg)
+
+## 11. What reaches the model
+
+Look for the three purple boxes: extracted text of allowlisted files, what she types, and one timetable picture read only from `data/uploads/`. The red dashed arrow is the lesson materials, which no model reads.
+
+![What reaches the model: extracted text through the ResourceGateway, what she types, and a timetable picture checked by the Claude adapter, all to the Claude model; lesson materials never](11-what-reaches-the-model.svg)
 
 ## How to update
 

@@ -25,14 +25,21 @@ async function planner(
     ai?: "fake" | "off";
     role?: "teacher" | "student";
     output?: unknown;
+    delayMs?: number;
+    /** Runs on the data folder before the app starts. */
+    before?: (dataDir: string) => void;
   } = {},
 ) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-image-"));
   dirs.push(dataDir);
-  const fake = new FakeAiProvider({
-    ...FAKE_AI_OUTPUTS,
-    ...("output" in over ? { "planner-import-timetable": over.output } : {}),
-  });
+  over.before?.(dataDir);
+  const fake = new FakeAiProvider(
+    {
+      ...FAKE_AI_OUTPUTS,
+      ...("output" in over ? { "planner-import-timetable": over.output } : {}),
+    },
+    over.delayMs ? { delayMs: over.delayMs } : {},
+  );
   const app = await buildTestApp(
     { fixedToday: "2026-11-20", dataDir, ai: over.ai ?? "fake" },
     undefined,
@@ -91,12 +98,12 @@ async function gridWith(
 }
 
 test("an upload is saved under data/uploads and nowhere else, and the job is given that file", async () => {
-  const { app, fake, dataDir, uploads } = await planner();
+  // the fake takes its time, so the picture can be looked at while the job still holds it
+  const { app, fake, dataDir, uploads } = await planner({ delayMs: 200 });
   const res = await upload(app, PNG, "Timetable (my copy).PNG");
   expect(res.status).toBe(202);
   const run = (await res.json()) as Json;
   expect(run.skillId).toBe("planner-import-timetable");
-  await finished(app, run.id);
 
   const stored = listDir(uploads);
   expect(stored).toHaveLength(1);
@@ -105,6 +112,7 @@ test("an upload is saved under data/uploads and nowhere else, and the job is giv
   // her file name is never used on disk, and nothing else was written under the data folder
   expect(listDir(dataDir).filter((n) => n !== "uploads")).toEqual([]);
   const task = fake.calls.at(-1);
+  await finished(app, run.id);
   expect(task?.attachments).toEqual([
     { path: path.join(uploads, stored[0] as string), mediaType: "image/png" },
   ]);
@@ -116,7 +124,7 @@ test("an upload is saved under data/uploads and nowhere else, and the job is giv
   expect(JSON.stringify(task?.input)).not.toMatch(/Timetable|my copy/);
 });
 
-test("an upload that is not a PNG or JPEG, or is over 10 MB, is refused and nothing is kept or asked", async () => {
+test("an upload that is not a PNG or JPEG, or is over 5 MB, is refused and nothing is kept or asked", async () => {
   const { app, fake, uploads } = await planner();
   const pdf = await upload(app, Buffer.from("%PDF-1.4 x"), "t.pdf");
   expect(pdf.status).toBe(422);
@@ -127,10 +135,10 @@ test("an upload that is not a PNG or JPEG, or is over 10 MB, is refused and noth
   expect(((await renamed.json()) as Json).error.code).toBe("material-content");
   const big = await upload(
     app,
-    Buffer.concat([PNG, Buffer.alloc(10 * 1024 * 1024)]),
+    Buffer.concat([PNG, Buffer.alloc(5 * 1024 * 1024)]),
   );
   expect(big.status).toBe(413);
-  expect(((await big.json()) as Json).error.message).toMatch(/10 MB/);
+  expect(((await big.json()) as Json).error.message).toMatch(/5 MB/);
   expect(listDir(uploads)).toEqual([]);
   expect(fake.calls).toEqual([]);
   expect(await get(app, "/api/ai/runs")).toEqual([]);
@@ -278,4 +286,98 @@ test("the skill's output refuses a day or a period that is not on the timetable"
   const done = await finished(app, run.id);
   expect(done.status).toBe("failed");
   expect(await get(app, "/api/ai/items")).toEqual([]);
+});
+
+test("the picture is deleted when the job is done, and the item keeps the grid", async () => {
+  const { app, uploads } = await planner();
+  const run = (await (await upload(app, PNG)).json()) as Json;
+  expect((await finished(app, run.id)).status).toBe("done");
+  expect(listDir(uploads)).toEqual([]);
+  const [item] = await get(app, "/api/ai/items?review=suggested");
+  expect(item.data.entries.length).toBeGreaterThan(0);
+});
+
+test("the picture is deleted when the job fails", async () => {
+  const { app, uploads } = await planner({ output: { nonsense: true } });
+  const run = (await (await upload(app, PNG)).json()) as Json;
+  expect((await finished(app, run.id)).status).toBe("failed");
+  expect(listDir(uploads)).toEqual([]);
+});
+
+test("the picture is deleted when the job is cancelled while running, and while it waits", async () => {
+  const { app, uploads } = await planner({ delayMs: 300 });
+  const first = (await (await upload(app, PNG)).json()) as Json;
+  // a second job waits behind the first
+  const second = (await (await upload(app, PNG)).json()) as Json;
+  expect(listDir(uploads)).toHaveLength(2);
+  const cancel = (id: string) =>
+    app.request(`/api/ai/jobs/${id}/cancel`, { method: "POST" });
+  expect((await cancel(second.id)).status).toBe(200);
+  expect((await cancel(first.id)).status).toBe(200);
+  expect((await finished(app, first.id)).status).toBe("cancelled");
+  expect((await finished(app, second.id)).status).toBe("cancelled");
+  for (let i = 0; i < 200 && listDir(uploads).length > 0; i++) await tick();
+  expect(listDir(uploads)).toEqual([]);
+});
+
+test("at start-up, pictures older than 24 hours are deleted and newer ones are kept", async () => {
+  const name = (n: number) => `0b6f1e0e-0000-4000-8000-00000000000${n}.png`;
+  const { uploads } = await planner({
+    before(dataDir) {
+      const dir = path.join(dataDir, "uploads");
+      fs.mkdirSync(dir);
+      for (const n of [1, 2]) fs.writeFileSync(path.join(dir, name(n)), PNG);
+      // the test app's clock is 2026-11-24T10:00Z
+      const old = new Date("2026-11-22T10:00:00Z");
+      fs.utimesSync(path.join(dir, name(1)), old, old);
+      const recent = new Date("2026-11-24T08:00:00Z");
+      fs.utimesSync(path.join(dir, name(2)), recent, recent);
+    },
+  });
+  expect(listDir(uploads)).toEqual([name(2)]);
+});
+
+test("a cell the model listed as unsure is always empty, even if it also filled it in", async () => {
+  const { app: probe } = await planner();
+  const both = await gridWith(probe, (g) => {
+    g.entries.push({
+      week: "W2",
+      weekday: 3,
+      period: 1,
+      groupId: "13 1",
+      room: null,
+    });
+    g.duties.push({ week: "W2", weekday: 3, period: 2, label: "Gate" });
+  });
+  both.unsure = [
+    { week: "W2", weekday: 3, period: 1, note: "unclear" },
+    { week: "W2", weekday: 3, period: 2, note: "unclear" },
+  ] as never;
+  const { app } = await planner({ output: both });
+  const run = (await (await upload(app, PNG)).json()) as Json;
+  await finished(app, run.id);
+  const [item] = await get(app, "/api/ai/items?review=suggested");
+  const at = (c: Json) => c.week === "W2" && c.weekday === 3 && c.period <= 2;
+  expect(item.data.entries.filter(at)).toEqual([]);
+  expect(item.data.duties.filter(at)).toEqual([]);
+  expect(item.data.unsure).toHaveLength(2);
+});
+
+test("an edited item cannot aim at another timetable version", async () => {
+  const { app } = await planner();
+  const run = (await (await upload(app, PNG)).json()) as Json;
+  await finished(app, run.id);
+  const [item] = await get(app, "/api/ai/items?review=suggested");
+  const before = await get(app, "/api/timetable");
+  const res = await app.request(`/api/ai/items/${item.id}/review`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      state: "edited",
+      data: { ...item.data, versionId: "somewhere-else" },
+    }),
+  });
+  expect(res.status).toBe(422);
+  expect(((await res.json()) as Json).error.code).toBe("wrong-version");
+  expect(await get(app, "/api/timetable")).toEqual(before);
 });

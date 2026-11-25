@@ -1,0 +1,55 @@
+...@_style
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+  d2-legend: {
+    l2: "Data that stays on the Mac" {class: win}
+    l3: "Guard" {class: warn}
+    l4: "Reaches the model" {class: ai}
+    l6: "Never sent" {class: denied}
+  }
+}
+
+title: |md
+  # What reaches the model
+  Only extracted text of allowlisted files, what Gemma types, and a picture she uploads for the timetable reach the model.
+| {near: top-center}
+
+direction: right
+
+resources: "Resources folder" {
+  class: win
+  shape: cylinder
+}
+uploads: "Timetable picture\ndata/uploads/" {
+  class: win
+  shape: cylinder
+}
+materials: "Lesson materials\ndata/materials/" {
+  class: win
+  shape: cylinder
+}
+
+gateway: "ResourceGateway\nallowlist" {class: warn}
+adapter: "Claude adapter\nPNG or JPEG, 5 MB, path checked" {class: warn}
+
+leaves: "Reaches the model" {
+  class: group
+
+  text: "Extracted text of\nallowlisted files" {class: ai}
+  typed: "What she types\ninto a request" {class: ai}
+  picture: "One picture, only\nfrom data/uploads/" {class: ai}
+}
+
+model: "Claude model\n(Anthropic)" {class: ai}
+
+resources -> gateway: "planning sheets,\nspecs, chapter slides" {class: flow}
+gateway -> leaves.text: {class: aiflow}
+uploads -> adapter: "read once, in memory" {class: flow}
+adapter -> leaves.picture: {class: aiflow}
+leaves.text -> model: {class: aiflow}
+leaves.typed -> model: {class: aiflow}
+leaves.picture -> model: "deleted when the job ends" {class: aiflow}
+materials -> leaves: "never read by a model" {class: blocked}

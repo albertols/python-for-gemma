@@ -1,5 +1,12 @@
 import { spawn as nodeSpawnProcess } from "node:child_process";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from "node:fs";
 import { dirname, sep } from "node:path";
 import type { Source } from "@planner/domain";
 import {
@@ -66,8 +73,8 @@ const SIGKILL_AFTER_MS = 5_000;
 export const PROMPT_PREAMBLE = "You are a skill of the AI Teacher Planner app.";
 const AUTH_STATUS_TIMEOUT_MS = 30_000;
 const SECRETS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"];
-/** A picture may be at most this big (10 MB). */
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+/** A picture may be at most this big (5 MB): the Messages API image limit, so a bigger one would fail inside Claude. */
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const NOT_IN_UPLOADS =
   "That picture is not in the planner's uploads folder, so it was not sent.";
 const IMAGE_TYPES: Record<string, readonly number[]> = {
@@ -76,6 +83,18 @@ const IMAGE_TYPES: Record<string, readonly number[]> = {
 };
 /** 40 or more base64 characters in a row: a piece of a picture, which is never shown. */
 const BASE64_RUN = /[A-Za-z0-9+/=]{40,}/;
+const BASE64_RUN_G = /[A-Za-z0-9+/=]{40,}/g;
+
+/**
+ * Does this text hold a piece of a picture? Checked as written, and again with the whitespace
+ * removed so base64 wrapped over several lines is still caught. After removal a run must hold a
+ * digit, "+" or "/" (random bytes in base64 always do), so a plain sentence is not mistaken for one.
+ */
+function holdsPictureData(text: string): boolean {
+  if (BASE64_RUN.test(text)) return true;
+  const joined = text.replace(/\s+/g, "");
+  return (joined.match(BASE64_RUN_G) ?? []).some((run) => /[0-9+/]/.test(run));
+}
 
 /** 120 seconds without tools, 300 with. */
 export function defaultTimeoutMs(tools: readonly string[]): number {
@@ -163,7 +182,7 @@ function unsafeToShow(
   hasImage: boolean,
 ): boolean {
   if (text.startsWith("error: unknown option")) return true;
-  if (hasImage && BASE64_RUN.test(text)) return true;
+  if (hasImage && holdsPictureData(text)) return true;
   const window = Math.min(40, prompt.length);
   if (window > 0)
     for (let i = 0; i + window <= prompt.length; i++)
@@ -240,19 +259,27 @@ function readImages(
     const signature = IMAGE_TYPES[a.mediaType];
     if (!signature)
       throw refuse("Only a PNG or JPEG picture can be sent to Claude.");
-    let real: string;
+    // One open, then every check on the descriptor: a swap after the check cannot be followed
+    // (O_NOFOLLOW), and every error is one fixed sentence, because a raw one holds a path.
+    let bytes: Buffer;
     try {
-      real = realpathSync(a.path);
-    } catch {
-      throw refuse(NOT_IN_UPLOADS);
+      const real = realpathSync(a.path);
+      if (dirname(real) !== root || !real.startsWith(`${root}${sep}`))
+        throw refuse(NOT_IN_UPLOADS);
+      const fd = openSync(real, constants.O_RDONLY | constants.O_NOFOLLOW);
+      try {
+        const info = fstatSync(fd);
+        // a second hard link could be a file from anywhere: realpath cannot see it
+        if (!info.isFile() || info.nlink !== 1) throw refuse(NOT_IN_UPLOADS);
+        if (info.size > MAX_IMAGE_BYTES)
+          throw refuse("That picture is over 5 MB, so it was not sent.");
+        bytes = readFileSync(fd);
+      } finally {
+        closeSync(fd);
+      }
+    } catch (e) {
+      throw e instanceof AiError ? e : refuse(NOT_IN_UPLOADS);
     }
-    if (dirname(real) !== root || !real.startsWith(`${root}${sep}`))
-      throw refuse(NOT_IN_UPLOADS);
-    const info = statSync(real);
-    if (!info.isFile()) throw refuse(NOT_IN_UPLOADS);
-    if (info.size > MAX_IMAGE_BYTES)
-      throw refuse("That picture is over 10 MB, so it was not sent.");
-    const bytes = readFileSync(real);
     if (!startsWithBytes(bytes, signature))
       throw refuse("That file is not really a picture of its type.");
     blocks.push({
@@ -430,7 +457,10 @@ export class ClaudeCodeCliProvider implements AiProvider {
         .split(/\r?\n/)
         .map((l) => l.trim())
         .filter((l) => l !== "");
-      if (lines.some((l) => unsafeToShow(l, prompt, hasImage)))
+      if (
+        unsafeToShow(run.stderr, prompt, hasImage) ||
+        lines.some((l) => unsafeToShow(l, prompt, hasImage))
+      )
         throw new AiError("failed", UNREADABLE_REQUEST);
       const said = lastLine(run.stderr);
       if (said !== "")
@@ -530,7 +560,9 @@ export class ClaudeCodeCliProvider implements AiProvider {
         );
       if (!stdin) closedEarly();
       else {
-        stdin.on("error", closedEarly);
+        // A pipe that breaks because the child exited early is not the story: the child's own
+        // reason (its stderr and exit) is, so the error is only swallowed here.
+        stdin.on("error", () => {});
         try {
           stdin.end(limits.stdin);
         } catch {

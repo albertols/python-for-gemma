@@ -10,7 +10,7 @@ import {
 import { AiBadge, aiOutline } from "../../components/AiBadge.tsx";
 import { ReviewBar } from "../../components/ReviewBar.tsx";
 import { SuggestedGrid } from "./SuggestedGrid.tsx";
-import { cellName, gridOf } from "./timetable-suggestion.ts";
+import { cellName, gridOf, pictureProblem } from "./timetable-suggestion.ts";
 
 /**
  * Upload a picture of her timetable; Claude suggests a grid; it is shown beside hers with the
@@ -27,6 +27,7 @@ export function TimetablePicture({
   const qc = useQueryClient();
   const upload = useUploadTimetablePicture(version.id);
   const [runId, setRunId] = useState<string | null>(null);
+  const [refused, setRefused] = useState<string | null>(null);
   const job = useJob(runId);
   const items = useAiItems();
   const review = useReviewItem();
@@ -56,24 +57,31 @@ export function TimetablePicture({
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = "";
-              if (file)
+              if (!file) return;
+              const problem = pictureProblem(file);
+              setRefused(problem);
+              if (!problem)
                 upload.mutate(file, { onSuccess: (r) => setRunId(r.id) });
             }}
           />
         </label>
         <span className="text-sm text-muted-foreground">
-          PNG or JPG, up to 10 MB. Claude only reads it; nothing changes until
+          PNG or JPG, up to 5 MB. Claude only reads it; nothing changes until
           you accept.
         </span>
       </div>
-      {asking || said ? (
-        <div role="status">
-          {asking ? (
-            <p>Reading your picture{job.note ? `: ${job.note}` : "..."}</p>
-          ) : (
-            <p className={run?.failure ? "text-danger" : undefined}>{said}</p>
-          )}
-        </div>
+      {/* always on the page, so a screen reader announces the words when they arrive; aria-live, not role=status, because other screens' tests look for the one status */}
+      <div aria-live="polite">
+        {asking ? (
+          <p>Reading your picture{job.note ? `: ${job.note}` : "..."}</p>
+        ) : said ? (
+          <p className={run?.failure ? "text-danger" : undefined}>{said}</p>
+        ) : null}
+      </div>
+      {refused ? (
+        <p role="alert" className="font-medium text-danger">
+          {refused}
+        </p>
       ) : null}
       {upload.error ? (
         <p role="alert" className="font-medium text-danger">

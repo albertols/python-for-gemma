@@ -42,6 +42,8 @@ export interface JobRequest {
   input: unknown;
   text: string | null;
   attachments: string[];
+  /** Runs once when the job has ended, however it ended (done, failed or cancelled, running or waiting). */
+  onEnd?: () => void;
 }
 
 /** What the browser hears while a job runs. Never prompt text, a file path or extracted text. */
@@ -149,6 +151,7 @@ export function startJob(ctx: JobContext, request: JobRequest): AiRun {
     id: run.id,
     run: (signal) => execute(ctx, runner, run.id, request, signal),
     onCancelledWhileQueued: () => {
+      ended(request);
       markCancelled(ctx, run.id);
       emitRun(ctx, runner, run.id);
     },
@@ -273,7 +276,17 @@ async function execute(
       fail(FAILURE[e instanceof AiError ? e.reason : "failed"]);
     }
   } finally {
+    ended(request);
     emitRun(ctx, runner, id);
+  }
+}
+
+/** The job's own clean-up, such as deleting a picture. It must never stop the job from ending. */
+function ended(request: JobRequest): void {
+  try {
+    request.onEnd?.();
+  } catch (e) {
+    console.error(e);
   }
 }
 

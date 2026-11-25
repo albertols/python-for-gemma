@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { AiItemView } from "../../api/jobs.ts";
-import { cellName, gridOf } from "./timetable-suggestion.ts";
+import { cellName, gridOf, pictureProblem } from "./timetable-suggestion.ts";
 
 const item = (over: Partial<AiItemView>): AiItemView => ({
   id: "i1",
@@ -33,5 +33,17 @@ test("a cell is named as the editor names it", () => {
   );
   expect(cellName({ week: "W2", weekday: 5, period: 6 })).toBe(
     "Week 2, Friday, period 6",
+  );
+});
+
+test("a picture over 5 MB, or not PNG or JPEG, is turned away in the browser with a sentence", () => {
+  const file = (type: string, size: number) => ({ type, size });
+  expect(pictureProblem(file("image/png", 5 * 1024 * 1024))).toBeNull();
+  expect(pictureProblem(file("image/jpeg", 100))).toBeNull();
+  expect(pictureProblem(file("image/png", 5 * 1024 * 1024 + 1))).toBe(
+    "That picture is over 5 MB. Choose a smaller one, or a screenshot instead of a photo.",
+  );
+  expect(pictureProblem(file("application/pdf", 100))).toBe(
+    "Choose a PNG or JPG picture.",
   );
 });

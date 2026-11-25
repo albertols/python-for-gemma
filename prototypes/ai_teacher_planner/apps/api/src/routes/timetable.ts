@@ -81,7 +81,7 @@ const postImage = createRoute({
   path: "/api/timetable/image",
   ...guard("lesson-plans", "edit"),
   description:
-    "A multipart form with one field called `file` and the header `x-planner-upload: 1`: a picture of her timetable. Accepted: .png, .jpg, checked by first bytes; at most 10 MB, enforced while the body streams in. Stored as data/uploads/<uuid>.<ext>. Claude reads it and suggests a grid as one AI item; the timetable does not change until she accepts it",
+    "A multipart form with one field called `file` and the header `x-planner-upload: 1`: a picture of her timetable. Accepted: .png, .jpg, checked by first bytes; at most 5 MB, enforced while the body streams in. Stored as data/uploads/<uuid>.<ext> and deleted when the job ends. Claude reads it and suggests a grid as one AI item; the timetable does not change until she accepts it",
   request: { query: z.object({ versionId: z.string() }) },
   responses: {
     202: { description: "The job is queued", content: json(aiRun) },
@@ -90,7 +90,7 @@ const postImage = createRoute({
     ),
     404: errorResponse("There is no such version"),
     409: errorResponse("The AI is switched off or not available, with why"),
-    413: errorResponse("The picture is over 10 MB"),
+    413: errorResponse("The picture is over 5 MB"),
     422: errorResponse("The type, the name or the contents are not acceptable"),
   },
 });
@@ -161,6 +161,7 @@ export function timetableRoutes(deps: {
           const run = suggestGridFromPicture(ai.ctx, {
             versionId,
             picturePath: uploads.pathOf(saved.storedName),
+            onEnd: () => uploads.remove(saved.storedName),
           });
           return c.json(run, 202);
         } catch (err) {

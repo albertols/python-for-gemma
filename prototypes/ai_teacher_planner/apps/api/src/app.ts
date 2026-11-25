@@ -106,7 +106,9 @@ export function createApp(deps: AppDeps) {
     console.warn(
       `${swept.withoutRow} file${swept.withoutRow === 1 ? "" : "s"} in data/materials has no entry in the planner. They were left alone.`,
     );
+  // a picture is deleted when its job ends; one a crash left behind goes after a day
   uploads.sweep({ knownStoredNames: new Set(), now: now() });
+  uploads.removeOlderThan(now(), 24 * 60 * 60 * 1000);
   registerLessonCountHandler();
   registerTimetableGridHandler();
   // a job that was running when the planner closed can never finish

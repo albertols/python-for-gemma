@@ -23,7 +23,7 @@ flow: "" {
     api -> api: "refused with a reason if AI is off or signed out"
     api -> gateway: "file for this chapter"
     gateway -> api: "extracted text"
-    api -> api: "or a timetable picture: PNG or JPG, 10 MB,\nkept in data/uploads/"
+    api -> api: "or a timetable picture: PNG or JPG, 5 MB,\nkept in data/uploads/,\ndeleted when the job ends"
   }
 
   run: "2. Run" {

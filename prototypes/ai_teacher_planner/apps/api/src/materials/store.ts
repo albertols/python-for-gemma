@@ -9,8 +9,8 @@ import { ApiError } from "../errors.ts";
 
 /** Each file may be at most this big (25 MB). */
 export const MAX_MATERIAL_BYTES = 25 * 1024 * 1024;
-/** A picture she uploads for the AI to read may be at most this big (10 MB). */
-export const MAX_PICTURE_BYTES = 10 * 1024 * 1024;
+/** A picture she uploads for the AI to read may be at most this big (5 MB): the Messages API image limit. */
+export const MAX_PICTURE_BYTES = 5 * 1024 * 1024;
 const MAX_NAME_LENGTH = 200;
 /** A half-written upload older than this was left by a crash. */
 const PARTIAL_MAX_AGE_MS = 60 * 60 * 1000;
@@ -125,6 +125,8 @@ export interface MaterialStore {
   };
   /** Removes a stored file; one that is already gone is not an error. */
   remove(storedName: string): void;
+  /** Deletes stored files (only `<uuid>.<ext>` names) last changed more than `maxAgeMs` before `now`; returns how many. */
+  removeOlderThan(now: Date, maxAgeMs: number): number;
   /** The full path of a stored file, for code that reads it in the same process. */
   pathOf(storedName: string): string;
 }
@@ -489,6 +491,19 @@ export function createMaterialStore(
     },
     remove(storedName) {
       fs.rmSync(pathOf(storedName), { force: true });
+    },
+    removeOlderThan(now, maxAgeMs) {
+      if (!fs.existsSync(root)) return 0;
+      let removed = 0;
+      for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        if (!entry.isFile() || !STORED_NAME.test(entry.name)) continue;
+        const file = path.join(root, entry.name);
+        if (now.getTime() - fs.statSync(file).mtimeMs > maxAgeMs) {
+          fs.rmSync(file, { force: true });
+          removed += 1;
+        }
+      }
+      return removed;
     },
     pathOf,
   };
