@@ -9,7 +9,7 @@ vars: {
 
 title: |md
   # Frontend components: screens and shared pieces
-  Ten screens share five pieces. Previews run in the browser because the engine is imported directly.
+  Ten screens share six pieces; the purple ones are where AI shows up. Previews run in the browser because the engine is imported directly.
 | {near: top-center}
 
 grid-columns: 1
@@ -36,12 +36,13 @@ screens: "Screens" {
 shared: "Shared pieces" {
   class: group
   grid-rows: 1
-  grid-columns: 5
+  grid-columns: 6
   grid-gap: 16
 
-  badge: "Provenance badge\nsparkle = AI,\nwhy-is-this-here" {class: ai}
+  badge: "AI badge + popover\nsparkle, dashed outline,\nprovider, model, sources" {class: ai}
   diff: "Proposal diff\npreview, accept,\nreject, undo" {class: concept}
-  drawer: "Activity drawer\nevery AI run,\nsources" {class: ai}
+  drawer: "Activity drawer + job chip\nevery AI run, live progress,\naccept, edit, reject" {class: ai}
+  legend: "Legend\nwhat each mark means" {class: ai}
   client: "API client\ntyped from\nOpenAPI" {class: concept}
   engineimport: "Engine import\ninstant previews" {class: concept}
 }

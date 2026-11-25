@@ -4,6 +4,9 @@ import { PlannerNotRunning } from "../api/client.ts";
 import { useConfig } from "../api/queries.ts";
 import { cn } from "../lib/utils.ts";
 import { currentTheme, setTheme } from "../theme/theme.ts";
+import { ActivityDrawer } from "./ActivityDrawer.tsx";
+import { JobChip } from "./JobChip.tsx";
+import { Legend } from "./Legend.tsx";
 import { Button } from "./ui/button.tsx";
 import { ErrorState } from "./ui/states.tsx";
 
@@ -62,7 +65,12 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <ThemeToggle />
+        <div className="flex flex-wrap items-center gap-2">
+          <JobChip />
+          <ActivityDrawer />
+          <Legend />
+          <ThemeToggle />
+        </div>
       </header>
       <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-6 py-8">
         {config.error instanceof PlannerNotRunning ? (

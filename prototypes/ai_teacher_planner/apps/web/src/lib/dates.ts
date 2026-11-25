@@ -39,3 +39,18 @@ export function daysLeftInWords(n: number): string {
   if (n === 1) return "tomorrow";
   return `in ${n} days`;
 }
+
+/** "24 November 2026, 11:00": a moment in the school's time zone, whatever the computer's. */
+export function whenOf(iso: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+}
