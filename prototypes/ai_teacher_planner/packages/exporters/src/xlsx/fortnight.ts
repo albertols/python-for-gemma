@@ -78,10 +78,14 @@ function writeWeek(
       if (here.length === 0) continue;
       // The second half of a double was written with the first.
       const before = PERIODS[i - 1];
-      if (before !== undefined && isDoubleHalf(at(day, before), here)) continue;
+      if (
+        before !== undefined &&
+        isDouble(at(day, before), before, here, period)
+      )
+        continue;
       const next = PERIODS[i + 1];
       const after = next === undefined ? [] : at(day, next);
-      const double = isDoubleHalf(here, after);
+      const double = next !== undefined && isDouble(here, period, after, next);
       const col = day + 2;
       const row = period + 1;
       textCell(
@@ -109,13 +113,24 @@ function writeWeek(
   }
 }
 
-/** Two neighbouring periods that are one group's lesson twice are one double period. */
-function isDoubleHalf(
+/**
+ * Two periods are one double only when the timetable says so (each lesson names
+ * the other as its `doubleWith`) and both have a lesson of the same one group.
+ * Being next to each other is not enough.
+ */
+function isDouble(
   first: readonly ExportLesson[],
+  firstPeriod: Period,
   second: readonly ExportLesson[],
+  secondPeriod: Period,
 ): boolean {
-  const g = unique([...first, ...second].map((l) => l.groupId));
-  return first.length > 0 && second.length > 0 && g.length === 1;
+  if (first.length === 0 || second.length === 0) return false;
+  const groups = unique([...first, ...second].map((l) => l.groupId));
+  return (
+    groups.length === 1 &&
+    first.some((l) => l.doubleWith === secondPeriod) &&
+    second.some((l) => l.doubleWith === firstPeriod)
+  );
 }
 
 /**

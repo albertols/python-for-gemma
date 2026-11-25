@@ -280,3 +280,67 @@ test("a title that looks like a formula reaches the workbook as text", async () 
   expect(found).toBeGreaterThan(0);
   expect(formulas).toBe(0);
 });
+
+test("merged cells in the export are exactly the timetable's doubles, and every lesson on the board is in it once", async () => {
+  const w = await world();
+  const w1 = await w1Of(w);
+  const end = await fortnightEnd(w, w1);
+  const placed = (await (
+    await w.app.request(`/api/placements?from=${w1}&to=${end}`)
+  ).json()) as Json;
+  const slots = (await (
+    await w.app.request(`/api/slots?from=${w1}&to=${end}`)
+  ).json()) as Json[];
+  const wb = await sheetsOf((await xlsx(w, w1)).bytes);
+  // every lesson and assessment on the board, once (a double's cell holds both halves)
+  const texts = wb.worksheets.flatMap(cellTexts);
+  const board = [...placed.placements, ...placed.assessments] as Json[];
+  expect(board.length).toBeGreaterThan(10);
+  for (const p of board) {
+    const label =
+      p.of && p.of > 1 ? `${p.title} (${p.index} of ${p.of})` : p.title;
+    const holding = texts.filter(
+      (t) => t.startsWith(`${p.groupId}\n`) && t.split("\n").includes(label),
+    );
+    expect(holding.length).toBeGreaterThanOrEqual(1);
+  }
+  const count = (list: string[]) =>
+    list.reduce((n, t) => n + t.split("\n").length - 1, 0);
+  expect(count(texts)).toBeGreaterThanOrEqual(board.length);
+  // a merge happens only for a pair of slots the timetable calls a double
+  const doubles = new Set(
+    slots
+      .filter((s) => s.doubleWith)
+      .map((s) => `${s.groupId}|${s.date}|${s.period}`),
+  );
+  expect(doubles.size).toBeGreaterThan(0);
+  const merged = wb.worksheets.flatMap((ws) => ws.model.merges);
+  expect(merged.length).toBeGreaterThan(0);
+  for (const range of merged) {
+    const [a, b] = range.split(":");
+    expect(a?.[0]).toBe(b?.[0]); // one day
+    expect(Number(b?.slice(1)) - Number(a?.slice(1))).toBe(1); // two periods
+    expect(Number(a?.slice(1)) % 2).toBe(0); // P1, P3 or P5 first (rows 2, 4, 6)
+  }
+});
+
+test("an assessment that is in the past shows as assumed, like the board's past lessons", async () => {
+  const w = await world("2026-11-30");
+  const w1 = await w1Of(w);
+  const placed = (await (
+    await w.app.request(
+      `/api/placements?from=${w1}&to=${await fortnightEnd(w, w1)}`,
+    )
+  ).json()) as Json;
+  const past = (placed.assessments as Json[]).find(
+    (a) => a.date < "2026-11-30",
+  );
+  if (!past) throw new Error("no past assessment");
+  const texts = (await sheetsOf((await xlsx(w, w1)).bytes)).worksheets.flatMap(
+    cellTexts,
+  );
+  const cell = texts.find(
+    (t) => t.startsWith(`${past.groupId}\n`) && t.includes(past.title),
+  );
+  expect(cell).toContain("Assumed, not confirmed");
+});

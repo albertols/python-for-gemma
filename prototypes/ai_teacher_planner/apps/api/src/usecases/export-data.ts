@@ -79,9 +79,14 @@ export function exportData(
     ? groups.find((g) => g.id === args.groupId)
     : undefined;
   if (args.groupId && !group) return null;
-  const rooms = new Map(slots.map((s) => [s.key, s.room]));
+  const byKey = new Map(slots.map((s) => [s.key, s]));
   const roomOf = (groupId: string, date: IsoDate, period: number) =>
-    rooms.get(`${groupId}|${date}|${period}`) ?? null;
+    byKey.get(`${groupId}|${date}|${period}`)?.room ?? null;
+  /** The other half of a double, as the timetable says (from the slots, never from adjacency). */
+  const doubleOf = (groupId: string, date: IsoDate, period: number) => {
+    const partner = byKey.get(`${groupId}|${date}|${period}`)?.doubleWith;
+    return partner ? (Number(partner.split("|")[2]) as Period) : null;
+  };
   const { placements, assessments } = placementsIn(
     repos,
     args.from,
@@ -95,6 +100,7 @@ export function exportData(
     date: p.date,
     period: p.period as Period,
     room: roomOf(p.groupId, p.date, p.period),
+    doubleWith: doubleOf(p.groupId, p.date, p.period),
     title: labelled(p.title, p.index, p.of),
     state: p.state,
     provenance: p.provenance,
@@ -104,6 +110,7 @@ export function exportData(
     date: a.date,
     period: a.period as Period,
     room: roomOf(a.groupId, a.date, a.period),
+    doubleWith: doubleOf(a.groupId, a.date, a.period),
     title: a.title,
     state: a.date < args.today ? "assumed" : "planned",
     provenance: a.provenance,

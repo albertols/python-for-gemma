@@ -16,6 +16,11 @@ export interface ExportLesson {
   date: IsoDate;
   period: Period;
   room: string | null;
+  /**
+   * The other half of a double period, as the timetable says (P1+P2, P3+P4, P5+P6),
+   * or null. Only this joins two periods into one cell, never being next to each other.
+   */
+  doubleWith: Period | null;
   title: string;
   state: PlacementState;
   provenance: Provenance;
