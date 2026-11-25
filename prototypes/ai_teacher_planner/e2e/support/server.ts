@@ -6,7 +6,11 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { buildSyntheticWorkbook } from "@planner/fixtures";
+import {
+  buildSyntheticPlanningSheet,
+  buildSyntheticSchedule,
+  buildSyntheticWorkbook,
+} from "@planner/fixtures";
 
 const APP_ROOT = path.resolve(import.meta.dirname, "../..");
 const port = process.env.E2E_PORT ?? "4320";
@@ -21,6 +25,23 @@ fs.writeFileSync(
   // so the import report has something to show. Year 11 Report 2 and the Year 13
   // evening stay readable.
   await buildSyntheticWorkbook({ reportDates: "unreadable" }),
+);
+// The two planning files the scheme screen's import button can find: synthetic, in the
+// board's Planning folder, as her real ones sit.
+const planningDir = path.join(resourcesDir, "ial", "Planning");
+fs.mkdirSync(planningDir, { recursive: true });
+fs.writeFileSync(
+  path.join(planningDir, "Synthetic Planning.xlsx"),
+  await buildSyntheticPlanningSheet(),
+);
+fs.writeFileSync(
+  path.join(planningDir, "Synthetic Assessment Schedule.docx"),
+  await buildSyntheticSchedule(),
+);
+// A file that is not a workbook at all, to see what she is told.
+fs.writeFileSync(
+  path.join(planningDir, "Unreadable Sheet.xlsx"),
+  new Uint8Array([1, 2, 3]),
 );
 
 function cleanUp() {

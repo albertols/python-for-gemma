@@ -18,7 +18,7 @@ import { Button } from "./ui/button.tsx";
 import { Disclosure } from "./ui/disclosure.tsx";
 import { EmptyState, ErrorState, Loading } from "./ui/states.tsx";
 
-const MAX_LESSONS = 99;
+export const MAX_LESSONS = 99;
 const RECORDED = "Saved in the scheme.";
 
 const OUTCOME: Record<AiRunView["status"], string> = {
@@ -29,7 +29,7 @@ const OUTCOME: Record<AiRunView["status"], string> = {
   cancelled: "Cancelled",
 };
 
-function EditCount({
+export function EditCount({
   item,
   onSave,
   onCancel,

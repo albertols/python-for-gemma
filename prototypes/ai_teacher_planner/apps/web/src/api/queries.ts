@@ -1,4 +1,4 @@
-import { lastDaysBeforeBreaks } from "@planner/domain";
+import { lastDaysBeforeBreaks, type PlanInputs } from "@planner/domain";
 import {
   QueryClient,
   useMutation,
@@ -651,5 +651,125 @@ export function useSetUnitChecked(courseId: string) {
       });
     },
     onError: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+export type SchemeData = InferResponseType<
+  (typeof api.api.scheme)[":courseId"]["$get"],
+  200
+>;
+export type SchemeBody = InferRequestType<
+  (typeof api.api.scheme)[":courseId"]["$put"]
+>["json"];
+export type ImportSources = InferResponseType<
+  (typeof api.api.scheme)[":courseId"]["import-sources"]["$get"],
+  200
+>;
+export type ImportPreview = InferResponseType<
+  (typeof api.api.scheme)[":courseId"]["import"]["$post"],
+  200
+>;
+
+export function useScheme(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["scheme", courseId],
+    enabled,
+    queryFn: () =>
+      call<SchemeData>(() =>
+        api.api.scheme[":courseId"].$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** What the engine is given to plan the course today. The scheme screen works its totals from this. */
+export function usePlanInputs(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["plan-inputs", courseId],
+    enabled,
+    queryFn: () =>
+      call<PlanInputs>(() =>
+        api.api.plans[":courseId"].inputs.$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** A changed scheme or revision length changes the totals, the plan's freshness, the board, Today and the audit. */
+export function invalidateScheme(qc: QueryClient, courseId: string) {
+  void qc.invalidateQueries({ queryKey: ["scheme", courseId] });
+  void qc.invalidateQueries({ queryKey: ["plan-inputs", courseId] });
+  void qc.invalidateQueries({ queryKey: ["courses"] });
+  void qc.invalidateQueries({ queryKey: ["audit"] });
+  invalidateBoard(qc);
+}
+
+export function useSaveScheme(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SchemeBody) =>
+      call<{ ok: true }>(() =>
+        api.api.scheme[":courseId"].$put({ param: { courseId }, json: body }),
+      ),
+    onSuccess: (_ok, body) => {
+      // what she saved is what the screen shows until the stored scheme has been read again
+      qc.setQueryData<SchemeData>(["scheme", courseId], (old) =>
+        old ? { ...old, items: body.items, overrides: body.overrides } : old,
+      );
+      invalidateScheme(qc, courseId);
+    },
+  });
+}
+
+export function useSetRevisionWeeks(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (revisionWeeks: number) =>
+      call<unknown>(() =>
+        api.api.courses[":courseId"].$put({
+          param: { courseId },
+          json: { revisionWeeks },
+        }),
+      ),
+    onSuccess: () => invalidateScheme(qc, courseId),
+  });
+}
+
+/** The planning files she can import from. Asked only when the import is opened. */
+export function useImportSources(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["scheme", courseId, "import-sources"],
+    enabled,
+    queryFn: () =>
+      call<ImportSources>(() =>
+        api.api.scheme[":courseId"]["import-sources"].$get({
+          param: { courseId },
+        }),
+      ),
+  });
+}
+
+/** A preview of the import. Nothing is stored. */
+export function useImportPreview(courseId: string) {
+  return useMutation({
+    mutationFn: (body: { planningFile: string; scheduleFile: string | null }) =>
+      call<ImportPreview>(() =>
+        api.api.scheme[":courseId"].import.$post({
+          param: { courseId },
+          json: body,
+        }),
+      ),
+  });
+}
+
+/** Starts the lesson-count job. The suggestions arrive as AI items; the scheme itself is not touched. */
+export function useSuggestCounts(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<{ id: string }>(() =>
+        api.api.scheme[":courseId"]["suggest-counts"].$post({
+          param: { courseId },
+        }),
+      ),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["ai"] }),
   });
 }

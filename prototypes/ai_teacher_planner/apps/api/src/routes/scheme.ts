@@ -1,15 +1,28 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { fitFor } from "@planner/domain";
+import type { AiState } from "../ai-state.ts";
 import type { Config } from "../config.ts";
+import { ApiError } from "../errors.ts";
 import type { ResourceGateway } from "../gateway/resource-gateway.ts";
 import type { PackStore, Repos } from "../repos/ports.ts";
 import { todayOf } from "../today.ts";
 import { importScheme, importSources } from "../usecases/import-scheme.ts";
-import { courseOrThrow, loadPlanInputs } from "../usecases/plan-inputs.ts";
+import {
+  courseOrThrow,
+  loadPlanInputs,
+  requireLockedPack,
+} from "../usecases/plan-inputs.ts";
 import { saveScheme } from "../usecases/scheme.ts";
+import { suggestCounts } from "../usecases/suggest-counts.ts";
 import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
-import { errorResponse, groupOverride, isoDate, sowItem } from "./schemas.ts";
+import {
+  aiRun,
+  errorResponse,
+  groupOverride,
+  isoDate,
+  sowItem,
+} from "./schemas.ts";
 
 const json = <T extends z.ZodType>(schema: T) => ({
   "application/json": { schema },
@@ -138,14 +151,33 @@ const importRoute = createRoute({
   },
 });
 
+const suggestRoute = createRoute({
+  method: "post",
+  path: "/api/scheme/{courseId}/suggest-counts",
+  ...guard("scheme-of-work", "edit"),
+  request: { params },
+  responses: {
+    202: {
+      description:
+        "The lesson-count job is queued. Each suggestion that differs from her number becomes an AI item she reviews; nothing in the scheme changes until she does",
+      content: json(aiRun),
+    },
+    404: errorResponse("There is no such course"),
+    409: errorResponse(
+      "The pack is not locked yet, or the AI is switched off or not available, with why",
+    ),
+  },
+});
+
 export function schemeRoutes(deps: {
+  ai: AiState;
   config: Config;
   gateway: ResourceGateway;
   repos: Repos;
   packs: PackStore;
   now: () => Date;
 }) {
-  const { config, gateway, repos, packs, now } = deps;
+  const { ai, config, gateway, repos, packs, now } = deps;
   return createRouter()
     .openapi(get, (c) => {
       const { courseId } = c.req.valid("param");
@@ -188,6 +220,15 @@ export function schemeRoutes(deps: {
         ),
         200,
       );
+    })
+    .openapi(suggestRoute, async (c) => {
+      const { courseId } = c.req.valid("param");
+      // the course and its locked pack are checked before the AI is
+      courseOrThrow(repos, courseId);
+      requireLockedPack(packs, courseId);
+      const gate = await ai.check();
+      if (!gate.ok) throw new ApiError(409, gate.code, gate.reason);
+      return c.json(suggestCounts(ai.ctx, packs, courseId), 202);
     })
     .openapi(put, (c) => {
       const { items, overrides } = c.req.valid("json");

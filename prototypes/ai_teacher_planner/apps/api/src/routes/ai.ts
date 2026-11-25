@@ -1,5 +1,4 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import type { SkillId } from "@planner/ai";
 import { streamSSE } from "hono/streaming";
 import type { AiState } from "../ai-state.ts";
 import { ApiError } from "../errors.ts";
@@ -12,36 +11,13 @@ import {
 import { reviewItem } from "../usecases/review-item.ts";
 import { guard, type Principal } from "./require-access.ts";
 import { createRouter } from "./router.ts";
-import { errorResponse } from "./schemas.ts";
+import { aiRun, errorResponse, SKILL_IDS } from "./schemas.ts";
 
 const json = <T extends z.ZodType>(schema: T) => ({
   "application/json": { schema },
 });
 const params = z.object({ id: z.string() });
 
-const SKILL_IDS = [
-  "planner-import-timetable",
-  "planner-build-curriculum-pack",
-  "planner-classify-calendar-events",
-  "planner-suggest-lesson-counts",
-  "planner-hl-prerequisites",
-  "content-refresh-resource",
-  "content-cover-lesson",
-  "content-independent-task",
-] as const satisfies readonly SkillId[];
-
-const aiRun = z.object({
-  id: z.string(),
-  skillId: z.enum(SKILL_IDS),
-  status: z.enum(["queued", "running", "done", "failed", "cancelled"]),
-  startedAt: z.string(),
-  durationMs: z.number().nullable(),
-  provider: z.string().nullable(),
-  model: z.string().nullable(),
-  failure: z.string().nullable(),
-  note: z.string().nullable(),
-  itemIds: z.array(z.string()),
-});
 const reviewState = z.enum(["suggested", "accepted", "edited", "rejected"]);
 const aiItem = z.object({
   id: z.string(),

@@ -124,7 +124,7 @@ export function createApp(deps: AppDeps) {
     .route("/", aiRoutes({ state: ai }))
     .route("/", courseRoutes({ repos, packs }))
     .route("/", packRoutes({ repos, packs, now }))
-    .route("/", schemeRoutes({ config, gateway, repos, packs, now }))
+    .route("/", schemeRoutes({ ai, config, gateway, repos, packs, now }))
     .route("/", planRoutes({ config, repos, packs, now }))
     .route("/", checkInRoutes({ config, repos, packs, now }));
 

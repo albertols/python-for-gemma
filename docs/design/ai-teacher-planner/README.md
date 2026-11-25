@@ -33,13 +33,13 @@ Look for the two things that import the engine (the web app and the API) and the
 
 Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) and the M2 ones (courses, scheme, positions, plans, check-in) all live in the same routes, use cases and repository box; curriculum packs are JSON files behind the PackStore, with only the locked hash in SQLite.
 
-![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review; courses, packs, scheme and import preview, positions, plans, check-in), use cases (loadPlanInputs, propose, accept, undo, check-in, seedM2), job queue, engine, driven adapters (importers read calendar, specification PDF text, planning sheets and assessment schedules) with migrations 0001-0009 and the PackStore, ResourceGateway (finds planning files under Planning/ only), SQLite file and pack files, AI providers](03-backend-components.svg)
+![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review; courses, packs, scheme, import preview and suggest-counts, positions, plans, check-in), use cases (loadPlanInputs, propose, accept, undo, check-in, seedM2), job queue, engine, driven adapters (importers read calendar, specification PDF text, planning sheets and assessment schedules) with migrations 0001-0009 and the PackStore, ResourceGateway (finds planning files under Planning/ only), SQLite file and pack files, AI providers](03-backend-components.svg)
 
 ## 4. Frontend components
 
-Look for the six shared pieces every screen reuses; the purple ones are where AI shows up in the GUI: the badge and its popover, the activity drawer with the header job chip and review buttons, and the legend. Engine output carries no badge.
+Look for the six shared pieces every screen reuses; the purple ones are where AI shows up in the GUI: the badge and its popover, the activity drawer with the header job chip and review buttons, and the legend. Engine output carries no badge. The scheme-of-work screen computes its fit totals in the browser from her unsaved edits, with the same engine rule the API uses.
 
-![Frontend components: eleven screens (pack review with lock, board with class filter and week view, audit with official exams, Setup with events and exams), six shared pieces (AI badge and popover, proposal diff, activity drawer and job chip, legend, API client, engine import), and the API and engine they talk to](04-frontend-components.svg)
+![Frontend components: eleven screens (scheme of work with live totals, import preview and AI count differences, pack review with lock, board with class filter and week view, audit with official exams, Setup with events and exams), six shared pieces (AI badge and popover, proposal diff, activity drawer and job chip, legend, API client, engine import), and the API and engine they talk to](04-frontend-components.svg)
 
 ## 5. Domain model
 

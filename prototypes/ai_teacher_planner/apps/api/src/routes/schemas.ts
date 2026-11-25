@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import type { SkillId } from "@planner/ai";
 import {
   type CurriculumPack,
   isIsoDate,
@@ -373,4 +374,29 @@ export const assessmentView = z.object({
   slotUse: z.enum(["whole", "in-lesson"]),
   title: z.string(),
   provenance,
+});
+
+/** A run of the AI, as every route that starts or lists one answers it. */
+export const SKILL_IDS = [
+  "planner-import-timetable",
+  "planner-build-curriculum-pack",
+  "planner-classify-calendar-events",
+  "planner-suggest-lesson-counts",
+  "planner-hl-prerequisites",
+  "content-refresh-resource",
+  "content-cover-lesson",
+  "content-independent-task",
+] as const satisfies readonly SkillId[];
+
+export const aiRun = z.object({
+  id: z.string(),
+  skillId: z.enum(SKILL_IDS),
+  status: z.enum(["queued", "running", "done", "failed", "cancelled"]),
+  startedAt: z.string(),
+  durationMs: z.number().nullable(),
+  provider: z.string().nullable(),
+  model: z.string().nullable(),
+  failure: z.string().nullable(),
+  note: z.string().nullable(),
+  itemIds: z.array(z.string()),
 });

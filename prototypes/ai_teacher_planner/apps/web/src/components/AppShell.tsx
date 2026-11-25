@@ -13,6 +13,7 @@ import { ErrorState } from "./ui/states.tsx";
 const NAV = [
   { to: "/", label: "Today", end: true },
   { to: "/board", label: "Board", end: false },
+  { to: "/scheme", label: "Scheme of work", end: false },
   { to: "/audit", label: "Slot audit", end: false },
   { to: "/setup", label: "Setup", end: true },
   { to: "/setup/courses", label: "Curriculum", end: false },
