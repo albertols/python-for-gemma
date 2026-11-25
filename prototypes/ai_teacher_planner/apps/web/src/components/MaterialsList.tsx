@@ -17,7 +17,7 @@ export function sizeWords(bytes: number): string {
 export const MAX_MATERIAL_BYTES = 25 * 1024 * 1024;
 export const TOO_LARGE = "That file is over 25 MB, so it was not attached.";
 
-const ACCEPT = ".pptx,.docx,.xlsx,.pdf,.png,.jpg";
+const ACCEPT = ".pptx,.docx,.xlsx,.pdf,.png,.jpg,.jpeg";
 
 /**
  * The files attached to one lesson, each with Remove, and "Attach a file". A

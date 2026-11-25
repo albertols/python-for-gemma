@@ -454,3 +454,219 @@ test("the start-up sweep removes old .part files, counts files with no row, and 
     withoutRow: 0,
   });
 });
+
+const MAIN = `<Override PartName="/word/document.xml" ContentType="${CT.docx}"/>`;
+const rels = (body: string) =>
+  strToU8(
+    `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${body}</Relationships>`,
+  );
+const REL =
+  "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+test("under embeddings/ only .docx, .xlsx and .pptx are allowed, whatever the case", async () => {
+  const store = createMaterialStore(dir);
+  for (const entry of [
+    "word/embeddings/Microsoft_Word_97_-_2003_Document.doc",
+    "word/embeddings/sheet.XLS",
+    "ppt/embeddings/slides.ppt",
+    "word/embeddings/data.bin",
+    "word/embeddings/macro.docm",
+    "xl/embeddings/macro.XLSM",
+    "ppt/embeddings/macro.pptm",
+    "word/embeddings/noextension",
+    "word/embeddings/sub/evil.exe",
+  ]) {
+    const err = await refusal(
+      store.save({
+        name: "a.docx",
+        stream: from(docxWith(MAIN, { [entry]: new Uint8Array([1]) })),
+      }),
+    );
+    expect(err.code, entry).toBe("material-content");
+  }
+  expect(files()).toEqual([]);
+  for (const entry of [
+    "word/embeddings/Microsoft_Excel_Sheet1.xlsx",
+    "word/embeddings/Table.XLSX",
+    "ppt/embeddings/deck.pptx",
+  ])
+    await store.save({
+      name: "ok.docx",
+      stream: from(docxWith(MAIN, { [entry]: new Uint8Array([1]) })),
+    });
+});
+
+test("two entries with the same name, in any case, are refused", async () => {
+  const store = createMaterialStore(dir);
+  const types = strToU8(typesXml(MAIN));
+  // fflate's zipSync cannot write duplicates, so the second entry is added to the bytes by hand
+  const dup = (a: string, b: string) => {
+    const first = zipSync({ [a]: types, "word/document.xml": strToU8("<x/>") });
+    return appendEntry(first, b, types);
+  };
+  for (const [a, b] of [
+    ["[Content_Types].xml", "[Content_Types].xml"],
+    ["[Content_Types].xml", "[content_types].xml"],
+    ["word/document.xml", "WORD/Document.xml"],
+  ] as const) {
+    const bytes =
+      a === "word/document.xml"
+        ? appendEntry(docxWith(MAIN), b, strToU8("<y/>"))
+        : dup(a, b);
+    const err = await refusal(
+      store.save({ name: "dup.docx", stream: from(bytes) }),
+    );
+    expect(err.code, `${a} / ${b}`).toBe("material-content");
+  }
+  expect(files()).toEqual([]);
+  // the hand-made zip itself is sound: with a name that is not a repeat it is accepted
+  const sound = appendEntry(docxWith(MAIN), "word/other.xml", strToU8("<y/>"));
+  expect(
+    (await store.save({ name: "sound.docx", stream: from(sound) })).storedName,
+  ).toMatch(/\.docx$/);
+});
+
+test("an xl/macrosheets part covered only by a Default xml type is refused, as are dialog sheets", async () => {
+  const store = createMaterialStore(dir);
+  for (const entry of [
+    "xl/macrosheets/sheet1.xml",
+    "xl/dialogsheets/sheet1.xml",
+  ]) {
+    const bytes = zipSync({
+      "[Content_Types].xml": strToU8(
+        typesXml(
+          `<Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${CT.xlsx}"/>`,
+        ),
+      ),
+      [entry]: strToU8("<x/>"),
+    });
+    const err = await refusal(
+      store.save({ name: "a.xlsx", stream: from(bytes) }),
+    );
+    expect(err.code, entry).toBe("material-content");
+  }
+});
+
+test("part names are read without a leading / or ./ before every rule", async () => {
+  const store = createMaterialStore(dir);
+  for (const entry of [
+    "/word/x.bin",
+    "./word/x.bin",
+    "/./word/embeddings/x.doc",
+    "/xl/macrosheets/s.xml",
+    "./word/vbaProject.bin",
+  ]) {
+    const err = await refusal(
+      store.save({
+        name: "a.docx",
+        stream: from(docxWith(MAIN, { [entry]: new Uint8Array([1]) })),
+      }),
+    );
+    expect(err.code, entry).toBe("material-content");
+  }
+});
+
+test("a remote template, OLE link, frame, subdocument or package is refused; an external hyperlink is fine", async () => {
+  const store = createMaterialStore(dir);
+  for (const type of [
+    "attachedTemplate",
+    "oleObject",
+    "frame",
+    "subDocument",
+    "package",
+  ]) {
+    const bytes = docxWith(MAIN, {
+      "word/_rels/settings.xml.rels": rels(
+        `<Relationship Id="rId1" Type="${REL}/${type}" Target="https://evil.example/t.dotm" TargetMode="External"/>`,
+      ),
+    });
+    const err = await refusal(
+      store.save({ name: "a.docx", stream: from(bytes) }),
+    );
+    expect(err.code, type).toBe("material-content");
+  }
+  // single quotes, lower-case mode, a character reference in the type: still refused
+  for (const rel of [
+    `<Relationship Id='r' Type='${REL}/attachedTemplate' Target='http://x/y' TargetMode='External'/>`,
+    `<Relationship Id="r" Type="${REL}/attachedTemplate" Target="http://x/y" TargetMode="external"/>`,
+    `<Relationship Id="r" Type="${REL}/attached&#84;emplate" Target="http://x/y" TargetMode="External"/>`,
+  ]) {
+    const bytes = docxWith(MAIN, { "_rels/.rels": rels(rel) });
+    const err = await refusal(
+      store.save({ name: "a.docx", stream: from(bytes) }),
+    );
+    expect(err.code, rel).toBe("material-content");
+  }
+  expect(files()).toEqual([]);
+  const fine = docxWith(MAIN, {
+    "word/_rels/document.xml.rels": rels(
+      `<Relationship Id="rId1" Type="${REL}/hyperlink" Target="https://example.org" TargetMode="External"/>` +
+        `<Relationship Id="rId2" Type="${REL}/oleObject" Target="embeddings/x.xlsx"/>`,
+    ),
+  });
+  expect(
+    (await store.save({ name: "fine.docx", stream: from(fine) })).storedName,
+  ).toMatch(/\.docx$/);
+});
+
+/** Adds one more local-file entry (stored, not compressed) to a zip, even when the name is already there. */
+function appendEntry(
+  zip: Uint8Array,
+  name: string,
+  data: Uint8Array,
+): Uint8Array {
+  const buf = Buffer.from(zip);
+  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const cdSize = buf.readUInt32LE(eocd + 12);
+  const cdOffset = buf.readUInt32LE(eocd + 16);
+  const count = buf.readUInt16LE(eocd + 10);
+  const nameBytes = Buffer.from(name);
+  const crc = crc32(data);
+  const local = Buffer.alloc(30);
+  local.writeUInt32LE(0x04034b50, 0);
+  local.writeUInt16LE(20, 4);
+  local.writeUInt32LE(crc, 14);
+  local.writeUInt32LE(data.length, 18);
+  local.writeUInt32LE(data.length, 22);
+  local.writeUInt16LE(nameBytes.length, 26);
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(20, 4);
+  central.writeUInt16LE(20, 6);
+  central.writeUInt32LE(crc, 16);
+  central.writeUInt32LE(data.length, 20);
+  central.writeUInt32LE(data.length, 24);
+  central.writeUInt16LE(nameBytes.length, 28);
+  central.writeUInt32LE(cdOffset, 42);
+  const head = buf.subarray(0, cdOffset);
+  const cd = buf.subarray(cdOffset, cdOffset + cdSize);
+  const newLocalOffset = head.length;
+  central.writeUInt32LE(newLocalOffset, 42);
+  const tail = Buffer.from(buf.subarray(eocd));
+  const newCdOffset =
+    newLocalOffset + local.length + nameBytes.length + data.length;
+  tail.writeUInt16LE(count + 1, 8);
+  tail.writeUInt16LE(count + 1, 10);
+  tail.writeUInt32LE(cdSize + central.length + nameBytes.length, 12);
+  tail.writeUInt32LE(newCdOffset, 16);
+  return new Uint8Array(
+    Buffer.concat([
+      head,
+      local,
+      nameBytes,
+      Buffer.from(data),
+      cd,
+      central,
+      nameBytes,
+      tail,
+    ]),
+  );
+}
+function crc32(data: Uint8Array): number {
+  let c = ~0;
+  for (const b of data) {
+    c ^= b;
+    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+  }
+  return ~c >>> 0;
+}

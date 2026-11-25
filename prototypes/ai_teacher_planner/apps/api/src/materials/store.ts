@@ -189,7 +189,8 @@ function verify(file: string, ext: Extension): void {
       filter: (entry) => {
         names.push(entry.name);
         return (
-          entry.name === "[Content_Types].xml" &&
+          (entry.name === "[Content_Types].xml" ||
+            partName(entry.name).endsWith(".rels")) &&
           entry.originalSize <= MAX_TYPES_PART_BYTES
         );
       },
@@ -199,9 +200,36 @@ function verify(file: string, ext: Extension): void {
   }
   const types = parts["[Content_Types].xml"];
   if (!types) throw wrongContent(ext);
-  if (!isPlainOffice(names, new TextDecoder().decode(types), check.main))
+  const decoder = new TextDecoder();
+  const relationships = Object.entries(parts)
+    .filter(([name]) => name !== "[Content_Types].xml")
+    .map(([, bytes]) => decoder.decode(bytes));
+  // a .rels part too big to read is not read at all, so it is refused
+  const relsSeen = names.filter((n) => partName(n).endsWith(".rels")).length;
+  if (
+    relationships.length !== relsSeen ||
+    !isPlainOffice(names, decoder.decode(types), relationships, check.main)
+  )
     throw wrongContent(ext);
 }
+
+/** A zip entry's name as the package reads it: no leading `/` or `./`, forward slashes, lower case. */
+function partName(raw: string): string {
+  let name = raw.replaceAll("\\", "/").toLowerCase();
+  while (name.startsWith("/") || name.startsWith("./"))
+    name = name.slice(name.startsWith("/") ? 1 : 2);
+  return name;
+}
+
+/** Relationship types that pull in something from outside the file when the target is external. */
+const REMOTE_RELATIONSHIPS = new Set([
+  "attachedtemplate",
+  "oleobject",
+  "frame",
+  "subdocument",
+  "package",
+]);
+const EMBEDDED_DOCUMENT = /\.(docx|xlsx|pptx)$/;
 
 /** Printer settings are the one kind of binary part a document may hold. */
 const PRINTER_SETTINGS =
@@ -252,20 +280,46 @@ const ATTRIBUTE = /([A-Za-z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 function isPlainOffice(
   names: readonly string[],
   xml: string,
+  relationships: readonly string[],
   main: string,
 ): boolean {
   if (/<!|<\?(?!xml\b)/i.test(xml.replace(/^\s*<\?xml[^>]*\?>/i, "")))
     return false;
+  const seen = new Set<string>();
   for (const raw of names) {
-    const name = raw.replaceAll("\\", "/").toLowerCase();
-    if (/vbaproject|activex/.test(name)) return false;
+    const name = partName(raw);
+    if (seen.has(name)) return false; // two entries of one name: which one counts is a trick
+    seen.add(name);
+    if (/vbaproject|activex|macrosheet|dialogsheet/.test(name)) return false;
     if (/(^|\/)embeddings\/oleobject/.test(name)) return false;
+    if (/(^|\/)embeddings\//.test(name) && !EMBEDDED_DOCUMENT.test(name))
+      return false;
     if (
       /^(word|xl|ppt)\//.test(name) &&
       name.endsWith(".bin") &&
       !PRINTER_SETTINGS.test(name)
     )
       return false;
+  }
+  for (const rels of relationships) {
+    if (/<!|<\?(?!xml\b)/i.test(rels.replace(/^\s*<\?xml[^>]*\?>/i, "")))
+      return false;
+    for (const tag of rels.matchAll(TAG)) {
+      if ((tag[1] ?? "").toLowerCase() !== "relationship") continue;
+      const attributes = new Map<string, string>();
+      for (const attribute of (tag[2] ?? "").matchAll(ATTRIBUTE)) {
+        const value = decodeXml(attribute[2] ?? attribute[3] ?? "");
+        if (value === null) return false;
+        attributes.set((attribute[1] ?? "").toLowerCase(), value);
+      }
+      const type = (attributes.get("type") ?? "").toLowerCase();
+      const kind = type.slice(type.lastIndexOf("/") + 1);
+      if (
+        (attributes.get("targetmode") ?? "").toLowerCase() === "external" &&
+        REMOTE_RELATIONSHIPS.has(kind)
+      )
+        return false;
+    }
   }
   let hasMain = false;
   for (const tag of xml.matchAll(TAG)) {
