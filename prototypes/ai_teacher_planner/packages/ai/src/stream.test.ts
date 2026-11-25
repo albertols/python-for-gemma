@@ -1,30 +1,10 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
+import { recordedLines, withResult } from "./__fixtures__/recorded.ts";
 import { AiError, type AiProgress } from "./port.ts";
 import { linesOf, parseStream } from "./stream.ts";
 
-const here = dirname(fileURLToPath(import.meta.url));
-/** The recorded run, one string per line (5 lines: init, assistant, user, rate limit, result). */
-export const recordedLines = readFileSync(
-  join(here, "__fixtures__/claude-stream-ok.ndjson"),
-  "utf8",
-)
-  .split("\n")
-  .filter((l) => l.trim() !== "");
-
 async function* from(lines: string[]): AsyncGenerator<string> {
   for (const l of lines) yield l;
-}
-
-/** The recording with the last (result) line changed. */
-export function withResult(change: (r: Record<string, unknown>) => void) {
-  const lines = [...recordedLines];
-  const result = JSON.parse(lines.at(-1) ?? "{}") as Record<string, unknown>;
-  change(result);
-  lines[lines.length - 1] = JSON.stringify(result);
-  return lines;
 }
 
 async function rejection(p: Promise<unknown>): Promise<AiError> {
@@ -129,6 +109,61 @@ describe("parseStream, failures derived from the recording", () => {
     });
     const e = await rejection(parseStream(from(lines), () => {}));
     expect(e.reason).toBe("invalid-output");
+  });
+});
+
+describe("parseStream drains the stream", () => {
+  function counted(lines: string[]) {
+    const state = { read: 0, finished: false };
+    const iterable: AsyncIterable<string> = {
+      async *[Symbol.asyncIterator]() {
+        for (const l of lines) {
+          state.read++;
+          yield l;
+        }
+        state.finished = true;
+      },
+    };
+    return { state, iterable };
+  }
+
+  test("lines after the result are read to the end before it returns", async () => {
+    const c = counted([...recordedLines, "trailing", '{"type":"system"}']);
+    await parseStream(c.iterable, () => {});
+    expect(c.state.finished).toBe(true);
+    expect(c.state.read).toBe(recordedLines.length + 2);
+  });
+
+  test("an error result drains too, then fails", async () => {
+    const lines = withResult((r) => {
+      r.is_error = true;
+      r.result = "boom";
+    });
+    const c = counted([...lines, "trailing"]);
+    await rejection(parseStream(c.iterable, () => {}));
+    expect(c.state.finished).toBe(true);
+  });
+
+  test("the first result wins; a later one is ignored", async () => {
+    const first = recordedLines.at(-1) ?? "";
+    const later = JSON.stringify({
+      type: "result",
+      subtype: "error_during_execution",
+      is_error: true,
+      result: "late",
+    });
+    const out = await parseStream(from([...recordedLines, later]), () => {});
+    expect(out.output).toEqual({ ok: true });
+    expect(first).not.toBe(later);
+  });
+
+  test("an error result's words are cut to 300 characters", async () => {
+    const lines = withResult((r) => {
+      r.is_error = true;
+      r.result = "z".repeat(500);
+    });
+    const e = await rejection(parseStream(from(lines), () => {}));
+    expect(e.message.length).toBeLessThanOrEqual(300);
   });
 });
 

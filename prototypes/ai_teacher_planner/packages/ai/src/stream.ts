@@ -2,6 +2,11 @@ import { AiError, type AiProgress } from "./port.ts";
 
 type Json = Record<string, unknown>;
 
+/** Every error text she can see is cut to this many characters. */
+export const MAX_ERROR_TEXT = 300;
+export const cutForUser = (text: string): string =>
+  text.slice(0, MAX_ERROR_TEXT);
+
 const isObject = (v: unknown): v is Json =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -30,13 +35,18 @@ function notesForAssistant(event: Json): string[] {
  * Reads Claude Code's `--output-format stream-json` lines (as recorded in
  * __fixtures__/claude-stream-ok.ndjson): `system` (subtype `init`, carries the model),
  * `assistant`, `user`, `rate_limit_event`, then one `result`. Lines that are blank or not
- * JSON are skipped. Only the `result` decides the outcome.
+ * JSON are skipped. Only the first `result` decides the outcome, and the stream is read to
+ * its end first, so the child's pipe is never closed on it mid-write.
  */
 export async function parseStream(
   lines: AsyncIterable<string>,
   onProgress: (p: AiProgress) => void,
 ): Promise<{ output: unknown; model: string }> {
   let model: string | null = null;
+  let final:
+    | { error: AiError }
+    | { value: { output: unknown; model: string } }
+    | null = null;
   for await (const line of lines) {
     if (line.trim() === "") continue;
     let event: unknown;
@@ -53,26 +63,42 @@ export async function parseStream(
     } else if (event.type === "assistant") {
       for (const note of notesForAssistant(event))
         onProgress({ kind: "working", note });
-    } else if (event.type === "result") {
+    } else if (event.type === "result" && final === null) {
       if (event.is_error === true || event.subtype !== "success") {
         const said = typeof event.result === "string" ? event.result : "";
-        throw new AiError(
-          "failed",
-          said !== ""
-            ? `Claude could not finish: ${said}`
-            : `Claude could not finish (${String(event.subtype)})`,
-        );
+        final = {
+          error: new AiError(
+            "failed",
+            cutForUser(
+              said !== ""
+                ? `Claude could not finish: ${said}`
+                : `Claude could not finish (${String(event.subtype)})`,
+            ),
+          ),
+        };
+      } else if (
+        !("structured_output" in event) ||
+        event.structured_output == null
+      ) {
+        final = {
+          error: new AiError(
+            "invalid-output",
+            "Claude finished but gave no structured answer",
+          ),
+        };
+      } else {
+        final = {
+          value: {
+            output: event.structured_output,
+            model: model ?? modelFromUsage(event.modelUsage),
+          },
+        };
       }
-      if (!("structured_output" in event) || event.structured_output == null)
-        throw new AiError(
-          "invalid-output",
-          "Claude finished but gave no structured answer",
-        );
-      return {
-        output: event.structured_output,
-        model: model ?? modelFromUsage(event.modelUsage),
-      };
     }
+  }
+  if (final !== null) {
+    if ("error" in final) throw final.error;
+    return final.value;
   }
   throw new AiError("failed", "Claude stopped without an answer");
 }

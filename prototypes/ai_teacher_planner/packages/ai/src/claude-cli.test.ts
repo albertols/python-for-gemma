@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { z } from "zod";
+import { recordedLines, withResult } from "./__fixtures__/recorded.ts";
 import {
   buildArgs,
   type ChildLike,
@@ -10,8 +12,7 @@ import {
   type SpawnLike,
 } from "./claude-cli.ts";
 import { AiError, type AiProgress, type AiTask } from "./port.ts";
-import { getSkill, jsonSchemaFor } from "./registry.ts";
-import { recordedLines, withResult } from "./stream.test.ts";
+import { getSkill, jsonSchemaFor, skills } from "./registry.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const authStatus = readFileSync(
@@ -52,15 +53,19 @@ class FakeChild implements ChildLike {
   readonly err = channel();
   stdout = this.out.iterable;
   stderr = this.err.iterable;
-  killed: string | undefined;
+  signals: string[] = [];
+  ignoreTerm = false;
+  get killed(): string | undefined {
+    return this.signals[0];
+  }
   private closed = false;
   private onClose: ((code: number | null, signal: string | null) => void)[] =
     [];
   private onError: ((e: Error) => void)[] = [];
 
   kill(signal: NodeJS.Signals = "SIGTERM") {
-    this.killed = signal;
-    this.finish(null, signal);
+    this.signals.push(signal);
+    if (!(this.ignoreTerm && signal === "SIGTERM")) this.finish(null, signal);
     return true;
   }
   once(event: string, listener: never) {
@@ -110,6 +115,18 @@ function spawnReturning(make: () => ChildLike) {
 
 // ---- the task and the provider ----
 
+/** The shape of a real SKILL.md: front matter first. */
+const SKILL_FILE = `---
+name: planner-suggest-lesson-counts
+description: Used by the AI Teacher Planner app (headless). Not for interactive use. Suggests counts.
+---
+
+# Suggest lesson counts
+
+BODY MARKER: suggest counts for each chapter.
+`;
+const FIRST_LINE = "You are a skill of the AI Teacher Planner app.";
+
 const lessonCounts = getSkill("planner-suggest-lesson-counts");
 const answer = {
   suggestions: [{ itemId: "c1", lessons: 4, reason: "r", tricky: false }],
@@ -142,7 +159,7 @@ function setup(
   const provider = new ClaudeCodeCliProvider({
     spawn,
     env: extra.env ?? { PATH: "/bin" },
-    readSkillText: async () => "SKILL TEXT",
+    readSkillText: async () => SKILL_FILE,
     timeoutMs: extra.timeoutMs ?? 5_000,
   });
   const progress: AiProgress[] = [];
@@ -198,6 +215,14 @@ describe("buildArgs", () => {
     expect(a.filter((x) => x === "--tools")).toHaveLength(1);
   });
 
+  test("a prompt that starts with a dash is refused before anything is spawned", () => {
+    for (const prompt of ["---\nname: x", "-p", "--bare", "-"])
+      expect(() => buildArgs(prompt, "sonnet", {}, []), prompt).toThrow(
+        expect.objectContaining({ reason: "failed" }),
+      );
+    expect(() => buildArgs("", "sonnet", {}, [])).not.toThrow();
+  });
+
   test("--bare is never passed", () => {
     expect(buildArgs("P", "sonnet", {}, [])).not.toContain("--bare");
     expect(buildArgs("P", "opus", {}, ["WebSearch", "WebFetch"])).not.toContain(
@@ -240,6 +265,21 @@ describe("run: the happy path", () => {
     expect(t.progress.some((p) => p.kind === "working")).toBe(true);
   });
 
+  test("the prompt starts with a fixed line and carries the skill body, never its front matter", async () => {
+    const t = setup(() => scripted(answerStream()));
+    await t.provider.run(task, t.opts());
+    const prompt = t.calls[0]?.args[1] ?? "";
+    expect(prompt.startsWith(`${FIRST_LINE}\n`)).toBe(true);
+    expect(prompt[0]).not.toBe("-");
+    expect(prompt).toContain("BODY MARKER: suggest counts");
+    expect(prompt).not.toContain("---");
+    expect(prompt).not.toContain("name: planner-suggest-lesson-counts");
+    expect(prompt).not.toContain("description:");
+    expect(prompt.indexOf("BODY MARKER")).toBeLessThan(
+      prompt.indexOf("Synthetic Business"),
+    );
+  });
+
   test("it spawns `claude` with the skill's model, the schema, and a prompt of skill text then input", async () => {
     const t = setup(() => scripted(answerStream()));
     await t.provider.run(task, t.opts());
@@ -247,7 +287,7 @@ describe("run: the happy path", () => {
     const call = t.calls[0] as SpawnCall;
     expect(call.command).toBe("claude");
     const prompt = call.args[1] ?? "";
-    expect(prompt.startsWith("SKILL TEXT")).toBe(true);
+    expect(prompt).toContain("BODY MARKER");
     expect(prompt).toContain("Synthetic Business");
     expect(call.args).toEqual(
       buildArgs(prompt, lessonCounts.model, jsonSchemaFor(lessonCounts), []),
@@ -268,29 +308,84 @@ describe("run: the happy path", () => {
     });
     expect(calls[0]?.command).toBe("/opt/claude");
   });
+});
 
-  test("sources come from the output's own sources array, never marked as opened", async () => {
-    const withSources = {
-      ...answer,
-      sources: [
-        { url: "https://example.org/a", title: "A page" },
-        { url: "https://example.org/b" },
-        { title: "no url, dropped" },
-        "not an object",
-      ],
-    };
+describe("run: sources come from validated data only", () => {
+  const withSourcesSkill = async (
+    raw: unknown,
+    check: (t: ReturnType<typeof setup>) => Promise<void>,
+  ) => {
+    const id = "content-refresh-resource" as const;
+    const output = z.object({
+      ok: z.boolean(),
+      sources: z.array(
+        z.object({ url: z.string(), title: z.string().optional() }),
+      ),
+    });
+    skills[id] = { ...lessonCounts, id, input: z.unknown(), output, tools: [] };
+    try {
+      const t = setup(() =>
+        scripted(
+          withResult((r) => {
+            r.structured_output = raw;
+          }),
+        ),
+      );
+      await check(t);
+    } finally {
+      delete skills[id];
+    }
+  };
+  const sourcesTask = (): AiTask<unknown> => ({
+    ...task,
+    skillId: "content-refresh-resource",
+    input: {},
+    schema: getSkill("content-refresh-resource").output,
+  });
+
+  test("a skill whose schema declares sources gets them, http(s) only, never opened", () =>
+    withSourcesSkill(
+      {
+        ok: true,
+        sources: [
+          { url: "https://example.org/a", title: "A page" },
+          { url: "http://example.org/b" },
+          { url: "javascript:alert(1)" },
+          { url: "file:///etc/passwd" },
+          { url: "not a url" },
+        ],
+      },
+      async (t) => {
+        const res = await t.provider.run(sourcesTask(), t.opts());
+        expect(res.meta.sources).toEqual([
+          { url: "https://example.org/a", title: "A page", opened: false },
+          { url: "http://example.org/b", title: null, opened: false },
+        ]);
+      },
+    ));
+
+  test("raw sources that fail the schema make the whole answer invalid-output", () =>
+    withSourcesSkill(
+      { ok: true, sources: "https://example.org" },
+      async (t) => {
+        const e = await rejection(t.provider.run(sourcesTask(), t.opts()));
+        expect(e.reason).toBe("invalid-output");
+      },
+    ));
+
+  test("a sources array the schema does not declare is dropped, not trusted", async () => {
     const t = setup(() =>
       scripted(
         withResult((r) => {
-          r.structured_output = withSources;
+          r.structured_output = {
+            ...answer,
+            sources: [{ url: "https://example.org/a" }],
+          };
         }),
       ),
     );
     const res = await t.provider.run(task, t.opts());
-    expect(res.meta.sources).toEqual([
-      { url: "https://example.org/a", title: "A page", opened: false },
-      { url: "https://example.org/b", title: null, opened: false },
-    ]);
+    expect(res.meta.sources).toEqual([]);
   });
 });
 
@@ -381,6 +476,44 @@ describe("run: refusals before anything is spawned", () => {
     );
     expect(e.reason).toBe("failed");
     expect(t.spawn).not.toHaveBeenCalled();
+  });
+
+  test("a skill text that starts with a dash after all is refused before spawn", async () => {
+    // front matter stripping must never leave a dash-leading prompt, whatever the text holds
+    const { spawn } = spawnReturning(() => scripted(answerStream()));
+    const provider = new ClaudeCodeCliProvider({
+      spawn,
+      env: {},
+      readSkillText: async () => "---\nunterminated front matter\nbody",
+    });
+    await provider
+      .run(task, { signal: new AbortController().signal, onProgress: () => {} })
+      .catch(() => {});
+    for (const call of spawn.mock.calls)
+      expect(call[1][1]?.startsWith("-")).toBe(false);
+  });
+
+  test("a skill text that cannot be read names the skill and shows no path", async () => {
+    const { spawn } = spawnReturning(() => scripted(answerStream()));
+    const provider = new ClaudeCodeCliProvider({
+      spawn,
+      env: {},
+      readSkillText: async () => {
+        throw new Error(
+          "ENOENT: no such file '/Users/someone/repo/.claude/skills/x/SKILL.md'",
+        );
+      },
+    });
+    const e = await rejection(
+      provider.run(task, {
+        signal: new AbortController().signal,
+        onProgress: () => {},
+      }),
+    );
+    expect(e.reason).toBe("failed");
+    expect(e.message).toContain("planner-suggest-lesson-counts");
+    expect(e.message).not.toMatch(/Users|ENOENT/);
+    expect(spawn).not.toHaveBeenCalled();
   });
 
   test("a skill text that cannot be read is failed, not spawned", async () => {
@@ -535,6 +668,125 @@ describe("run: when the process goes wrong", () => {
     const e = await rejection(t.provider.run(task, t.opts()));
     expect(e.reason).toBe("failed");
     expect(e.message).toBe("x".repeat(300));
+  });
+
+  test("a stderr line that echoes the prompt is replaced by a fixed sentence", async () => {
+    const t = setup(() => {
+      // the CLI complaining about its own argument: the line holds the tail of the prompt
+      return scripted([], {
+        code: 1,
+        stderr:
+          "something\nerror: unknown option '---\nname: x\nBODY MARKER: suggest counts for each chapter.'\n",
+      });
+    });
+    const e = await rejection(t.provider.run(task, t.opts()));
+    expect(e.message).toBe(
+      "Claude could not read the request. Please tell Alberto.",
+    );
+  });
+
+  test("any stderr line holding 40 characters of the prompt is replaced", async () => {
+    let prompt = "";
+    const t = setup(() => {
+      // spawn is called before the child is built, so the prompt is known by then
+      prompt = t.calls[0]?.args[1] ?? "";
+      const line =
+        prompt.split("\n").find((l) => l.startsWith("BODY MARKER")) ?? "";
+      return scripted([], {
+        code: 1,
+        stderr: `failed on: ${line.slice(0, 42)} (end)\n`,
+      });
+    });
+    const e = await rejection(t.provider.run(task, t.opts()));
+    expect(prompt).toContain("BODY MARKER");
+    expect(e.message).toBe(
+      "Claude could not read the request. Please tell Alberto.",
+    );
+  });
+
+  test("an unknown-option error is replaced even when it shows none of the prompt", async () => {
+    const t = setup(() =>
+      scripted([], { code: 1, stderr: "error: unknown option '--zzz'\n" }),
+    );
+    const e = await rejection(t.provider.run(task, t.opts()));
+    expect(e.message).toBe(
+      "Claude could not read the request. Please tell Alberto.",
+    );
+  });
+
+  test("an ordinary stderr line is still shown", async () => {
+    const t = setup(() => scripted([], { code: 1, stderr: "Rate limited\n" }));
+    expect((await rejection(t.provider.run(task, t.opts()))).message).toBe(
+      "Rate limited",
+    );
+  });
+
+  test("an error result and an invalid-output message are cut to 300 characters", async () => {
+    const long = "y".repeat(500);
+    const t = setup(() =>
+      scripted(
+        withResult((r) => {
+          r.is_error = true;
+          r.subtype = "error_during_execution";
+          r.result = long;
+          delete r.structured_output;
+        }),
+      ),
+    );
+    expect(
+      (await rejection(t.provider.run(task, t.opts()))).message.length,
+    ).toBeLessThanOrEqual(300);
+    const bad = setup(() =>
+      scripted(
+        withResult((r) => {
+          r.structured_output = { suggestions: [{ itemId: long }] };
+        }),
+      ),
+    );
+    const e = await rejection(bad.provider.run(task, bad.opts()));
+    expect(e.reason).toBe("invalid-output");
+    expect(e.message.length).toBeLessThanOrEqual(300);
+    expect(e.message).not.toContain("\n");
+    expect(e.message).not.toContain(long);
+  });
+
+  test("a child that ignores SIGTERM is sent SIGKILL 5 seconds later", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let child: FakeChild | undefined;
+    const t = setup(
+      () => {
+        child = new FakeChild();
+        child.ignoreTerm = true;
+        return child;
+      },
+      { timeoutMs: 1_000 },
+    );
+    const pending = rejection(t.provider.run(task, t.opts()));
+    await vi.advanceTimersByTimeAsync(1_001);
+    expect((await pending).reason).toBe("timeout");
+    expect(child?.signals).toEqual(["SIGTERM"]);
+    await vi.advanceTimersByTimeAsync(4_900);
+    expect(child?.signals).toEqual(["SIGTERM"]);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(child?.signals).toEqual(["SIGTERM", "SIGKILL"]);
+  });
+
+  test("a child that exits after SIGTERM is not sent SIGKILL", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let child: FakeChild | undefined;
+    const t = setup(
+      () => {
+        child = new FakeChild();
+        return child;
+      },
+      { timeoutMs: 1_000 },
+    );
+    const pending = rejection(t.provider.run(task, t.opts()));
+    await vi.advanceTimersByTimeAsync(1_001);
+    await pending;
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(child?.signals).toEqual(["SIGTERM"]);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   test("a non-zero exit with nothing on standard error still says the code", async () => {

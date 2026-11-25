@@ -76,6 +76,11 @@ export function readSkillText(
   return readSkillFile(skill.promptPath, root);
 }
 
+/** The text after a leading `---` ... `---` front-matter block (all of it when there is none). */
+export function stripFrontMatter(text: string): string {
+  return text.replace(/^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "");
+}
+
 /** The `description:` line of a SKILL.md front matter, or "" when there is none. */
 export function descriptionOf(text: string): string {
   const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
@@ -177,9 +182,13 @@ export function skillFileProblems(
   const problems: string[] = [];
   const skillsDir = resolve(root, ".claude/skills");
   const textOf = (id: string) => resolve(skillsDir, id, "SKILL.md");
+  // A skill's own promptPath is the file that counts, not a folder named after its id.
+  const fileOf = (skill: SkillDefinition<unknown, unknown>) =>
+    resolve(root, skill.promptPath);
+  const checked = new Set<string>();
   for (const skill of Object.values(skills)) {
     if (!skill) continue;
-    const exists = existsSync(textOf(skill.id));
+    const exists = existsSync(fileOf(skill));
     if (pending.includes(skill.id)) {
       if (exists)
         problems.push(
@@ -191,7 +200,7 @@ export function skillFileProblems(
       problems.push(`${skill.id}: no SKILL.md`);
       continue;
     }
-    const schemaFile = resolve(skillsDir, skill.id, "schema.json");
+    const schemaFile = resolve(dirname(fileOf(skill)), "schema.json");
     const expected = JSON.stringify(jsonSchemaFor(skill));
     const onDisk = existsSync(schemaFile)
       ? JSON.stringify(JSON.parse(readFileSync(schemaFile, "utf8")))
@@ -199,17 +208,21 @@ export function skillFileProblems(
     if (onDisk !== JSON.stringify(JSON.parse(expected)))
       problems.push(`${skill.id}: schema.json is missing or stale`);
   }
+  // Description check (ruling 41): every registered skill's own file, then every
+  // planner-* or content-* folder that no registered skill points at.
+  const toCheck: { label: string; file: string }[] = [];
+  for (const skill of Object.values(skills))
+    if (skill) toCheck.push({ label: skill.id, file: fileOf(skill) });
   const dirs = existsSync(skillsDir) ? readdirSync(skillsDir).sort() : [];
-  const registeredIds = new Set<string>(
-    Object.values(skills).flatMap((s) => (s ? [s.id] : [])),
-  );
-  for (const id of dirs) {
-    const ours = registeredIds.has(id) || /^(planner|content)-/.test(id);
-    if (!ours || INTERACTIVE_SKILLS.includes(id)) continue;
-    if (!existsSync(textOf(id))) continue;
-    if (!APP_ONLY.test(descriptionOf(readFileSync(textOf(id), "utf8"))))
+  for (const id of dirs)
+    if (/^(planner|content)-/.test(id) && !INTERACTIVE_SKILLS.includes(id))
+      toCheck.push({ label: id, file: textOf(id) });
+  for (const { label, file } of toCheck) {
+    if (checked.has(file) || !existsSync(file)) continue;
+    checked.add(file);
+    if (!APP_ONLY.test(descriptionOf(readFileSync(file, "utf8"))))
       problems.push(
-        `${id}: description must start "Used by the AI Teacher Planner app (headless). Not for interactive use."`,
+        `${label}: description must start "Used by the AI Teacher Planner app (headless). Not for interactive use."`,
       );
   }
   return problems;

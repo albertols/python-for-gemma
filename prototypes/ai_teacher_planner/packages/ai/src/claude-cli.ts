@@ -7,8 +7,13 @@ import {
   type AiResult,
   type AiTask,
 } from "./port.ts";
-import { buildPrompt, getSkill, jsonSchemaFor } from "./registry.ts";
-import { linesOf, parseStream } from "./stream.ts";
+import {
+  buildPrompt,
+  getSkill,
+  jsonSchemaFor,
+  stripFrontMatter,
+} from "./registry.ts";
+import { cutForUser, linesOf, parseStream } from "./stream.ts";
 
 /** The part of a child process this adapter uses, so tests can fake it. */
 export interface ChildLike {
@@ -37,6 +42,14 @@ const UNAVAILABLE =
   "Claude Code is not installed on this Mac, or the app cannot find it. Install Claude Code, sign in, then try again.";
 const SIGNED_OUT =
   "Claude Code is signed out. Open Claude Code in a terminal, sign in, then try again.";
+const UNREADABLE_REQUEST =
+  "Claude could not read the request. Please tell Alberto.";
+const SIGKILL_AFTER_MS = 5_000;
+/**
+ * Every prompt starts with this line. The CLI reads a prompt that begins with `-` (such as
+ * a SKILL.md's `---` front matter) as an unknown option, so nothing else may come first.
+ */
+export const PROMPT_PREAMBLE = "You are a skill of the AI Teacher Planner app.";
 const AUTH_STATUS_TIMEOUT_MS = 30_000;
 const SECRETS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"];
 
@@ -55,6 +68,11 @@ export function buildArgs(
   schema: object,
   tools: readonly string[],
 ): string[] {
+  if (prompt.startsWith("-"))
+    throw new AiError(
+      "failed",
+      "The request cannot start with a dash, because Claude would read it as an option",
+    );
   return [
     "-p",
     prompt,
@@ -93,13 +111,27 @@ async function collect(chunks: AsyncIterable<string | Uint8Array>) {
   return text;
 }
 
-/** The last non-empty line, cut to 300 characters. */
+/** The last non-empty line, whole. */
 function lastLine(text: string): string {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l !== "");
-  return (lines.at(-1) ?? "").slice(0, 300);
+  return lines.at(-1) ?? "";
+}
+
+/**
+ * A stderr line she may see. The CLI sometimes repeats the prompt (her extracted text) in an
+ * error, so a line holding 40 characters of the prompt, or an "unknown option" error, is
+ * replaced by a fixed sentence. Otherwise the line, cut to 300 characters.
+ */
+function safeStderr(line: string, prompt: string): string {
+  if (line.startsWith("error: unknown option")) return UNREADABLE_REQUEST;
+  const window = Math.min(40, prompt.length);
+  if (window > 0)
+    for (let i = 0; i + window <= prompt.length; i++)
+      if (line.includes(prompt.slice(i, i + window))) return UNREADABLE_REQUEST;
+  return cutForUser(line);
 }
 
 type Outcome<T> = { ok: true; value: T } | { ok: false; error: unknown };
@@ -110,14 +142,17 @@ interface Execution<T> {
   stderr: string;
 }
 
-/** Sources the output names for itself, all marked as not opened. */
-function sourcesOf(output: unknown): Source[] {
-  const list = (output as { sources?: unknown } | null)?.sources;
+/**
+ * Sources from schema-validated data only: a skill whose schema declares a `sources` array
+ * gets them. Only http and https URLs are kept, and none is marked as opened.
+ */
+function sourcesOf(data: unknown): Source[] {
+  const list = (data as { sources?: unknown } | null)?.sources;
   if (!Array.isArray(list)) return [];
   const sources: Source[] = [];
   for (const s of list) {
     const url = (s as { url?: unknown } | null)?.url;
-    if (typeof url !== "string") continue;
+    if (typeof url !== "string" || !isWebUrl(url)) continue;
     const title = (s as { title?: unknown }).title;
     sources.push({
       url,
@@ -126,6 +161,15 @@ function sourcesOf(output: unknown): Source[] {
     });
   }
   return sources;
+}
+
+function isWebUrl(url: string): boolean {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export class ClaudeCodeCliProvider implements AiProvider {
@@ -175,7 +219,7 @@ export class ClaudeCodeCliProvider implements AiProvider {
         // fall through to the generic sentence
       }
     }
-    const said = lastLine(run.stderr);
+    const said = cutForUser(lastLine(run.stderr));
     return {
       ok: false,
       reason:
@@ -196,7 +240,11 @@ export class ClaudeCodeCliProvider implements AiProvider {
       return result;
     } catch (e) {
       const error =
-        e instanceof AiError ? e : new AiError("failed", messageOf(e));
+        e instanceof AiError
+          ? e.message.length > 300
+            ? new AiError(e.reason, cutForUser(e.message))
+            : e
+          : new AiError("failed", cutForUser(messageOf(e)));
       opts.onProgress({ kind: "failed", reason: error.message });
       throw error;
     }
@@ -231,7 +279,17 @@ export class ClaudeCodeCliProvider implements AiProvider {
         "The task's tools are not the registered skill's tools",
       );
 
-    const skillText = await this.readSkillText(skill.promptPath);
+    let raw: string;
+    try {
+      raw = await this.readSkillText(skill.promptPath);
+    } catch {
+      // the fs message holds a home path: name the skill instead
+      throw new AiError(
+        "failed",
+        `The instructions for ${skill.id} could not be read.`,
+      );
+    }
+    const skillText = `${PROMPT_PREAMBLE}\n\n${stripFrontMatter(raw).trim()}`;
     const prompt = buildPrompt(skill, skillText, task.input, task.text);
     if (opts.signal.aborted) throw new AiError("cancelled");
 
@@ -252,13 +310,16 @@ export class ClaudeCodeCliProvider implements AiProvider {
 
     if (run.code !== 0) {
       const said = lastLine(run.stderr);
-      if (said !== "") throw new AiError("failed", said);
+      if (said !== "") throw new AiError("failed", safeStderr(said, prompt));
       const exit =
         run.code === null
           ? "Claude Code was stopped before it finished"
           : `Claude Code stopped with exit code ${run.code}`;
       if (!run.outcome.ok && run.outcome.error instanceof AiError)
-        throw new AiError("failed", `${run.outcome.error.message} (${exit})`);
+        throw new AiError(
+          "failed",
+          cutForUser(`${run.outcome.error.message} (${exit})`),
+        );
       throw new AiError("failed", exit);
     }
     if (!run.outcome.ok) throw run.outcome.error;
@@ -268,7 +329,7 @@ export class ClaudeCodeCliProvider implements AiProvider {
     if (!parsed.success)
       throw new AiError(
         "invalid-output",
-        `Claude's answer did not match what the planner expects: ${parsed.error.message}`,
+        "Claude's answer did not match what the planner expects.",
       );
     return {
       data: parsed.data,
@@ -278,7 +339,7 @@ export class ClaudeCodeCliProvider implements AiProvider {
         skillId: task.skillId,
         startedAt: startedAt.toISOString(),
         durationMs: Date.now() - startedAt.getTime(),
-        sources: sourcesOf(output),
+        sources: sourcesOf(parsed.data),
       },
     };
   }
@@ -303,11 +364,15 @@ export class ClaudeCodeCliProvider implements AiProvider {
     }
 
     let stopped = false;
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
     let interrupt: (e: AiError) => void = () => {};
     const interrupted = new Promise<never>((_, reject) => {
       interrupt = (e) => {
         if (stopped) return;
         stopped = true;
+        // a child that ignores SIGTERM must not keep the queue's slot; the timer is set
+        // first because a child may close the moment it is killed, which clears it
+        killTimer = setTimeout(() => child.kill("SIGKILL"), SIGKILL_AFTER_MS);
         child.kill("SIGTERM");
         reject(e);
       };
@@ -332,7 +397,10 @@ export class ClaudeCodeCliProvider implements AiProvider {
 
     const closed = new Promise<number | null>((resolve, reject) => {
       child.once("error", (e) => reject(spawnProblem(e)));
-      child.once("close", (code) => resolve(code));
+      child.once("close", (code) => {
+        clearTimeout(killTimer);
+        resolve(code);
+      });
     });
     closed.catch(() => {});
 

@@ -20,6 +20,7 @@ import {
   repoRoot,
   skillFileProblems,
   skills,
+  stripFrontMatter,
 } from "./registry.ts";
 
 const lessonCounts = getSkill("planner-suggest-lesson-counts");
@@ -231,6 +232,25 @@ describe("registry", () => {
       ).toThrow(/\.claude\/skills/);
   });
 
+  test("stripFrontMatter removes a leading block, from a real SKILL.md too", () => {
+    expect(
+      stripFrontMatter("---\nname: x\ndescription: y\n---\n\n# Body"),
+    ).toBe("\n# Body");
+    expect(stripFrontMatter("---\r\na: b\r\n---\r\nBody")).toBe("Body");
+    expect(stripFrontMatter("# No front matter\n---\nnot a block")).toBe(
+      "# No front matter\n---\nnot a block",
+    );
+    const real = readSkillText({
+      ...lessonCounts,
+      promptPath: ".claude/skills/planner-run-and-verify/SKILL.md",
+    });
+    expect(real.startsWith("---")).toBe(true);
+    const body = stripFrontMatter(real);
+    expect(body.startsWith("-")).toBe(false);
+    expect(body).toContain("# Run and verify");
+    expect(body).not.toContain("description: Use when starting");
+  });
+
   test("descriptionOf reads the front-matter description", () => {
     expect(
       descriptionOf("---\nname: x\ndescription: Hello there.\n---\n# body"),
@@ -339,6 +359,35 @@ describe("registry", () => {
       ]);
       expect(problems).toHaveLength(1);
       expect(problems[0]).toMatch(/odd-registered-skill.*description/);
+    } finally {
+      delete skills[odd];
+    }
+  });
+
+  test("the description check reads the skill's own promptPath, not a folder named after its id", () => {
+    const odd = "content-cover-lesson" as SkillId;
+    const root = mkdtempSync(join(tmpdir(), "planner-skills-"));
+    const dir = join(root, ".claude/skills/elsewhere");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      "---\ndescription: Make slides.\n---\nbody\n",
+    );
+    writeFileSync(
+      join(dir, "schema.json"),
+      JSON.stringify(jsonSchemaFor(lessonCounts)),
+    );
+    skills[odd] = {
+      ...lessonCounts,
+      id: odd,
+      promptPath: ".claude/skills/elsewhere/SKILL.md",
+    };
+    try {
+      const problems = skillFileProblems(root, [
+        "planner-suggest-lesson-counts",
+      ]);
+      expect(problems.join("\n")).toMatch(/content-cover-lesson.*description/);
+      expect(problems.join("\n")).not.toMatch(/no SKILL\.md/);
     } finally {
       delete skills[odd];
     }
