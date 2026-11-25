@@ -128,14 +128,14 @@ export function planWindows(args: {
   canonical: Lesson[];
   /**
    * The track's item ids in scheme order, including items the course list has no
-   * lessons of. Without it, items are ranked from `canonical` alone.
+   * lessons of: items are ranked by their place in the scheme. Required, because
+   * ranking from `canonical` alone misplaces an item that only an override gives lessons.
    */
-  itemOrder?: readonly string[];
+  itemOrder: readonly string[];
 }): WindowPlan[] {
   const ids = args.groups.map((g) => g.id).sort(cmp);
   const rank = new Map<string, number>();
-  for (const id of args.itemOrder ?? args.canonical.map((l) => l.itemId))
-    if (!rank.has(id)) rank.set(id, rank.size);
+  for (const id of args.itemOrder) if (!rank.has(id)) rank.set(id, rank.size);
   const remaining = new Map<GroupId, StreamEntry[]>(
     ids.map((g) => [g, [...(args.streams[g] ?? [])]]),
   );

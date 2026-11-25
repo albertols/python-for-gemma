@@ -432,6 +432,7 @@ describe("planWindows", () => {
           : slotsOf(g, 4, g === a ? 3 : 5),
       requiredBefore: (c) => new Set(c.id === cp.id ? ["x"] : []),
       canonical,
+      itemOrder: ["x", "y"],
     });
     expect(plans.map((p) => p.checkpoint.id)).toEqual(["cp:t", "cp:block:X"]);
     // Slack is 1 and 3: one lesson of y comes forward for both; b has two spare slots.
@@ -465,6 +466,7 @@ describe("planWindows", () => {
         c.id === cp.id ? slotsOf(g, 3) : slotsOf(g, 4, 3),
       requiredBefore: (c: Checkpoint) => new Set(c.id === cp.id ? ["x"] : []),
       canonical,
+      itemOrder: ["x", "y"],
     };
     const given = planWindows({ ...args, checkpoints: [end, cp] });
     expect(given.map((p) => p.checkpoint.id)).toEqual(["cp:t", "cp:block:X"]);
@@ -481,6 +483,7 @@ describe("planWindows", () => {
         c.id === cp.id ? slotsOf(g, g === a ? 2 : 5) : slotsOf(g, 6, 5),
       requiredBefore: (c) => new Set(c.id === cp.id ? ["x"] : []),
       canonical,
+      itemOrder: ["x", "y"],
     });
     expect(plans[0]?.perGroup[a]).toMatchObject({
       required: ["x#1", "x#2"],

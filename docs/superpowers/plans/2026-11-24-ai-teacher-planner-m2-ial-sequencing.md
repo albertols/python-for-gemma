@@ -224,7 +224,7 @@ test("slots left after the last lesson become spare lessons", () => { /* ids sta
 
 ```ts
 export interface WindowPlan { checkpoint: Checkpoint; perGroup: Record<GroupId, { slots: SlotKey[]; required: LessonId[]; broughtForward: LessonId[]; spare: number; short: LessonId[] }> }
-export function planWindows(args: { groups: readonly Group[]; checkpoints: readonly Checkpoint[]; streams: Record<GroupId, Lesson[]>; windowSlots: (groupId: GroupId, checkpoint: Checkpoint) => SlotKey[]; requiredBefore: (checkpoint: Checkpoint) => Set<string> /* item ids */; canonical: Lesson[] }): WindowPlan[];
+export function planWindows(args: { groups: readonly Group[]; checkpoints: readonly Checkpoint[]; streams: Record<GroupId, Lesson[]>; windowSlots: (groupId: GroupId, checkpoint: Checkpoint) => SlotKey[]; requiredBefore: (checkpoint: Checkpoint) => Set<string> /* item ids */; canonical: Lesson[]; itemOrder: readonly string[] /* the track's item ids in scheme order: items are ranked by their place in the scheme */ }): WindowPlan[];
 ```
 
 **The rule** (spec section 10.6). Groups of one track in a plan form a pace set. Work through the checkpoints in date order. For each checkpoint and each group:
