@@ -232,6 +232,35 @@ describe("the pace line before an assessment", () => {
     expect(after.anchors("a1")["13 3"]).toBe("13 3|2026-11-26|3");
   });
 
+  test("a short group never slows the others: they bring forward what they would anyway (spec 10.6)", () => {
+    // Base world, but 13 3 loses four of its nine slots before a1: five slots for six lessons due.
+    const w = paceWorld();
+    for (const key of [
+      "13 3|2026-11-17|5",
+      "13 3|2026-11-19|3",
+      "13 3|2026-11-24|5",
+      "13 3|2026-11-26|3",
+    ])
+      cancel(w, key);
+    const short = planOf(w);
+    expect(short.snapshot.overflow).toEqual([
+      { checkpointId: "cp:a1", groupId: "13 3", lessonIds: ["c2#3"] },
+    ]);
+    // 13 1 and 13 5 still bring c3#1 and c3#2 forward, exactly as when 13 3 is not short.
+    for (const g of ["13 1", "13 5"]) {
+      expect(short.dateIn(g, "c3#2") < short.anchorDate(g, "a1")).toBe(true);
+      expect(short.placementsOf(g)).toEqual(base.placementsOf(g));
+    }
+    // 13 3 places what fits and nothing beyond what is due.
+    expect(short.dateIn("13 3", "c2#2") < short.anchorDate("13 3", "a1")).toBe(
+      true,
+    );
+    expect(short.dateIn("13 3", "c2#3") > short.anchorDate("13 3", "a1")).toBe(
+      true,
+    );
+    expect(short.flexOf("13 3", "cp:a1")).toEqual([]);
+  });
+
   test("a buffer before the assessment absorbs a loss the spare lesson cannot", () => {
     // a1 on 27 Nov, c1 with 4 lessons, and a one-lesson buffer b1 between c2 and a1: 8 due. Slots are 8, 9 and 8, so 13 3 has one spare lesson.
     const bufferWorld = () => {
@@ -402,7 +431,22 @@ describe("planWindows", () => {
     });
   });
 
-  test("a group with negative slack is short alone, and nothing is brought forward for anyone", () => {
+  test("checkpoints are worked in date order, whatever order they are given in", () => {
+    const canonical = [...run("x", 2), ...run("y", 3)];
+    const args = {
+      groups,
+      streams: { [a]: canonical, [b]: canonical },
+      windowSlots: (g: string, c: Checkpoint) =>
+        c.id === cp.id ? slotsOf(g, 3) : slotsOf(g, 4, 3),
+      requiredBefore: (c: Checkpoint) => new Set(c.id === cp.id ? ["x"] : []),
+      canonical,
+    };
+    const given = planWindows({ ...args, checkpoints: [end, cp] });
+    expect(given.map((p) => p.checkpoint.id)).toEqual(["cp:t", "cp:block:X"]);
+    expect(given).toEqual(planWindows({ ...args, checkpoints: [cp, end] }));
+  });
+
+  test("a group with negative slack is short alone, and the others still bring forward what fits them (spec 10.6)", () => {
     const canonical = [...run("x", 3), ...run("y", 2)];
     const plans = planWindows({
       groups,
@@ -419,11 +463,12 @@ describe("planWindows", () => {
       short: ["x#3"],
       spare: 0,
     });
+    // b is not slowed by a: its slack of 2 takes y#1 and y#2.
     expect(plans[0]?.perGroup[b]).toMatchObject({
       required: ["x#1", "x#2", "x#3"],
-      broughtForward: [],
+      broughtForward: ["y#1", "y#2"],
       short: [],
-      spare: 2,
+      spare: 0,
     });
     // What a was short of is first in line in the next window.
     expect(plans[1]?.perGroup[a]?.required).toEqual(["x#3", "y#1", "y#2"]);

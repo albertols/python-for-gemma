@@ -56,6 +56,19 @@ export function finalContentIndex(checkpoints: readonly Checkpoint[]): number {
 }
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
+/** On one date: an assessment, then a block end, then revision, then the exam. */
+const KIND_ORDER: Record<Checkpoint["kind"], number> = {
+  assessment: 0,
+  "block-end": 1,
+  revision: 2,
+  exam: 3,
+};
+/** Checkpoint order: date, then kind (as above), then id. `sequence` and `planWindows` both use it. */
+export const byCheckpointOrder = (a: Checkpoint, b: Checkpoint): number =>
+  cmp(a.date, b.date) ||
+  KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+  cmp(a.id, b.id);
 const isBuffer = (e: StreamEntry) => e.kind === "buffer";
 
 /**
@@ -93,11 +106,12 @@ function shareOf(
 
 /**
  * The pace line (spec section 10.6). Groups of one track are planned together,
- * checkpoint by checkpoint, in the order given. In each window a group places
- * what is due, then the longest run of the next lessons in the course's own
- * order that every group can fit, and its free slots are spare lessons. A group
- * that cannot fit what is due drops buffer lessons, then is short alone, and
- * nobody brings anything forward. At the final content checkpoint
+ * checkpoint by checkpoint, in checkpoint order (`byCheckpointOrder`, whatever
+ * the order given). In each window a group places what is due, then the longest
+ * run of the next lessons in the course's own order that every group that is not
+ * short can fit, and its free slots are spare lessons. A group that cannot fit
+ * what is due drops buffer lessons, then is short alone: it brings nothing
+ * forward and does not slow the others. At the final content checkpoint
  * (`finalContentIndex`) everything left is due, and what does not fit is final:
  * later windows are all spare.
  */
@@ -120,9 +134,10 @@ export function planWindows(args: {
   );
   /** Entries at the head of a stream that were short at an earlier checkpoint. */
   const carried = new Map<GroupId, number>(ids.map((g) => [g, 0]));
-  const final = finalContentIndex(args.checkpoints);
+  const checkpoints = [...args.checkpoints].sort(byCheckpointOrder);
+  const final = finalContentIndex(checkpoints);
 
-  return args.checkpoints.map((checkpoint, k): WindowPlan => {
+  return checkpoints.map((checkpoint, k): WindowPlan => {
     const perGroup: WindowPlan["perGroup"] = {};
     if (k > final) {
       for (const g of ids) {
@@ -162,23 +177,25 @@ export function planWindows(args: {
       return { g, slots, rest, dueLength, absorbed };
     });
 
-    // Bring forward the longest run that every group can fit in its slack.
+    // Bring forward the longest run that every group with slack can fit. Spec
+    // 10.6: a group that is short is short alone, and the others keep their plan
+    // (they are not slowed down unless she picks that catch-up option), so the
+    // run is computed from the groups that are not short.
     const shares = new Map<GroupId, number>(ids.map((g) => [g, 0]));
-    if (state.every((s) => s.dueLength <= s.slots.length)) {
-      const cuts = Math.max(args.canonical.length, 1);
-      for (let j = 0; j < cuts; j++) {
-        const at = state.map((s) =>
-          shareOf(s.rest.slice(s.dueLength), args.canonical, rank, j),
-        );
-        if (
-          at.some(
-            (n, i) =>
-              n > (state[i]?.slots.length ?? 0) - (state[i]?.dueLength ?? 0),
-          )
+    const open = state.filter((s) => s.dueLength <= s.slots.length);
+    const cuts = Math.max(args.canonical.length, 1);
+    for (let j = 0; j < cuts && open.length > 0; j++) {
+      const at = open.map((s) =>
+        shareOf(s.rest.slice(s.dueLength), args.canonical, rank, j),
+      );
+      if (
+        at.some(
+          (n, i) =>
+            n > (open[i]?.slots.length ?? 0) - (open[i]?.dueLength ?? 0),
         )
-          break;
-        for (const [i, s] of state.entries()) shares.set(s.g, at[i] ?? 0);
-      }
+      )
+        break;
+      for (const [i, s] of open.entries()) shares.set(s.g, at[i] ?? 0);
     }
 
     for (const s of state) {

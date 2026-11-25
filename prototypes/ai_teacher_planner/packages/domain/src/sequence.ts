@@ -3,6 +3,7 @@ import { daysBetween, type IsoDate, mondayOf } from "./dates.ts";
 import type { ExternalExam } from "./exams.ts";
 import { expandLessons, type Lesson, type LessonId } from "./lessons.ts";
 import {
+  byCheckpointOrder,
   finalContentIndex,
   planWindows,
   type StreamEntry,
@@ -397,16 +398,6 @@ function examCheckpoints(
   }
   return out;
 }
-
-/** On one date: an assessment, then a block end, then revision, then the exam. */
-const KIND_ORDER: Record<Checkpoint["kind"], number> = {
-  assessment: 0,
-  "block-end": 1,
-  revision: 2,
-  exam: 3,
-};
-const byCheckpointOrder = (a: Checkpoint, b: Checkpoint) =>
-  cmp(a.date, b.date) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || byId(a, b);
 
 /** The first index in `usable` that is not before the checkpoint, for this group. */
 function boundaryOf(p: Prepared, cp: Checkpoint): number {

@@ -360,6 +360,14 @@ export interface PlanInputs { courseId: CourseId; today: IsoDate; groups: Group[
 // sequence.ts
 export function sequence(inputs: PlanInputs): PlanSnapshot;
 
+// pace.ts (Task 2.3): the pace line, called by `sequence` once per track
+export interface StreamAssessment { kind: "assessment"; id: string /* the item id */; itemId: string }   // an undated whole-slot assessment uses a slot in the stream
+export type StreamEntry = Lesson | StreamAssessment;
+export interface WindowPlan { checkpoint: Checkpoint; perGroup: Record<GroupId, { slots: SlotKey[]; required: LessonId[]; broughtForward: LessonId[]; spare: number; short: LessonId[]; absorbed: LessonId[] /* buffer lessons dropped to make room */ }> }
+export function planWindows(args: { groups: readonly Group[]; checkpoints: readonly Checkpoint[] /* sorted inside */; streams: Record<GroupId, readonly StreamEntry[]>; windowSlots: (groupId: GroupId, checkpoint: Checkpoint) => SlotKey[]; requiredBefore: (checkpoint: Checkpoint) => Set<string>; canonical: Lesson[] }): WindowPlan[];   // a short group is short alone: the run is computed from the groups that are not short (spec 10.6)
+export function finalContentIndex(checkpoints: readonly Checkpoint[]): number;   // revision, else the first exam, else the last checkpoint: everything left is due there, later windows are spare only
+export function byCheckpointOrder(a: Checkpoint, b: Checkpoint): number;          // date, then kind (assessment, block-end, revision, exam), then id
+
 // revisions.ts
 export interface PlanDiffEntry { groupId: GroupId; lessonId: LessonId; change: "moved" | "added" | "removed" | "state" | "correction"; from: SlotKey | null; to: SlotKey | null; fromState: PlacementState | null; toState: PlacementState | null; hitByDisruption: boolean }
 export interface PlanDiff { entries: PlanDiffEntry[]; changedByGroup: Record<GroupId, number> }

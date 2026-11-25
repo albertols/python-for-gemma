@@ -13,16 +13,11 @@ import { sequence } from "./sequence.ts";
 import { bySlotOrder } from "./slots.ts";
 
 // The domain-only version (pre-flight ruling 21): paceWorld stands in for her
-// documents. Its scheme gets pack references to a small synthetic pack, so the
-// spec-reference step has something to follow. Task 2.13 writes the full-year
-// version in apps/api with the imported sheet and pack.
-const SPEC_POINTS = new Set(["4.3.1", "4.3.2", "4.3.3", "4.3.4"]);
-const CHAPTERS: Record<string, string[]> = {
-  "ch-1": ["4.3.1"],
-  "ch-2": ["4.3.2"],
-  "ch-3": ["4.3.3", "4.3.4"],
-  "ch-4": ["4.3.4"],
-};
+// documents. The domain has no curriculum pack, so here "each chapter shows its
+// spec reference" checks the half the engine owns: every planned lesson traces
+// back to its chapter in the scheme, and the engine invents none. Task 2.13's
+// full-year version in apps/api follows each chapter's pack references to a
+// spec point in the imported pack.
 const GROUPS = ["13 1", "13 3", "13 5"];
 
 const feature = await loadFeature(featureFile("05-schedule-from-documents"));
@@ -43,15 +38,6 @@ describeFeature(feature, ({ Scenario }) => {
         "the calendar, my timetable and the IAL Unit 4 scheme with my class counts",
         () => {
           world = paceWorld();
-          const refs: Record<string, string> = {
-            c1: "ch-1",
-            c2: "ch-2",
-            c3: "ch-3",
-            c4: "ch-4",
-          };
-          world.items = world.items.map((i) =>
-            refs[i.id] ? { ...i, packRefs: [refs[i.id] ?? ""] } : i,
-          );
           expect(world.groups.map((g) => g.id)).toEqual(GROUPS);
         },
       );
@@ -106,19 +92,34 @@ describeFeature(feature, ({ Scenario }) => {
         }
       });
       And("each chapter shows its spec reference", () => {
-        const items = new Map(world.items.map((i) => [i.id, i]));
-        const taught = new Set(
-          planned()
-            .filter((p) => !p.lessonId.startsWith("flex:"))
-            .map((p) => p.lessonId.split("#")[0] ?? ""),
+        const chapters = new Map(
+          world.items
+            .filter((i) => i.kind === "teaching")
+            .map((i) => [i.id, i.lessons]),
         );
-        expect([...taught].sort()).toEqual(["c1", "c2", "c3", "c4"]);
-        for (const id of taught) {
-          const refs = items.get(id)?.packRefs ?? [];
-          const points = refs.flatMap((r) => CHAPTERS[r] ?? []);
-          expect(points.length).toBeGreaterThan(0);
-          for (const sp of points) expect(SPEC_POINTS.has(sp)).toBe(true);
+        for (const p of planned()) {
+          if (p.lessonId.startsWith("flex:")) continue;
+          const [itemId = "", n = ""] = p.lessonId.split("#");
+          expect(chapters.has(itemId), `${p.lessonId} has no chapter`).toBe(
+            true,
+          );
+          const index = Number(n);
+          expect(Number.isInteger(index) && index >= 1).toBe(true);
+          expect(index).toBeLessThanOrEqual(chapters.get(itemId) ?? 0);
         }
+        // Every chapter of the scheme is in every group's plan.
+        for (const g of GROUPS)
+          expect(
+            [
+              ...new Set(
+                planned()
+                  .filter(
+                    (p) => p.groupId === g && !p.lessonId.startsWith("flex:"),
+                  )
+                  .map((p) => p.lessonId.split("#")[0]),
+              ),
+            ].sort(),
+          ).toEqual([...chapters.keys()].sort());
       });
       And("the teaching-lesson total matches my sheet", () => {
         const sheet = world.items

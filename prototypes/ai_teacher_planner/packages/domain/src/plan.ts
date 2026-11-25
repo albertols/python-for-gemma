@@ -97,6 +97,14 @@ export interface Checkpoint {
   itemId: string | null;
   perGroupDate?: Record<GroupId, IsoDate>;
 }
+/**
+ * Lessons a group could not fit before a checkpoint. Before the final content
+ * checkpoint (revision, else the first official exam, else the last checkpoint)
+ * this means "short there": the lessons are first in line after it and are
+ * usually placed later, so one lesson can be listed at several checkpoints. A
+ * lesson is never placed when it has no placement in the snapshot, which means
+ * it was not placed by the final content checkpoint. Count distinct lessons.
+ */
 export interface Overflow {
   /** Null when the plan has no checkpoint at all (no teaching block ends on or after today). */
   checkpointId: string | null;

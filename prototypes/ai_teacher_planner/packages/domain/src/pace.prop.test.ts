@@ -90,7 +90,8 @@ const scenario: fc.Arbitrary<Scenario> = fc.record({
     { maxLength: 25 },
   ),
   a1: fc.constantFrom("dated" as const, "dated" as const, "undated", "sat"),
-  a1Date: fc.integer({ min: 0, max: 20 }),
+  /** 13 to 30 November 2026: real dates only. */
+  a1Date: fc.integer({ min: 0, max: 17 }),
   revisionWeeks: fc.nat(3),
   exam: fc.option(fc.nat(JANUARY.length - 1), { nil: null }),
   seed: fc.nat(1000),
@@ -282,10 +283,13 @@ describe("pace properties", () => {
         const snap = sequence(w);
         const byKey = new Map(w.slots.map((x) => [x.key, x]));
         const final = finalContentIndex(snap.checkpoints);
+        // Spec 10.6: a group that was short here or earlier is behind by design,
+        // and the run is computed without it; compare only the groups that never were.
+        const behind = new Set<string>();
         for (const [k, cp] of snap.checkpoints.entries()) {
           if (k > final) break;
-          // A group short here stops the run for everyone; only due lessons are placed.
-          if (snap.overflow.some((o) => o.checkpointId === cp.id)) continue;
+          for (const o of snap.overflow)
+            if (o.checkpointId === cp.id) behind.add(o.groupId);
           const reached = (g: string) => {
             const end = boundaryOf(snap, byKey, cp, g);
             const out = new Set<string>();
@@ -313,7 +317,7 @@ describe("pace properties", () => {
           };
           for (const g of GROUPS)
             for (const h of GROUPS) {
-              if (g === h) continue;
+              if (g === h || behind.has(g) || behind.has(h)) continue;
               const hLessons = new Set(
                 expandLessons(w.items, w.overrides, h, "core").map((l) => l.id),
               );
@@ -395,4 +399,72 @@ describe("pace properties", () => {
       }),
       run,
     ));
+
+  // Spec 10.6: a group that cannot fit what is due is short alone; the others
+  // keep their plan. The run is computed from the groups that are not short.
+  let shortSeen = 0;
+  test("a short group never changes another group's placements before that checkpoint", () => {
+    fc.assert(
+      fc.property(
+        scenario,
+        fc.constantFrom(...GROUPS),
+        fc.subarray([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        (s, squeezed, lost) => {
+          const w = build(s);
+          // Take some of one group's slots before December, to make it short more often.
+          const early = w.slots.filter(
+            (x) =>
+              x.groupId === squeezed &&
+              x.date < "2026-12-01" &&
+              x.status !== "cancelled",
+          );
+          for (const i of lost) {
+            const slot = early[i];
+            if (slot) slot.status = "cancelled";
+          }
+          const snap = sequence(w);
+          const first = snap.checkpoints[0];
+          // At the final content checkpoint everything is due and nothing is brought forward.
+          if (!first || finalContentIndex(snap.checkpoints) === 0) return;
+          const byKey = new Map(w.slots.map((x) => [x.key, x]));
+          const shortHere = new Set(
+            snap.overflow
+              .filter((o) => o.checkpointId === first.id)
+              .map((o) => o.groupId),
+          );
+          for (const h of shortHere) {
+            const without = sequence({
+              ...w,
+              groups: w.groups.filter((g) => g.id !== h),
+              positions: w.positions.filter((p) => p.groupId !== h),
+              slots: w.slots.filter((x) => x.groupId !== h),
+            });
+            // Only when leaving it out keeps the same checkpoints: the revision
+            // checkpoint is dated by the earliest group, so removing one can move it.
+            const ids = (x: PlanSnapshot) => x.checkpoints.map((c) => c.id);
+            if (ids(without).join() !== ids(snap).join()) continue;
+            shortSeen++;
+            for (const g of GROUPS) {
+              if (g === h) continue;
+              const end = boundaryOf(snap, byKey, first, g);
+              const before = (list: PlanSnapshot["placements"]) =>
+                list.filter(
+                  (p) =>
+                    p.groupId === g &&
+                    p.slotKey !== null &&
+                    at(byKey.get(p.slotKey)) < end,
+                );
+              expect(
+                before(snap.placements),
+                `${h} short at ${first.id} changed ${g}`,
+              ).toEqual(before(without.placements));
+            }
+          }
+        },
+      ),
+      run,
+    );
+    // The generator does reach the case it is about.
+    expect(shortSeen).toBeGreaterThan(5);
+  });
 });
