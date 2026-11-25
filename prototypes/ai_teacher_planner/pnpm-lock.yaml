@@ -140,6 +140,15 @@ importers:
         specifier: 4.4.0
         version: 4.4.0
 
+  packages/ai:
+    dependencies:
+      '@planner/domain':
+        specifier: workspace:*
+        version: link:../domain
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+
   packages/domain: {}
 
   packages/importers:

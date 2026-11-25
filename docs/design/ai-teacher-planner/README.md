@@ -27,7 +27,7 @@ Look for the dashed box: everything v1 uses sits on Gemma's Mac, and a single pu
 
 Look for the two things that import the engine (the web app and the API) and the one route to a model, through the AiProvider port.
 
-![Containers: web app, local API, engine, SQLite file, ResourceGateway, AiProvider port and its adapters](02-containers.svg)
+![Containers: web app, local API, engine, SQLite file, ResourceGateway, the packages/ai AiProvider port with skill registry, and its adapters](02-containers.svg)
 
 ## 3. Backend components
 

@@ -12,7 +12,7 @@ flow: "" {
   web: "Web app" {class: concept}
   api: "API job" {class: concept}
   gateway: "ResourceGateway" {class: warn}
-  provider: "AiProvider" {class: ai}
+  provider: "AiProvider (packages/ai)\nregistry, prompt builder, fake for tests" {class: ai}
   cli: "Claude Code CLI" {class: ai}
   model: "Claude model" {class: ai}
 
@@ -24,7 +24,7 @@ flow: "" {
   }
 
   run: "2. Run" {
-    api -> provider: "skill id, text, schema"
+    api -> provider: "skill id, input JSON, text, Zod schema"
     provider -> cli: "claude -p, no file tools"
     cli -> model: "extracted text only"
     model -> cli: "JSON"

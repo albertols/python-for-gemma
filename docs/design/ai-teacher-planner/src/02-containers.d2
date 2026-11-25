@@ -22,9 +22,9 @@ mac: "Gemma's Mac (localhost only)" {
     class: win
     shape: cylinder
   }
-  provider: "AiProvider port" {class: ai}
+  provider: "packages/ai\nAiProvider port, skill registry" {class: ai}
   cli: "Claude Code CLI\nclaude -p, her own sign-in" {class: ai}
-  fake: "Fake provider\ntests and CI" {class: later}
+  fake: "FakeAiProvider\ntests and CI (built)" {class: ai}
   skills: "Skill prompts\n.claude/skills/" {
     class: ai
     shape: page

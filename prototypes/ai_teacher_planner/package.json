@@ -8,6 +8,7 @@
     "test": "vitest run",
     "build": "pnpm -r --if-present build",
     "start": "node scripts/start.ts",
+    "ai:schemas": "node packages/ai/scripts/write-schemas.ts",
     "seed:synthetic": "node scripts/seed-synthetic.ts",
     "e2e": "pnpm build && pnpm --filter @planner/e2e e2e"
   },
