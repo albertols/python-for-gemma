@@ -23,9 +23,10 @@ setup: "Calendar and timetable" {
 pack: "Course pack (locked)" {
   class: group
 
-  course: "Course\nboard, subject, units" {class: win}
-  spec: "SpecPoint\ncode, level, in scope" {class: win}
-  speclink: "ItemSpecLink\nitem, spec point, reviewed" {class: win}
+  course: "CurriculumPack\nboard, subject, version, units;\nlocked with a SHA-256 hash" {class: win}
+  chapter: "PackChapter\nnumber, spec points it links,\nhl only, page" {class: win}
+  spec: "SpecPoint\ncode, core or hl-only, unit\n(in scope comes from the unit)" {class: win}
+  speclink: "packRefs\nitem to chapter ids" {class: win}
 }
 
 decisions: "Her decisions and recorded facts (stored rows)" {
@@ -69,7 +70,8 @@ pack.course -> decisions.item: "ordered items" {class: flow}
 decisions.item -> derived.lesson: "one per lesson" {class: flow}
 decisions.override -> derived.lesson: "changes the count\nfor one group" {class: flow}
 decisions.item -> pack.speclink: {class: flow}
-pack.speclink -> pack.spec: {class: flow}
+pack.speclink -> pack.chapter: {class: flow}
+pack.chapter -> pack.spec: "unmapped in-scope points\nblock the lock" {class: flow}
 decisions.assessment -> decisions.item: "assesses" {class: flow}
 decisions.pin -> derived.placement: "fixes" {class: flow}
 decisions.position -> derived.lesson: "declares what is behind her" {class: flow}

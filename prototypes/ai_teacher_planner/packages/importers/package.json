@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@planner/domain": "workspace:*",
-    "exceljs": "4.4.0"
+    "exceljs": "4.4.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@planner/fixtures": "workspace:*"

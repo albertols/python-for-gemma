@@ -45,7 +45,7 @@ Look for the five shared pieces every screen reuses; the purple ones are where A
 
 Look for the colour split: green is stored, blue is worked out by the engine each time and never stored. Her M1b corrections and confirmations are green rows that survive a new import. An official exam becomes the plan's last checkpoint, named by its code. A proposal (candidate, diff and before-and-after metrics) is never stored; accepting it adds an immutable revision to the plan's chain, and undo moves the head back to the parent.
 
-![Domain model: calendar and timetable, course pack, her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints (assessment, block end, revision, official exam), overflow, absorbed buffers and conflicts, spare lessons, proposals with metrics, plan chain and revisions, provenance with review state](05-domain-model.svg)
+![Domain model: calendar and timetable, curriculum pack (units, chapters, spec points, hash lock), her decisions (disruptions, label corrections, event confirmations, official exams, to-do notes), scheme items with group overrides and assessment details, positions, pins and merges, derived slots, lessons, placements, assessment anchors, checkpoints (assessment, block end, revision, official exam), overflow, absorbed buffers and conflicts, spare lessons, proposals with metrics, plan chain and revisions, provenance with review state](05-domain-model.svg)
 
 ## 6. Scheduling pipeline
 

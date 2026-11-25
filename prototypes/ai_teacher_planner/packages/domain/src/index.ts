@@ -8,6 +8,7 @@ export * from "./exams.ts";
 export * from "./history.ts";
 export * from "./lessons.ts";
 export * from "./pace.ts";
+export * from "./pack.ts";
 export * from "./permissions.ts";
 export * from "./plan.ts";
 export * from "./provenance.ts";

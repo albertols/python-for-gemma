@@ -6,3 +6,4 @@ export {
   type SyntheticWorkbookOptions,
 } from "./synthetic-calendar.ts";
 export { SYNTHETIC_TERMS, syntheticRows } from "./synthetic-calendar-model.ts";
+export { syntheticPack } from "./synthetic-pack.ts";
