@@ -14,7 +14,7 @@ title: |md
 
 direction: down
 
-http: "HTTP routes\nHono + OpenAPI: calendar, corrections, events,\ndisruptions, exams, todos, slots, AI jobs and review;\ncourses, packs, scheme, positions, plans, check-in" {class: concept}
+http: "HTTP routes\nHono + OpenAPI: calendar, corrections, events,\ndisruptions, exams, todos, slots, AI jobs and review;\ncourses, packs, scheme + import preview,\npositions, plans, check-in" {class: concept}
 
 core: "Core of apps/api" {
   class: group
@@ -32,7 +32,7 @@ adapters: "Driven adapters, each behind a port" {
 
   repo: "Repository ports\n+ SQLite adapter (Drizzle)\nmigrations 0001-0009: M1b rows, AI runs\nand items, courses, scheme, decisions,\nfacts, plan revisions" {class: concept}
   packs: "PackStore\npack JSON files,\nlocked hash in SQLite" {class: concept}
-  importers: "packages/importers\ncalendar xlsx, specification PDF text,\nplanning xlsx, assessment docx,\nresource index" {class: concept}
+  importers: "packages/importers\ncalendar xlsx, specification PDF text,\nplanning xlsx, assessment schedule docx\n(to scheme items), resource index" {class: concept}
   exporters: "packages/exporters\nxlsx, docx, pptx, Teams text" {class: concept}
   content: "packages/content-creator\nrefresher, cover lesson,\nindependent task" {class: ai}
   port: "packages/ai\nAiProvider port" {class: ai}
@@ -44,7 +44,7 @@ db: "SQLite file + pack files\ndata/, git-ignored" {
   class: win
   shape: cylinder
 }
-gateway: "ResourceGateway\nallowlist only" {class: warn}
+gateway: "ResourceGateway\nallowlist only; find() lists\nplanning-files (Planning/ only)" {class: warn}
 cli: "ClaudeCodeCliProvider\nclaude -p" {class: ai}
 fake: "FakeAiProvider\ntests and CI" {class: later}
 

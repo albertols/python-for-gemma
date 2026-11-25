@@ -352,3 +352,78 @@ describe("find", () => {
   test("finds the timetable image", async () =>
     expect(await gw.find("timetable-image")).toEqual(["timetable.png"]));
 });
+
+describe("find planning-files", () => {
+  let planRoot: string;
+  const at = (rel: string) => {
+    const full = path.join(planRoot, rel);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, "invented");
+  };
+  beforeAll(() => {
+    planRoot = path.join(base, "planning-resources");
+    for (const rel of [
+      "ial/Planning/Y13 Unit 4 Planning.xlsx",
+      "ial/Planning/Y13 Unit 4 Schedule.docx",
+      "ial/Planning/Year 2/Y13 Unit 5 Planning.XLSX",
+      "ial/Planning/notes.pdf",
+      "ial/Planning/~$Y13 Unit 4 Planning.xlsx",
+      "ibdp/PLANNING/IB Planning.xlsx",
+      "igcse/Planning/Y11 Planning.xlsx",
+      // inside Planning, but under a folder name that is always denied
+      "ial/Planning/Mock Exams/mock.xlsx",
+      "ial/Planning/Year 2/Feedback/f.docx",
+      "ial/Planning/Student Reports/r.docx",
+      // outside <board>/Planning
+      "ial/1. Content/Y13/Unit 4/Planning/content.docx",
+      "ial/Other/other.xlsx",
+      "ial/other-planning.xlsx",
+      "Planning/top.xlsx",
+      "2026-27 Secondary Calendar ALL STAFF.xlsx",
+      "other/Planning/x.xlsx",
+    ])
+      at(rel);
+  });
+  const found = () => createResourceGateway(planRoot).find("planning-files");
+
+  test("returns the .xlsx and .docx files under <board>/Planning, recursively, sorted, with no lock files or other types", async () =>
+    expect(await found()).toEqual([
+      "ial/Planning/Y13 Unit 4 Planning.xlsx",
+      "ial/Planning/Y13 Unit 4 Schedule.docx",
+      "ial/Planning/Year 2/Y13 Unit 5 Planning.XLSX",
+      "ibdp/PLANNING/IB Planning.xlsx",
+      "igcse/Planning/Y11 Planning.xlsx",
+    ]));
+
+  test("skips a denied folder name under Planning", async () => {
+    const names = await found();
+    for (const denied of ["Mock Exams", "Feedback", "Student Reports"])
+      expect(names.some((n) => n.includes(denied))).toBe(false);
+  });
+
+  test("never returns a file outside <board>/Planning, even an allowlisted one", async () => {
+    const names = await found();
+    for (const outside of [
+      "1. Content",
+      "Other",
+      "other-planning",
+      "Calendar",
+      "top.xlsx",
+      "other/",
+    ])
+      expect(names.some((n) => n.includes(outside))).toBe(false);
+  });
+
+  test("every file it returns can be read", async () => {
+    const gw2 = createResourceGateway(planRoot);
+    for (const name of await gw2.find("planning-files"))
+      expect(await gw2.read(name)).toHaveLength(8);
+  });
+
+  test("is empty when there is no Planning folder", async () =>
+    expect(
+      await createResourceGateway(
+        fs.mkdtempSync(path.join(os.tmpdir(), "empty-")),
+      ).find("planning-files"),
+    ).toEqual([]));
+});

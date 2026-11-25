@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@planner/domain": "workspace:*",
+    "docx": "9.16.0",
     "exceljs": "4.4.0"
   }
 }

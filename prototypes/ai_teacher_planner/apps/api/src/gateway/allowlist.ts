@@ -50,6 +50,26 @@ export function isDeniedFolderName(name: string): boolean {
   );
 }
 
+export const BOARD_FOLDER = /^(ial|ibdp|igcse)$/i;
+export const PLANNING_FOLDER = /^planning$/i;
+/** Her planning sheets and assessment schedules; not Office's `~$` lock files. */
+export const PLANNING_FILE = /^(?!~\$).+\.(xlsx|docx)$/i;
+
+/** Is this path (root-relative segments) one of the files `find("planning-files")` returns? */
+export function isPlanningFile(segments: string[]): boolean {
+  const [board, folder, ...rest] = segments;
+  const name = rest.at(-1);
+  return (
+    board !== undefined &&
+    folder !== undefined &&
+    name !== undefined &&
+    BOARD_FOLDER.test(board) &&
+    PLANNING_FOLDER.test(folder) &&
+    PLANNING_FILE.test(name) &&
+    isAllowedSegments(segments)
+  );
+}
+
 export const CALENDAR_WORKBOOK_PATTERN = "*Secondary Calendar*.xlsx";
 export const TIMETABLE_IMAGE_PATTERN = "timetable.png";
 

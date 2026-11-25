@@ -1,12 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  BOARD_FOLDER,
   CALENDAR_WORKBOOK_PATTERN,
   isAllowedSegments,
   isDeniedFolderName,
   leadsToAllowed,
   matchesGlob,
   normaliseRelPath,
+  PLANNING_FILE,
+  PLANNING_FOLDER,
   TIMETABLE_IMAGE_PATTERN,
 } from "./allowlist.ts";
 
@@ -31,7 +34,13 @@ export interface ResourceGateway {
   isAllowed(relPath: string): boolean;
   read(relPath: string): Promise<Uint8Array>;
   list(relDir: string): Promise<ResourceEntry[]>;
-  find(pattern: "calendar-workbook" | "timetable-image"): Promise<string[]>;
+  /**
+   * Allowlisted files by kind. "planning-files" is every `.xlsx` and `.docx`
+   * under `<ial|ibdp|igcse>/Planning/`, at any depth, as root-relative paths.
+   */
+  find(
+    pattern: "calendar-workbook" | "timetable-image" | "planning-files",
+  ): Promise<string[]>;
 }
 
 export const MAX_READ_BYTES = 100 * 1024 * 1024;
@@ -160,6 +169,35 @@ export function createResourceGateway(
     }
   }
 
+  /**
+   * Walks only through `list`, so every folder and file has passed the
+   * allowlist, the denied folder names and the symlink check already.
+   */
+  async function findPlanningFiles(): Promise<string[]> {
+    const found: string[] = [];
+    async function walk(dir: string, depth: number): Promise<void> {
+      if (depth > MAX_WALK_DEPTH) return;
+      for (const e of await list(dir)) {
+        const child = `${dir}/${e.name}`;
+        if (e.kind === "dir") await walk(child, depth + 1);
+        else if (PLANNING_FILE.test(e.name)) found.push(child);
+      }
+    }
+    for (const board of await list("")) {
+      if (board.kind !== "dir" || !BOARD_FOLDER.test(board.name)) continue;
+      let inside: ResourceEntry[];
+      try {
+        inside = await list(board.name);
+      } catch {
+        continue;
+      }
+      for (const e of inside)
+        if (e.kind === "dir" && PLANNING_FOLDER.test(e.name))
+          await walk(`${board.name}/${e.name}`, 0);
+    }
+    return found.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  }
+
   return {
     isAllowed(relPath) {
       const segments = normaliseRelPath(relPath);
@@ -187,6 +225,7 @@ export function createResourceGateway(
     list,
 
     async find(pattern) {
+      if (pattern === "planning-files") return findPlanningFiles();
       const glob =
         pattern === "calendar-workbook"
           ? CALENDAR_WORKBOOK_PATTERN

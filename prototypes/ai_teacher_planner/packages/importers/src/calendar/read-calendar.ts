@@ -29,7 +29,12 @@ export type FindingKind =
   | "assrep-mismatch"
   | "labelled-holiday"
   | "possible-day-off"
-  | "orphaned-correction";
+  | "orphaned-correction"
+  | "total-mismatch"
+  | "section-total-mismatch"
+  | "missing-count"
+  | "unlinked-chapter"
+  | "unreadable-table";
 export interface ImportFinding {
   kind: FindingKind;
   severity: "error" | "warning" | "info";

@@ -14,6 +14,13 @@ export {
 } from "./synthetic-calendar.ts";
 export { SYNTHETIC_TERMS, syntheticRows } from "./synthetic-calendar-model.ts";
 export { syntheticPack } from "./synthetic-pack.ts";
+export {
+  buildSyntheticPlanningSheet,
+  buildSyntheticSchedule,
+  type SheetCell,
+  SYNTHETIC_PLANNING_ROWS,
+  SYNTHETIC_SCHEDULE_ROWS,
+} from "./synthetic-planning.ts";
 export { syntheticScheme } from "./synthetic-scheme.ts";
 export {
   pdfWithPages,

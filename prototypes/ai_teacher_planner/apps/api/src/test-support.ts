@@ -11,6 +11,7 @@ import { openDatabase } from "./db/connection.ts";
 import { migrate } from "./db/migrate.ts";
 import {
   CALENDAR_WORKBOOK_PATTERN,
+  isPlanningFile,
   matchesGlob,
   TIMETABLE_IMAGE_PATTERN,
 } from "./gateway/allowlist.ts";
@@ -59,6 +60,10 @@ export function fakeGateway(
       }));
     },
     async find(pattern) {
+      if (pattern === "planning-files")
+        return Object.keys(files)
+          .filter((name) => isPlanningFile(name.split("/")))
+          .sort();
       const glob =
         pattern === "calendar-workbook"
           ? CALENDAR_WORKBOOK_PATTERN
