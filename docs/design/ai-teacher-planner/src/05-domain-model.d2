@@ -52,7 +52,8 @@ derived: "Derived by the engine" {
   anchors: "AssessmentPlacement, Conflict,\nCheckpoint: assessment, block end,\nrevision, exam; Overflow, absorbed" {class: concept}
 }
 
-revision: "PlanRevision\nimmutable snapshot,\npoints to its parent" {
+proposal: "Proposal\ncandidate, diff, PlanMetrics\nbefore and after; not stored" {class: concept}
+revision: "PlanChain and PlanRevision\nimmutable snapshots, each points\nto its parent; head; undo = parent" {
   class: win
   shape: cylinder
 }
@@ -77,7 +78,8 @@ derived.placement -> derived.anchors: "unplaced or refused" {class: flow}
 decisions.exam -> derived.anchors: "a checkpoint by its code,\nthe plan's last" {class: flow}
 derived.lesson -> derived.placement: {class: flow}
 derived.slot -> derived.placement: {class: flow}
-derived.placement -> revision: "saved on accept" {class: flow}
+derived.placement -> proposal: "diffed against the head" {class: flow}
+proposal -> revision: "saved on accept,\nonly if the head is unchanged" {class: flow}
 provenance -> decisions: "on every stored item" {class: aiflow}
 
 vars: {
