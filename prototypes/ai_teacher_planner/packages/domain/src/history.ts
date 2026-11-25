@@ -197,9 +197,10 @@ export function carryHistory(args: {
     );
 
   const entries = args.log
-    // `log` is in the order written (plan.ts): for one placement the entry
-    // written later wins, whatever `recordedOn` says; no sort is wanted here
-    .filter((e) => e.groupId === groupId && !declared.has(e.lessonId));
+    .filter((e) => e.groupId === groupId && !declared.has(e.lessonId))
+    // explicitly in the order written, whatever order `log` arrives in: for one
+    // placement the highest `seq` wins, and `recordedOn` plays no part in it
+    .sort((a, b) => a.seq - b.seq);
   const added: Placement[] = [];
   for (const e of entries) {
     const own = past.filter((p) => p.lessonId === e.lessonId);

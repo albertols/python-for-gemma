@@ -261,15 +261,19 @@ export interface DecisionRepo {
   ): void;
 }
 
+/** A log entry before it is stored: the repository gives it its `seq`. */
+export type NewLogEntry = Omit<LessonLogEntry, "seq">;
+
 /** Facts: where each group is, and what happened in her lessons. */
 export interface FactRepo {
   /** Sorted by group. */
   positions(courseId: CourseId): Position[];
   /** Replaces the positions of the course's groups. */
   setPositions(courseId: CourseId, positions: readonly Position[]): void;
-  /** Every entry for these groups, in the order recorded. */
+  /** Every entry for these groups, in the order recorded, each with its `seq` (the row id). */
   log(groupIds: readonly string[]): LessonLogEntry[];
-  append(entries: readonly LessonLogEntry[]): void;
+  /** Appends in the order given; the repository assigns each entry its `seq`. */
+  append(entries: readonly NewLogEntry[]): void;
 }
 
 /** An attached file as stored: the row, not the bytes. The bytes are `data/materials/<storedName>`. */

@@ -2,7 +2,13 @@ import { paceWorld } from "@planner/fixtures";
 import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 import { delivered, freezeHorizonEnd, isHistory, slotDate } from "./history.ts";
-import type { LessonLogEntry, Merge, Pin, PlanInputs } from "./plan.ts";
+import type {
+  LessonLogEntry,
+  Merge,
+  Pin,
+  Placement,
+  PlanInputs,
+} from "./plan.ts";
 import { sequence } from "./sequence.ts";
 import type { Slot } from "./slots.ts";
 
@@ -259,10 +265,11 @@ describe("history properties", () => {
           const [t1, t2] = d1 <= d2 ? [d1, d2] : [d2, d1];
           const lessonOf = (n: number) =>
             `c${[1, 2, 3, 4][n % 4]}#${(n % 3) + 1}`;
-          const log: LessonLogEntry[] = entries.map((e) => {
+          const log: LessonLogEntry[] = entries.map((e, i) => {
             const own = slots.filter((s) => s.groupId === e.group);
             const slot = own[e.at % own.length];
             return {
+              seq: i + 1,
               groupId: e.group,
               lessonId: lessonOf(e.lesson),
               slotKey: slot?.key ?? null,
@@ -317,4 +324,80 @@ describe("history properties", () => {
       }),
       run,
     ));
+  test("the order the log arrives in never changes the plan: the highest seq wins for a placement, whatever its recordedOn", () => {
+    // a few lessons of 13 1 and 13 3 that are in the past on 23 Nov, so entries often hit the same placement
+    const own = first.placements.filter(
+      (p) =>
+        (p.groupId === "13 1" || p.groupId === "13 3") &&
+        ["c1#1", "c1#2", "c1#3"].includes(p.lessonId) &&
+        p.slotKey !== null,
+    );
+    const days = ["2026-11-10", "2026-11-16", "2026-11-20", "2026-11-23"];
+    const entry = fc.record({
+      at: fc.nat(own.length - 1),
+      outcome: fc.constantFrom(
+        "taught" as const,
+        "cover" as const,
+        "skipped" as const,
+        "homework" as const,
+      ),
+      recordedOn: fc.constantFrom(...days),
+    });
+    const entries = fc
+      .array(entry, { minLength: 2, maxLength: 8 })
+      .chain((list) =>
+        fc.tuple(
+          fc.constant(list),
+          fc.shuffledSubarray(
+            list.map((_, i) => i),
+            { minLength: list.length, maxLength: list.length },
+          ),
+        ),
+      );
+    fc.assert(
+      fc.property(entries, ([list, order]) => {
+        const log: LessonLogEntry[] = list.map((e, i) => {
+          const p = own[e.at] as Placement;
+          return {
+            seq: i + 1,
+            groupId: p.groupId,
+            lessonId: p.lessonId,
+            slotKey: p.slotKey,
+            outcome: e.outcome,
+            recordedOn: e.recordedOn,
+            note: null,
+          };
+        });
+        const shuffled = order.map((i) => log[i] as LessonLogEntry);
+        const plan = (l: LessonLogEntry[]) =>
+          sequence({
+            ...paceWorld(),
+            today: "2026-11-23",
+            previous: first,
+            log: l,
+          });
+        expect(plan(shuffled)).toEqual(plan(log));
+        // and the winner is the highest seq for each placement
+        const result = plan(shuffled);
+        for (const p of own) {
+          const mine = log.filter(
+            (e) =>
+              e.groupId === p.groupId &&
+              e.lessonId === p.lessonId &&
+              e.slotKey === p.slotKey,
+          );
+          const last = mine.at(-1);
+          if (!last) continue;
+          const state = result.placements.find(
+            (q) =>
+              q.groupId === p.groupId &&
+              q.lessonId === p.lessonId &&
+              q.slotKey === p.slotKey,
+          )?.state;
+          expect(state).toBe(last.outcome);
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
 });

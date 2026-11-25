@@ -35,6 +35,8 @@ const dateOf = (s: PlanSnapshot, group: string, lesson: string) =>
     .map((p) => (p.slotKey ? slotDate(p.slotKey) : null));
 const keyOf = (s: PlanSnapshot, group: string, lesson: string) =>
   placementsOf(s, group, lesson).map((p) => p.slotKey);
+let written = 0;
+/** Entries are numbered in the order the test writes them, like the log's row ids. */
 const entry = (
   groupId: string,
   lessonId: string,
@@ -42,6 +44,7 @@ const entry = (
   slotKey: string | null,
   recordedOn = "2026-11-16",
 ): LessonLogEntry => ({
+  seq: ++written,
   groupId,
   lessonId,
   slotKey,

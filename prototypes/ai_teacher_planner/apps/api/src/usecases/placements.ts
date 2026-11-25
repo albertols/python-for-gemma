@@ -59,16 +59,16 @@ const partsOf = (slotKey: string) => {
  * lesson and slot. An entry with a slot points at that slot; one without points
  * at the lesson's latest placement dated on or before the day she recorded it.
  */
-function loggedOutcomes(
+export function loggedOutcomes(
   log: readonly LessonLogEntry[],
   placements: readonly Placement[],
 ): Map<string, LessonLogEntry["outcome"]> {
   const key = (groupId: string, lessonId: string, slotKey: string) =>
     `${groupId}\u0000${lessonId}\u0000${slotKey}`;
   const out = new Map<string, LessonLogEntry["outcome"]>();
-  // the log is in the order written: for one placement the later entry wins,
-  // whatever day it says it was recorded on
-  for (const e of log) {
+  // in the order written, whatever order `log` arrives in: for one placement
+  // the highest `seq` wins, whatever day it says it was recorded on
+  for (const e of [...log].sort((a, b) => a.seq - b.seq)) {
     let slotKey = e.slotKey;
     if (slotKey === null)
       slotKey =

@@ -37,6 +37,12 @@ export interface Position {
 /** A note on a lesson-log answer: at most this many characters. */
 export const LOG_NOTE_LIMIT = 200;
 export interface LessonLogEntry {
+  /**
+   * The order the entry was written in (the lesson_log row id): it only grows.
+   * For one placement the entry with the highest `seq` wins; `recordedOn` plays
+   * no part in that choice.
+   */
+  seq: number;
   groupId: GroupId;
   lessonId: LessonId;
   slotKey: SlotKey | null;
@@ -206,7 +212,7 @@ export interface PlanInputs {
   items: SowItem[];
   overrides: GroupOverride[];
   positions: Position[];
-  /** In the order written (the log is append-only): for one placement the later entry wins, whatever its `recordedOn`. */
+  /** Any order: the engine sorts by `seq`. */
   log: LessonLogEntry[];
   pins: Pin[];
   merges: Merge[];

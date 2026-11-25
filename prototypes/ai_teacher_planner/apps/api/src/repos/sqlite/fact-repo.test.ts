@@ -35,9 +35,12 @@ test("positions are replaced per course, and the log keeps every entry in the or
   repos.facts.append([entry("ch1#2", "skipped"), entry("ch1#1", "taught")]);
   repos.facts.append([{ ...entry("u1#1", "taught"), groupId: "IB S" }]);
   expect(repos.facts.log(["13 1"])).toEqual([
-    entry("ch1#2", "skipped"),
-    entry("ch1#1", "taught"),
+    { ...entry("ch1#2", "skipped"), seq: 1 },
+    { ...entry("ch1#1", "taught"), seq: 2 },
   ]);
-  expect(repos.facts.log(["IB S", "13 1"])).toHaveLength(3);
+  // seq is the row id: it only grows, across groups too
+  expect(repos.facts.log(["IB S", "13 1"]).map((e) => e.seq)).toEqual([
+    1, 2, 3,
+  ]);
   expect(repos.facts.log([])).toEqual([]);
 });

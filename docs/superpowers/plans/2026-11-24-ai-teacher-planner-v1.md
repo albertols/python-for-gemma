@@ -336,7 +336,7 @@ export type Pin =
   | { id: string; groupId: GroupId; lessonId: LessonId; kind: "not-after"; date: IsoDate };
 export interface Merge { id: string; groupId: GroupId; first: LessonId; second: LessonId }
 export interface Position { groupId: GroupId; nextLessonId: LessonId | null; doneItemIds: string[]; asOf: IsoDate }
-export interface LessonLogEntry { groupId: GroupId; lessonId: LessonId; slotKey: SlotKey | null; outcome: "taught" | "cover" | "skipped" | "homework"; recordedOn: IsoDate; note: string | null }
+export interface LessonLogEntry { seq: number /* the lesson_log row id, only grows; for one placement the highest seq wins, recordedOn plays no part; the engine and the board sort by it */; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey | null; outcome: "taught" | "cover" | "skipped" | "homework"; recordedOn: IsoDate; note: string | null }
 export interface CoverChoice { slotKey: SlotKey; choice: "keep" | "swap" | "lost"; swapLessonId: LessonId | null }   // used from M3
 export interface HomeworkMode { groupId: GroupId; lessonId: LessonId }                                              // used from M3
 export interface PaceHold { id: string; checkpointId: string; firstDeferredLessonId: LessonId }                     // used from M3

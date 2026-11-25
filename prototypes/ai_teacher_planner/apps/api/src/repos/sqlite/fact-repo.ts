@@ -9,6 +9,7 @@ interface PositionRecord {
   as_of: string;
 }
 interface LogRecord {
+  id: number;
   group_id: string;
   lesson_id: string;
   slot_key: string | null;
@@ -61,6 +62,7 @@ export function createFactRepo(db: Database): FactRepo {
         .all(...groupIds) as LogRecord[];
       return rows.map(
         (r): LessonLogEntry => ({
+          seq: r.id,
           groupId: r.group_id,
           lessonId: r.lesson_id,
           slotKey: r.slot_key,

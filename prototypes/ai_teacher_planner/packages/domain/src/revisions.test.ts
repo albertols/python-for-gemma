@@ -200,6 +200,7 @@ describe("the diff", () => {
   test("a past lesson later logged as skipped appears as a correction", () => {
     const log: LessonLogEntry[] = [
       {
+        seq: 1,
         groupId: "13 1",
         lessonId: "c1#3",
         slotKey: "13 1|2026-11-13|6",
@@ -509,6 +510,7 @@ describe("is the plan up to date", () => {
   test("a lesson logged as taught or cover keeps it up to date", () => {
     const log = (outcome: LessonLogEntry["outcome"]): LessonLogEntry[] => [
       {
+        seq: 1,
         groupId: "13 1",
         lessonId: "c1#1",
         slotKey: c11?.slotKey ?? null,
@@ -524,6 +526,7 @@ describe("is the plan up to date", () => {
   test("a lone skip makes it out of date", () => {
     const log: LessonLogEntry[] = [
       {
+        seq: 1,
         groupId: "13 1",
         lessonId: "c1#1",
         slotKey: c11?.slotKey ?? null,

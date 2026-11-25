@@ -1,8 +1,9 @@
 import fs from "node:fs";
+import fc from "fast-check";
 import { afterAll, expect, test } from "vitest";
 import { seededRepos } from "../test-support.ts";
 import { acceptPlan } from "./accept-plan.ts";
-import { placementsIn } from "./placements.ts";
+import { loggedOutcomes, placementsIn } from "./placements.ts";
 import { savePositions } from "./positions.ts";
 import { proposePlan } from "./propose-plan.ts";
 
@@ -180,4 +181,65 @@ test("a group whose position declares nothing has no declared band", async () =>
   expect(
     placementsIn(repos, "2026-11-16", "2026-11-29", "2026-11-20").declared,
   ).toEqual([]);
+});
+
+test("the board's logged outcome does not depend on the order the log arrives in: the highest seq wins, whatever recordedOn says", async () => {
+  const { repos } = await planned();
+  const placements = (
+    repos.plans.head(COURSE)?.snapshot.placements ?? []
+  ).filter(
+    (p) =>
+      p.groupId === "13 1" &&
+      p.slotKey !== null &&
+      p.lessonId.startsWith("ch1#"),
+  );
+  const days = ["2026-10-28", "2026-11-05", "2026-11-19"];
+  const entry = fc.record({
+    at: fc.nat(placements.length - 1),
+    outcome: fc.constantFrom("taught", "cover", "skipped", "homework"),
+    recordedOn: fc.constantFrom(...days),
+  });
+  fc.assert(
+    fc.property(
+      fc.array(entry, { minLength: 2, maxLength: 8 }).chain((list) =>
+        fc.tuple(
+          fc.constant(list),
+          fc.shuffledSubarray(
+            list.map((_, i) => i),
+            { minLength: list.length, maxLength: list.length },
+          ),
+        ),
+      ),
+      ([list, order]) => {
+        const log = list.map((e, i) => {
+          const p = placements[e.at];
+          if (!p) throw new Error("a placement");
+          return {
+            seq: i + 1,
+            groupId: p.groupId,
+            lessonId: p.lessonId,
+            slotKey: p.slotKey,
+            outcome: e.outcome,
+            recordedOn: e.recordedOn,
+            note: null,
+          };
+        });
+        const inOrder = loggedOutcomes(log, placements);
+        const shuffled = loggedOutcomes(
+          order.map((i) => log[i] as (typeof log)[number]),
+          placements,
+        );
+        expect([...shuffled].sort()).toEqual([...inOrder].sort());
+        for (const p of placements) {
+          const last = log
+            .filter((e) => e.lessonId === p.lessonId && e.slotKey === p.slotKey)
+            .at(-1);
+          expect(
+            shuffled.get(`${p.groupId}\u0000${p.lessonId}\u0000${p.slotKey}`),
+          ).toBe(last?.outcome);
+        }
+      },
+    ),
+    { numRuns: 100 },
+  );
 });

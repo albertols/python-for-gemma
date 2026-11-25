@@ -10,7 +10,7 @@ import {
   sequence,
 } from "@planner/domain";
 import { ApiError } from "../errors.ts";
-import type { PackStore, Repos } from "../repos/ports.ts";
+import type { NewLogEntry, PackStore, Repos } from "../repos/ports.ts";
 import { loadPlanInputs } from "./plan-inputs.ts";
 import { planStatus } from "./propose-plan.ts";
 
@@ -128,7 +128,7 @@ export function recordCheckIn(
     );
     const issues: string[] = [];
     let notWaiting = false;
-    const log: LessonLogEntry[] = [];
+    const log: NewLogEntry[] = [];
     const courses = new Set<CourseId>();
     const seen = new Set<string>();
     for (const e of entries) {
