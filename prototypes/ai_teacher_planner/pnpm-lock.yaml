@@ -44,6 +44,9 @@ importers:
       '@planner/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@planner/exporters':
+        specifier: workspace:*
+        version: link:../../packages/exporters
       '@planner/fixtures':
         specifier: workspace:*
         version: link:../../fixtures
@@ -75,6 +78,9 @@ importers:
       '@types/busboy':
         specifier: 1.5.5
         version: 1.5.5
+      exceljs:
+        specifier: 4.4.0
+        version: 4.4.0
 
   apps/web:
     dependencies:
@@ -165,6 +171,19 @@ importers:
         version: 4.6.7
 
   packages/domain: {}
+
+  packages/exporters:
+    dependencies:
+      '@planner/domain':
+        specifier: workspace:*
+        version: link:../domain
+      exceljs:
+        specifier: 4.4.0
+        version: 4.4.0
+    devDependencies:
+      '@planner/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
 
   packages/importers:
     dependencies:

@@ -22,6 +22,7 @@ mac: "Gemma's Mac (localhost only)" {
     class: win
     shape: cylinder
   }
+  exporters: "packages/exporters\nExcel fortnight, Teams text\nunreviewed AI items left out" {class: concept}
   provider: "packages/ai\nAiProvider port, skill registry,\nstream parser" {class: ai}
   cli: "ClaudeCodeCliProvider (built)\nspawns claude -p, her own sign-in" {class: ai}
   fake: "FakeAiProvider\ntests and CI (built)" {class: ai}
@@ -34,6 +35,7 @@ mac: "Gemma's Mac (localhost only)" {
   web -> domain: "imports for instant previews" {class: flow}
   api -> domain: "calls" {class: flow}
   api -> db: "reads, writes" {class: flow}
+  api -> exporters: "head plan in,\nfile or text + warning out" {class: flow}
   api -> gateway: "asks for a file" {class: flow}
   gateway -> resources: "reads allowlisted paths" {class: flow}
   api -> provider: "text in, JSON out" {class: aiflow}

@@ -12,7 +12,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { InferRequestType, InferResponseType } from "hono/client";
-import { api, call } from "./client.ts";
+import { ApiError, api, call, PlannerNotRunning } from "./client.ts";
 
 /** One try: when the planner is not running, say so at once instead of waiting. */
 export const queryClient = new QueryClient({
@@ -1029,5 +1029,55 @@ export function useRemovedLessonNotes() {
       call<{ items: RemovedLessonNote[] }>(() =>
         api.api["lesson-notes"].removed.$get(),
       ),
+  });
+}
+
+/** The warning header the export routes set (`WARNING_HEADER` in the API). */
+const EXPORT_WARNING = "X-Planner-Warning";
+export type TeamsPost = InferResponseType<
+  typeof api.api.export.teams.$get,
+  200
+>;
+
+/** What a failed export answered, in the API's own words. */
+async function exportError(res: Response): Promise<ApiError> {
+  const body = (await res.json().catch(() => null)) as {
+    error?: { code?: string; message?: string };
+  } | null;
+  return new ApiError(
+    res.status,
+    body?.error?.code ?? "unknown",
+    body?.error?.message ?? `The planner answered with status ${res.status}.`,
+  );
+}
+
+/**
+ * Builds the fortnight's workbook and keeps it in the page. Nothing is saved to
+ * disk until she chooses to; the warning arrives with the file, so it can be
+ * shown first.
+ */
+export function useExportFortnight() {
+  return useMutation({
+    mutationFn: async (w1: string) => {
+      let res: Response;
+      try {
+        res = await api.api.export["fortnight.xlsx"].$get({ query: { w1 } });
+      } catch {
+        throw new PlannerNotRunning();
+      }
+      if (!res.ok) throw await exportError(res);
+      return {
+        blob: await res.blob(),
+        warning: res.headers.get(EXPORT_WARNING),
+        fileName: `fortnight-${w1}.xlsx`,
+      };
+    },
+  });
+}
+
+export function useExportTeams() {
+  return useMutation({
+    mutationFn: (args: { groupId: string; weekOf: string }) =>
+      call<TeamsPost>(() => api.api.export.teams.$get({ query: args })),
   });
 }

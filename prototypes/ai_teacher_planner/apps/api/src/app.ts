@@ -19,6 +19,7 @@ import { courseRoutes } from "./routes/courses.ts";
 import { disruptionRoutes } from "./routes/disruptions.ts";
 import { eventRoutes } from "./routes/events.ts";
 import { examRoutes } from "./routes/exams.ts";
+import { exportRoutes } from "./routes/export.ts";
 import { lessonNoteRoutes } from "./routes/lesson-notes.ts";
 import { packRoutes } from "./routes/packs.ts";
 import { planRoutes } from "./routes/plans.ts";
@@ -161,7 +162,8 @@ export function createApp(deps: AppDeps) {
     .route("/", packRoutes({ repos, packs, now }))
     .route("/", schemeRoutes({ ai, config, gateway, repos, packs, now }))
     .route("/", planRoutes({ config, repos, packs, now }))
-    .route("/", checkInRoutes({ config, repos, packs, now }));
+    .route("/", checkInRoutes({ config, repos, packs, now }))
+    .route("/", exportRoutes({ config, repos, now }));
 
   if (config.testRoutes)
     app.route(

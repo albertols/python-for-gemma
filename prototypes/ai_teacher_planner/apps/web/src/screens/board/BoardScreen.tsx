@@ -30,6 +30,7 @@ import {
   weekToShow,
 } from "./board-model.ts";
 import { cardsFor, clipKey, declaredFor, withClips } from "./board-plan.ts";
+import { ExportMenu } from "./ExportMenu.tsx";
 import { FortnightGrid, WeekPanel } from "./FortnightGrid.tsx";
 import { GroupFilter } from "./GroupFilter.tsx";
 import { groupsParam, parseGroups, toggleGroup } from "./group-filter.ts";
@@ -303,7 +304,17 @@ export function BoardScreen() {
           />
         </label>
       </div>
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-start gap-3">
+        <ExportMenu
+          w1={current ? startOf(current) : null}
+          weeks={
+            weekView && mondayShown
+              ? [mondayShown]
+              : [current?.w1, current?.w2].filter((m): m is string => !!m)
+          }
+          groups={knownGroups}
+          firstGroup={chosen?.size === 1 ? ([...chosen][0] ?? null) : null}
+        />
         <GroupFilter
           groups={timetable.data.groups}
           chosen={chosen}
