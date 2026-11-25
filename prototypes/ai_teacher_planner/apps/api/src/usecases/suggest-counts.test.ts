@@ -308,7 +308,7 @@ test("a suggestion made against a count she has since changed is refused with 40
     const refusal = await reviewItem(w.ctx, TEACHER, item.id, {
       state,
       ...(state === "edited"
-        ? { data: { ...(item.data as object), to: 7 } }
+        ? { data: { ...(item.data as object), from: 6, to: 7 } }
         : {}),
     }).catch((e: unknown) => e);
     expect(refusal, state).toMatchObject({

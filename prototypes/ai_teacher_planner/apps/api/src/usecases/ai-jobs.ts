@@ -33,7 +33,8 @@ export interface ItemHandler {
   ): { target: string; courseId: CourseId | null; data: unknown }[];
   /** A sentence about what toItems left out (counts only, never the model's words), kept in the finished run's `note`. */
   report?(output: unknown, input: unknown): string | null;
-  apply(item: AiItem, ctx: JobContext): Promise<void>;
+  /** `original` is the item as the run stored it, before any edit of hers: use it for facts the request must not change. */
+  apply(item: AiItem, ctx: JobContext, original: AiItem): Promise<void>;
 }
 
 export interface JobRequest {

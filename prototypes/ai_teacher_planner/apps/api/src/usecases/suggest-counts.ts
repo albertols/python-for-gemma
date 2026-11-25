@@ -123,7 +123,7 @@ export const lessonCountHandler: ItemHandler = {
       ? "1 suggestion was left out: it did not match a chapter of this scheme."
       : `${dropped} suggestions were left out: they did not match a chapter of this scheme.`;
   },
-  async apply(item, ctx) {
+  async apply(item, ctx, original) {
     if (item.courseId === null)
       throw new ApiError(
         422,
@@ -147,7 +147,8 @@ export const lessonCountHandler: ItemHandler = {
         "This chapter is not in the scheme any more, so its count cannot be changed.",
       );
     // a suggestion made against another number must never overwrite her newer one
-    const was = (item.data as { from?: unknown } | null)?.from;
+    // from the stored suggestion: an edit's body can say anything
+    const was = (original.data as { from?: unknown } | null)?.from;
     if (was !== target.lessons)
       throw new ApiError(
         409,

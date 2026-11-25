@@ -85,7 +85,7 @@ export async function reviewItem(
   const reviewed = repos.ai.getItem(itemId) as AiItem;
   if (body.state === "rejected") return reviewed;
   try {
-    await handler.apply(reviewed, ctx);
+    await handler.apply(reviewed, ctx, before);
   } catch (e) {
     repos.ai.restoreItem(before);
     throw e;
