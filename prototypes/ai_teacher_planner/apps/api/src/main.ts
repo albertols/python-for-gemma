@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { serve } from "@hono/node-server";
 import { TEACHER_PRINCIPAL } from "@planner/domain";
+import { providerFor } from "./ai-provider.ts";
 import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import {
@@ -48,6 +49,7 @@ try {
   const server = serve(
     {
       fetch: createApp({
+        ai: providerFor(config, process.env),
         config,
         db,
         now,

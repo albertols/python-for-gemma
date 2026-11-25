@@ -229,6 +229,7 @@ test("a decision of no effect cancels nothing and is stored with no groups or pe
 test("a confirmation the calendar no longer matches is listed as stale, keeps its row and is removable", async () => {
   const db = migratedDb();
   const app = createApp({
+    ai: null,
     config: { ...testConfig, fixedToday: "2026-11-24" },
     db,
     now: () => new Date("2026-11-24T10:00:00Z"),
@@ -301,6 +302,7 @@ test("saving under an id that belongs to another wording is refused with 409 and
 test("the import report lists stale confirmations as error findings, and removing one clears it", async () => {
   const db = migratedDb();
   const app = createApp({
+    ai: null,
     config: { ...testConfig, fixedToday: "2026-11-24" },
     db,
     now: () => new Date("2026-11-24T10:00:00Z"),

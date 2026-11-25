@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { AiProvider } from "@planner/ai";
 import { TEACHER_PRINCIPAL } from "@planner/domain";
 import { buildSyntheticWorkbook } from "@planner/fixtures";
 import { createApp } from "./app.ts";
@@ -63,8 +64,10 @@ export async function buildTestApp(
   gateway?: ResourceGateway,
   now = "2026-11-24T10:00:00Z",
   principal: Principal = TEACHER_PRINCIPAL,
+  ai: AiProvider | null = null,
 ) {
   return createApp({
+    ai,
     config: { ...testConfig, ...over },
     db: migratedDb(),
     now: () => new Date(now),

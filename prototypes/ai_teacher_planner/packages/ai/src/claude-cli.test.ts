@@ -704,6 +704,43 @@ describe("run: when the process goes wrong", () => {
     );
   });
 
+  test("a stderr line that echoes the prompt is replaced even when it is not the last line", async () => {
+    const sentence = "Claude could not read the request. Please tell Alberto.";
+    const t = setup(() => {
+      const prompt = t.calls[0]?.args[1] ?? "";
+      const echoed =
+        prompt.split("\n").find((l) => l.startsWith("BODY MARKER")) ?? "";
+      return scripted([], {
+        code: 1,
+        stderr: `bad input: ${echoed.slice(0, 42)} (end)\nRate limited\n`,
+      });
+    });
+    const e = await rejection(t.provider.run(task, t.opts()));
+    expect(e.message).toBe(sentence);
+    expect(e.message).not.toContain("BODY MARKER");
+  });
+
+  test("an error result that echoes the prompt is replaced by the fixed sentence", async () => {
+    const t = setup(() => {
+      const prompt = t.calls[0]?.args[1] ?? "";
+      const echoed =
+        prompt.split("\n").find((l) => l.startsWith("BODY MARKER")) ?? "";
+      return scripted(
+        withResult((r) => {
+          r.is_error = true;
+          r.subtype = "error_during_execution";
+          r.result = `Could not parse: ${echoed.slice(0, 42)}`;
+          delete r.structured_output;
+        }),
+      );
+    });
+    const e = await rejection(t.provider.run(task, t.opts()));
+    expect(e.reason).toBe("failed");
+    expect(e.message).toBe(
+      "Claude could not read the request. Please tell Alberto.",
+    );
+  });
+
   test("an unknown-option error is replaced even when it shows none of the prompt", async () => {
     const t = setup(() =>
       scripted([], { code: 1, stderr: "error: unknown option '--zzz'\n" }),
@@ -784,6 +821,26 @@ describe("run: when the process goes wrong", () => {
     const pending = rejection(t.provider.run(task, t.opts()));
     await vi.advanceTimersByTimeAsync(1_001);
     await pending;
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(child?.signals).toEqual(["SIGTERM"]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  test("a child that errors after SIGTERM leaves no SIGKILL timer behind", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let child: FakeChild | undefined;
+    const t = setup(
+      () => {
+        child = new FakeChild();
+        child.ignoreTerm = true;
+        return child;
+      },
+      { timeoutMs: 1_000 },
+    );
+    const pending = rejection(t.provider.run(task, t.opts()));
+    await vi.advanceTimersByTimeAsync(1_001);
+    expect((await pending).reason).toBe("timeout");
+    child?.fail(new Error("spawn EPERM"));
     await vi.advanceTimersByTimeAsync(10_000);
     expect(child?.signals).toEqual(["SIGTERM"]);
     expect(vi.getTimerCount()).toBe(0);

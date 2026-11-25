@@ -83,7 +83,10 @@ test("no route that changes data is missing its guard", async () => {
     paths: Record<string, Record<string, { "x-access"?: unknown }>>;
   };
   const MUTATING = ["post", "put", "patch", "delete"];
-  const UNGUARDED_ON_PURPOSE = new Set(["POST /api/test/reset"]);
+  const UNGUARDED_ON_PURPOSE = new Set([
+    "POST /api/test/reset",
+    "POST /api/test/ai",
+  ]);
   const unguarded: string[] = [];
   let seen = 0;
   for (const [p, ops] of Object.entries(doc.paths))

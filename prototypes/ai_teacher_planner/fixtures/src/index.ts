@@ -1,3 +1,4 @@
+export { FAKE_AI_OUTPUTS } from "./fake-ai.ts";
 export { featureFile } from "./feature-file.ts";
 export { paceWorld } from "./pace-world.ts";
 export { SEED_EXAMS, SEED_GROUPS, SEED_TERMS, SEED_TIMETABLE } from "./seed.ts";

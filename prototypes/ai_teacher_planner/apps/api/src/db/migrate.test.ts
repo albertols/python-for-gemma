@@ -27,6 +27,7 @@ test("migrating an empty database creates the tables and records the version", (
     "0005_event_classifications",
     "0006_external_exams",
     "0007_todos",
+    "0008_ai",
   ]);
   expect(tables(db)).toEqual(
     expect.arrayContaining([
@@ -50,6 +51,7 @@ test("migrating an empty database creates the tables and records the version", (
     { version: "0005_event_classifications" },
     { version: "0006_external_exams" },
     { version: "0007_todos" },
+    { version: "0008_ai" },
   ]);
 });
 

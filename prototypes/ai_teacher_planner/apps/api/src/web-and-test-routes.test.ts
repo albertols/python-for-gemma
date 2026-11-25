@@ -21,6 +21,7 @@ const HEADER = { "x-planner-test": "1" };
 
 const build = (over: Parameters<typeof loadConfig>[0] = {}, web?: string) =>
   createApp({
+    ai: null,
     config: {
       ...testConfig,
       ...loadConfig({ PLANNER_DATA_DIR: "/unused", ...over }),

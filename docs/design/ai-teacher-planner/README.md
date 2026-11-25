@@ -33,7 +33,7 @@ Look for the two things that import the engine (the web app and the API) and the
 
 Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) all live in the same routes, use cases and repository box.
 
-![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos), use cases, job queue, engine, driven adapters with migrations 0001-0007, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
+![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review), use cases, job queue, engine, driven adapters with migrations 0001-0008, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
 
 ## 4. Frontend components
 
@@ -55,9 +55,9 @@ Look for the amber gate: a candidate revision becomes the head revision only whe
 
 ## 7. AI flow
 
-Look for what crosses to the model (extracted text) and what comes back (JSON), the Claude Code adapter that starts `claude -p` and checks the answer against the schema, then the review step at the end.
+Look for what crosses to the model (extracted text) and what comes back (JSON), the Claude Code adapter that starts `claude -p` and checks the answer against the schema, then the review step at the end. The job queue runs one job at a time, asks the provider whether it is available before each one, and tells the browser only plain-word progress; a suggestion is applied once, with its provenance, only after Gemma accepts or edits it.
 
-![AI flow sequence: ask, run (provider, Claude Code adapter, claude -p, schema check), store, review](07-ai-flow.svg)
+![AI flow sequence: ask (refused when AI is off), run (one at a time, availability check, provider, Claude Code adapter, claude -p, schema check), store, review (once, with provenance)](07-ai-flow.svg)
 
 ## 8. Data and privacy
 

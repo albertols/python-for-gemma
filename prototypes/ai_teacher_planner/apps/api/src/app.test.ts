@@ -6,6 +6,7 @@ import { fakeGateway, migratedDb, testConfig } from "./test-support.ts";
 
 const build = (over: Partial<Config> = {}, now = "2026-11-24T10:00:00Z") =>
   createApp({
+    ai: null,
     config: { ...testConfig, ...over },
     db: migratedDb(),
     now: () => new Date(now),
@@ -23,7 +24,11 @@ test("config reports the fixed today when set, otherwise the local date", async 
   expect(await (await fixed.request("/api/config")).json()).toEqual({
     today: "2026-11-20",
     timeZone: "Europe/Madrid",
-    ai: { mode: "claude", available: false, reason: "not built yet" },
+    ai: {
+      mode: "claude",
+      available: false,
+      reason: "The AI is not set up on this server.",
+    },
   });
   const local = build({}, "2026-11-23T23:13:00Z");
   expect(

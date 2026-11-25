@@ -1,5 +1,7 @@
+import type { SkillId } from "@planner/ai";
 import type {
   CalendarRow,
+  CourseId,
   Disruption,
   EventClassification,
   ExternalExam,
@@ -8,6 +10,8 @@ import type {
   LabelCorrection,
   ParentsEvening,
   ReportWindow,
+  ReviewState,
+  Source,
   Term,
   TimetableVersion,
   TodoNote,
@@ -137,6 +141,64 @@ export interface TodoRepo {
   remove(id: string): boolean;
 }
 
+/** One AI job. `failure` is a sentence for her, never an error code. */
+export interface AiRun {
+  id: string;
+  skillId: SkillId;
+  status: "queued" | "running" | "done" | "failed" | "cancelled";
+  startedAt: string;
+  durationMs: number | null;
+  provider: string | null;
+  model: string | null;
+  failure: string | null;
+  itemIds: string[];
+}
+
+/** One thing an AI run suggested. It waits for her review. */
+export interface AiItem {
+  id: string;
+  runId: string;
+  kind: string;
+  target: string;
+  courseId: CourseId | null;
+  data: unknown;
+  review: ReviewState;
+  reviewedAt: string | null;
+  sources: Source[];
+}
+
+export interface AiRepo {
+  insertRun(run: Omit<AiRun, "itemIds">): void;
+  getRun(id: string): AiRun | null;
+  /** Newest first (started time, then insertion order). */
+  listRuns(): AiRun[];
+  updateRun(
+    id: string,
+    patch: Partial<
+      Pick<AiRun, "status" | "durationMs" | "provider" | "model" | "failure">
+    >,
+  ): void;
+  insertItem(item: AiItem): void;
+  getItem(id: string): AiItem | null;
+  /** In the order stored; every item, or only those in one review state. */
+  listItems(filter?: { review?: ReviewState }): AiItem[];
+  /**
+   * Moves a suggested item to `review`, replacing its data when `data` is given.
+   * Returns the item as it was, or null when it is not suggested any more (or does not exist).
+   * Only one of two racing calls can win.
+   */
+  claimReview(
+    id: string,
+    review: Exclude<ReviewState, "suggested">,
+    reviewedAt: string,
+    data?: unknown,
+  ): AiItem | null;
+  /** Puts an item back as it was before `claimReview`. */
+  restoreItem(item: AiItem): void;
+  /** Marks every queued or running run as failed. Returns how many. */
+  failUnfinished(failure: string): number;
+}
+
 export interface Repos {
   calendar: CalendarRepo;
   timetable: TimetableRepo;
@@ -146,6 +208,7 @@ export interface Repos {
   events: EventRepo;
   exams: ExamRepo;
   todos: TodoRepo;
+  ai: AiRepo;
   /** Everything inside `fn` is stored together or not at all. */
   transaction<T>(fn: () => T): T;
 }

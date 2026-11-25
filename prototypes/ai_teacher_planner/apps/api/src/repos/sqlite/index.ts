@@ -1,5 +1,6 @@
 import type { Database } from "../../db/connection.ts";
 import type { Repos } from "../ports.ts";
+import { createAiRepo } from "./ai-repo.ts";
 import { createCalendarRepo } from "./calendar-repo.ts";
 import { createCorrectionRepo } from "./correction-repo.ts";
 import { createDisruptionRepo } from "./disruption-repo.ts";
@@ -19,6 +20,7 @@ export function createRepos(db: Database): Repos {
     events: createEventRepo(db),
     exams: createExamRepo(db),
     todos: createTodoRepo(db),
+    ai: createAiRepo(db),
     transaction: (fn) => db.transaction(fn)(),
   };
 }

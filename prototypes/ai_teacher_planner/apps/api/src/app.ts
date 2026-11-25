@@ -2,12 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createRoute, z } from "@hono/zod-openapi";
+import type { AiProvider } from "@planner/ai";
 import { HTTPException } from "hono/http-exception";
+import { createAiState } from "./ai-state.ts";
 import type { Config } from "./config.ts";
 import type { Database } from "./db/connection.ts";
 import { ApiError } from "./errors.ts";
 import type { ResourceGateway } from "./gateway/resource-gateway.ts";
 import { createRepos } from "./repos/sqlite/index.ts";
+import { aiRoutes } from "./routes/ai.ts";
 import { calendarRoutes } from "./routes/calendar.ts";
 import { disruptionRoutes } from "./routes/disruptions.ts";
 import { eventRoutes } from "./routes/events.ts";
@@ -20,6 +23,7 @@ import { timetableRoutes } from "./routes/timetable.ts";
 import { todayRoutes } from "./routes/today.ts";
 import { todoRoutes } from "./routes/todos.ts";
 import { todayOf } from "./today.ts";
+import { failInterrupted } from "./usecases/ai-jobs.ts";
 import { firstRun } from "./usecases/first-run.ts";
 
 export interface AppDeps {
@@ -27,6 +31,8 @@ export interface AppDeps {
   db: Database;
   now: () => Date;
   gateway: ResourceGateway;
+  /** The AI, or null when there is none. main.ts picks it from PLANNER_AI. */
+  ai: AiProvider | null;
   /** Who is asking. v1 always passes TEACHER_PRINCIPAL. */
   principal: Principal;
   /** The built web app. When set, it is served, with index.html for any page address. */
@@ -74,6 +80,10 @@ export function createApp(deps: AppDeps) {
   const { config, now, db, gateway, webDir } = deps;
   const repos = createRepos(db);
   firstRun(repos);
+  // a job that was running when the planner closed can never finish
+  failInterrupted(repos);
+  const ai = createAiState({ config, ai: deps.ai, repos, now });
+  void ai.availability(); // checked at start-up, then at most once a minute
   const base = createRouter();
   // Hono runs middleware in registration order, so this goes before every route.
   base.use("*", async (c, next) => {
@@ -82,21 +92,17 @@ export function createApp(deps: AppDeps) {
   });
   const app = base
     .openapi(health, (c) => c.json({ ok: true as const }, 200))
-    .openapi(configRoute, (c) =>
-      c.json(
+    .openapi(configRoute, async (c) => {
+      const { available, reason } = await ai.availability();
+      return c.json(
         {
           today: todayOf(config, now()),
           timeZone: config.timeZone,
-          // Until Task 2.9 the AI is not built, unless it is switched off on purpose.
-          ai: {
-            mode: config.ai,
-            available: false,
-            reason: config.ai === "off" ? null : "not built yet",
-          },
+          ai: { mode: ai.mode(), available, reason },
         },
         200,
-      ),
-    )
+      );
+    })
     .route("/", calendarRoutes({ config, repos, gateway, now }))
     .route("/", timetableRoutes({ repos }))
     .route("/", slotRoutes({ repos }))
@@ -104,9 +110,10 @@ export function createApp(deps: AppDeps) {
     .route("/", eventRoutes({ repos, now }))
     .route("/", examRoutes({ repos }))
     .route("/", todoRoutes({ repos, now }))
-    .route("/", todayRoutes({ config, repos, now }));
+    .route("/", todayRoutes({ config, repos, now }))
+    .route("/", aiRoutes({ state: ai }));
 
-  if (config.testRoutes) app.route("/", testRoutes({ db, repos, now }));
+  if (config.testRoutes) app.route("/", testRoutes({ db, repos, now, ai }));
 
   app.doc("/openapi.json", {
     openapi: "3.1.0",

@@ -41,6 +41,11 @@ function notesForAssistant(event: Json): string[] {
 export async function parseStream(
   lines: AsyncIterable<string>,
   onProgress: (p: AiProgress) => void,
+  /**
+   * Makes Claude's error text safe to show. It returns the text as it is, or a fixed sentence
+   * when the text is not fit to show (for example, when it repeats the prompt).
+   */
+  screen: (text: string) => string = (t) => t,
 ): Promise<{ output: unknown; model: string }> {
   let model: string | null = null;
   let final:
@@ -66,13 +71,16 @@ export async function parseStream(
     } else if (event.type === "result" && final === null) {
       if (event.is_error === true || event.subtype !== "success") {
         const said = typeof event.result === "string" ? event.result : "";
+        const safe = screen(said);
         final = {
           error: new AiError(
             "failed",
             cutForUser(
-              said !== ""
-                ? `Claude could not finish: ${said}`
-                : `Claude could not finish (${String(event.subtype)})`,
+              safe !== said
+                ? safe
+                : said !== ""
+                  ? `Claude could not finish: ${said}`
+                  : `Claude could not finish (${String(event.subtype)})`,
             ),
           ),
         };

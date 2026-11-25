@@ -1,6 +1,6 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-// Mirrors migrations/0001, 0002 and 0004 (0003's disruptions table is only used through its repository). The SQL file is the source of truth.
+// Mirrors migrations/0001, 0002 and 0004 (0003's disruptions table and 0008's AI tables are only used through their repositories). The SQL file is the source of truth.
 
 export const settings = sqliteTable("settings", {
   key: text().primaryKey(),

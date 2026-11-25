@@ -126,12 +126,17 @@ function lastLine(text: string): string {
  * replaced by a fixed sentence. Otherwise the line, cut to 300 characters.
  */
 function safeStderr(line: string, prompt: string): string {
-  if (line.startsWith("error: unknown option")) return UNREADABLE_REQUEST;
+  return unsafeToShow(line, prompt) ? UNREADABLE_REQUEST : cutForUser(line);
+}
+
+/** Does this text hold 40 characters of the prompt, or is it an "unknown option" error? */
+function unsafeToShow(text: string, prompt: string): boolean {
+  if (text.startsWith("error: unknown option")) return true;
   const window = Math.min(40, prompt.length);
   if (window > 0)
     for (let i = 0; i + window <= prompt.length; i++)
-      if (line.includes(prompt.slice(i, i + window))) return UNREADABLE_REQUEST;
-  return cutForUser(line);
+      if (text.includes(prompt.slice(i, i + window))) return true;
+  return false;
 }
 
 type Outcome<T> = { ok: true; value: T } | { ok: false; error: unknown };
@@ -305,10 +310,20 @@ export class ClaudeCodeCliProvider implements AiProvider {
         signal: opts.signal,
         timeoutMs: this.timeoutMs ?? defaultTimeoutMs(task.tools),
       },
-      (lines) => parseStream(lines, opts.onProgress),
+      (lines) =>
+        parseStream(lines, opts.onProgress, (text) =>
+          unsafeToShow(text, prompt) ? UNREADABLE_REQUEST : text,
+        ),
     );
 
     if (run.code !== 0) {
+      // Every line is screened, not only the last: the CLI may echo the prompt anywhere.
+      const lines = run.stderr
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l !== "");
+      if (lines.some((l) => unsafeToShow(l, prompt)))
+        throw new AiError("failed", UNREADABLE_REQUEST);
       const said = lastLine(run.stderr);
       if (said !== "") throw new AiError("failed", safeStderr(said, prompt));
       const exit =
@@ -396,7 +411,11 @@ export class ClaudeCodeCliProvider implements AiProvider {
     limits.signal?.addEventListener("abort", onAbort, { once: true });
 
     const closed = new Promise<number | null>((resolve, reject) => {
-      child.once("error", (e) => reject(spawnProblem(e)));
+      child.once("error", (e) => {
+        // an errored child may never close, so the pending SIGKILL has no one to wait for
+        clearTimeout(killTimer);
+        reject(spawnProblem(e));
+      });
       child.once("close", (code) => {
         clearTimeout(killTimer);
         resolve(code);

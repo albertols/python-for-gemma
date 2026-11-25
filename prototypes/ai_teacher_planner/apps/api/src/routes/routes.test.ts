@@ -91,6 +91,7 @@ test("importing again replaces the calendar, report windows and parents' evening
   const full = await buildSyntheticWorkbook();
   const files = { [SYNTHETIC_FILE]: full };
   const app = createApp({
+    ai: null,
     config: { ...testConfig, fixedToday: "2026-11-19" },
     db,
     now: () => new Date("2026-11-24T10:00:00Z"),

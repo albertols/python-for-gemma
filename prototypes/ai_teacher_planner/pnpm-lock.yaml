@@ -38,6 +38,9 @@ importers:
       '@hono/zod-openapi':
         specifier: 1.6.3
         version: 1.6.3(hono@4.13.19)(zod@4.6.7)
+      '@planner/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@planner/domain':
         specifier: workspace:*
         version: link:../../packages/domain
