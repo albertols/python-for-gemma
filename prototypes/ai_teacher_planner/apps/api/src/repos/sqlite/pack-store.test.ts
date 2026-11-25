@@ -38,7 +38,7 @@ test("a draft and a locked pack are two files, and the locked one is read back o
     "ial-business-u4.draft.json",
     "ial-business-u4.json",
   ]);
-  // someone edits the locked file by hand: it is no longer the pack she locked
+  // the hash field in the locked file no longer matches the stored hash: not the pack she locked
   const file = path.join(dir, "ial-business-u4.json");
   fs.writeFileSync(file, JSON.stringify({ ...locked, hash: "0".repeat(64) }));
   expect(packs.locked("ial-business-u4")).toBeNull();
@@ -51,6 +51,8 @@ test("an unlocked pack is refused as locked, and a file that is not a pack is an
   expect(() => packs.saveLocked(pack())).toThrow(/locked/);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "ial-business-u4.draft.json"), "{}");
-  expect(() => packs.draft("ial-business-u4")).toThrow();
+  expect(() => packs.draft("ial-business-u4")).toThrow(
+    /The pack file could not be read: ial-business-u4\.draft\.json, /,
+  );
   expect(() => packs.draft("../escape")).toThrow(/course id/);
 });

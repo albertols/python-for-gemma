@@ -1,13 +1,8 @@
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { afterAll, expect, test } from "vitest";
-import { createRepos } from "../repos/sqlite/index.ts";
-import { createPackStore } from "../repos/sqlite/pack-store.ts";
-import { migratedDb } from "../test-support.ts";
+import { seededRepos } from "../test-support.ts";
 import { createDisruption } from "./disruptions.ts";
 import { loadPlanInputs } from "./plan-inputs.ts";
-import { resetToSeed } from "./reset-to-seed.ts";
 import type { SeedState } from "./seed-m2.ts";
 
 const COURSE = "ial-business-u4";
@@ -17,15 +12,10 @@ afterAll(() => {
   for (const d of dirs) fs.rmSync(d, { recursive: true, force: true });
 });
 
-/** A migrated database and pack folder, seeded as the browser-test reset does. */
 async function seeded(state: SeedState) {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-inputs-"));
-  dirs.push(dataDir);
-  const db = migratedDb();
-  const repos = createRepos(db);
-  const packs = createPackStore(db, path.join(dataDir, "packs"));
-  await resetToSeed(db, repos, { packs, dataDir }, now, state);
-  return { repos, packs };
+  const s = await seededRepos(state);
+  dirs.push(s.dataDir);
+  return s;
 }
 
 test("the inputs come from the database: her cancellations in the slots, the course's groups, exams and revision weeks, and the head", async () => {

@@ -3,21 +3,46 @@ import path from "node:path";
 import type { CourseId, CurriculumPack } from "@planner/domain";
 import { curriculumPackSchema } from "@planner/importers";
 import type { Database } from "../../db/connection.ts";
+import { ApiError } from "../../errors.ts";
 import type { PackStore } from "../ports.ts";
 
 /** Course ids are slugs; anything else could name a file outside the folder. */
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 
-/** Pack files in `dir`, and each locked pack's hash in the database. Nothing is written until a save. */
+/**
+ * Pack files in `dir`, and each locked pack's hash in the database. A locked pack
+ * is read back only while the `hash` field in its file equals the stored hash; the
+ * content is not hashed again here. Nothing is written until a save.
+ */
 export function createPackStore(db: Database, dir: string): PackStore {
   const file = (courseId: CourseId, draft: boolean) => {
     if (!SLUG.test(courseId))
       throw new Error(`"${courseId}" is not a course id`);
     return path.join(dir, `${courseId}${draft ? ".draft" : ""}.json`);
   };
+  /** A file that is not a pack is reported in a sentence she can read (422), never guessed at. */
   const read = (p: string): CurriculumPack | null => {
     if (!fs.existsSync(p)) return null;
-    return curriculumPackSchema.parse(JSON.parse(fs.readFileSync(p, "utf8")));
+    const name = path.basename(p);
+    const unreadable = (why: string) =>
+      new ApiError(
+        422,
+        "pack-unreadable",
+        `The pack file could not be read: ${name}${why}.`,
+      );
+    let json: unknown;
+    try {
+      json = JSON.parse(fs.readFileSync(p, "utf8"));
+    } catch {
+      throw unreadable(" is not JSON");
+    }
+    const parsed = curriculumPackSchema.safeParse(json);
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
+      throw unreadable(`, ${where}${issue?.message ?? "not a pack"}`);
+    }
+    return parsed.data;
   };
   const write = (p: string, pack: CurriculumPack) => {
     fs.mkdirSync(dir, { recursive: true });

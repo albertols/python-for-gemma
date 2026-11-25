@@ -145,7 +145,7 @@ const placements = createRoute({
   responses: {
     200: {
       description:
-        "Every plan's head in the days from `from` to `to`: lessons with title, kind and provenance, and assessments, in slot order",
+        "Every plan's head in the days from `from` to `to`: lessons with title, kind and provenance, and assessments, in slot order. The state shown is her logged outcome, else the stored history state, else assumed for a planned lesson before today; a past spare lesson she did not edit is left out",
       content: json(
         z.object({
           placements: z.array(placementView),
@@ -207,6 +207,6 @@ export function planRoutes(deps: {
     })
     .openapi(placements, (c) => {
       const { from, to } = c.req.valid("query");
-      return c.json(placementsIn(repos, from, to), 200);
+      return c.json(placementsIn(repos, from, to, today()), 200);
     });
 }

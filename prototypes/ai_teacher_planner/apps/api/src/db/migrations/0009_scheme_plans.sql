@@ -6,8 +6,8 @@ create table courses (
   revision_weeks integer not null check (revision_weeks >= 0)
 );
 
--- The curriculum pack itself is a JSON file in data/packs/; only its hash is kept here, so a
--- pack file that was changed after it was locked is not taken as locked.
+-- The curriculum pack itself is a JSON file in data/packs/; only the hash of the pack she locked
+-- is kept here. A locked file whose own hash field differs from it is not taken as locked.
 create table pack_locks (
   course_id text primary key references courses (id),
   hash text not null,

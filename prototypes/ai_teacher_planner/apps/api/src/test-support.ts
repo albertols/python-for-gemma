@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { AiProvider } from "@planner/ai";
 import { TEACHER_PRINCIPAL } from "@planner/domain";
@@ -16,7 +18,11 @@ import {
   ResourceDenied,
   type ResourceGateway,
 } from "./gateway/resource-gateway.ts";
+import { createRepos } from "./repos/sqlite/index.ts";
+import { createPackStore } from "./repos/sqlite/pack-store.ts";
 import type { Principal } from "./routes/require-access.ts";
+import { resetToSeed } from "./usecases/reset-to-seed.ts";
+import type { SeedState } from "./usecases/seed-m2.ts";
 
 export const testConfig: Config = loadConfig({
   PLANNER_DATA_DIR: "/unused",
@@ -95,4 +101,23 @@ export async function buildTestApp(
     gateway: gateway ?? (await syntheticGateway()),
     principal,
   });
+}
+
+/**
+ * A migrated database with a pack folder in a new temporary data folder, seeded
+ * as the browser-test reset does for `state`. The caller removes `dataDir`.
+ */
+export async function seededRepos(state: SeedState) {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-seeded-"));
+  const db = migratedDb();
+  const repos = createRepos(db);
+  const packs = createPackStore(db, path.join(dataDir, "packs"));
+  await resetToSeed(
+    db,
+    repos,
+    { packs, dataDir },
+    () => new Date("2026-11-24T10:00:00Z"),
+    state,
+  );
+  return { db, repos, packs, dataDir };
 }

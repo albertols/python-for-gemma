@@ -186,7 +186,8 @@ test("placements for a week return titles and states for the board", async () =>
   );
   for (const p of week.placements) {
     expect(p.date >= "2026-11-09" && p.date <= "2026-11-13").toBe(true);
-    expect(p).toMatchObject({ courseId: COURSE, state: "planned" });
+    // today is 20 Nov: a past lesson with no answer from her is assumed
+    expect(p).toMatchObject({ courseId: COURSE, state: "assumed" });
     if (p.lessonId.startsWith("flex:"))
       expect(p).toMatchObject({
         kind: "flex",
@@ -215,6 +216,26 @@ test("placements for a week return titles and states for the board", async () =>
     );
   }
   expect(week.assessments).toEqual([]);
+  // a week still ahead is planned, spare lesson included
+  const ahead = (
+    await get(app, "/api/placements?from=2026-11-23&to=2026-11-27")
+  ).body;
+  expect(ahead.placements.length).toBeGreaterThan(0);
+  expect(ahead.placements.every((p: Json) => p.state === "planned")).toBe(true);
+  expect(ahead.placements).toContainEqual(
+    expect.objectContaining({
+      lessonId: "flex:13 3:cp:a-ch2#1",
+      slotKey: "13 3|2026-11-26|4",
+      state: "planned",
+      title: "Spare lesson",
+    }),
+  );
+  // the stored head is not changed by what the board shows
+  expect(
+    (await status(app)).head.snapshot.placements.find(
+      (p: Json) => p.slotKey === week.placements[0].slotKey,
+    ).state,
+  ).toBe("planned");
   const test = (await get(app, "/api/placements?from=2026-11-27&to=2026-12-01"))
     .body;
   expect(
@@ -563,4 +584,63 @@ test("a scheme with a negative or repeated group count, an unknown item or a par
   expect((await get(app, `/api/scheme/${COURSE}`)).body.overrides).toEqual([
     { groupId: "13 3", itemId: "ch2", lessons: 5 },
   ]);
+});
+
+test("every course-scoped route answers 404 for a course that does not exist", async () => {
+  const { app } = await planner("m2-planned");
+  const calls: [string, string, unknown?][] = [
+    ["PUT", "/api/courses/nope", { revisionWeeks: 1 }],
+    ["GET", "/api/packs/nope"],
+    ["PUT", "/api/packs/nope/draft", { ...syntheticPack(), courseId: "nope" }],
+    ["POST", "/api/packs/nope/lock"],
+    ["GET", "/api/scheme/nope"],
+    ["PUT", "/api/scheme/nope", { items: [], overrides: [] }],
+    ["GET", "/api/positions/nope"],
+    ["PUT", "/api/positions/nope", { positions: [] }],
+    ["GET", "/api/plans/nope"],
+    ["GET", "/api/plans/nope/inputs"],
+    ["POST", "/api/plans/nope/proposals"],
+    [
+      "POST",
+      "/api/plans/nope/accept",
+      { baseRevisionId: "r:any", candidateKey: "k" },
+    ],
+    [
+      "POST",
+      "/api/plans/nope/accept",
+      { baseRevisionId: null, candidateKey: "k" },
+    ],
+    ["POST", "/api/plans/nope/undo"],
+  ];
+  const answers: string[] = [];
+  for (const [method, url, body] of calls) {
+    const res = await send(app, method, url, body);
+    answers.push(`${method} ${url} ${res.status} ${res.body.error?.code}`);
+  }
+  expect(answers).toEqual(
+    calls.map(([method, url]) => `${method} ${url} 404 not-found`),
+  );
+});
+
+test("a pack file that cannot be read is reported in a sentence, not as a server error", async () => {
+  const { app, dataDir } = await planner("m2-planned");
+  fs.writeFileSync(
+    path.join(dataDir, "packs", `${COURSE}.draft.json`),
+    "{ not json",
+  );
+  const packs = await get(app, `/api/packs/${COURSE}`);
+  expect(packs.status).toBe(422);
+  expect(packs.body.error).toEqual({
+    code: "pack-unreadable",
+    message: `The pack file could not be read: ${COURSE}.draft.json is not JSON.`,
+  });
+  fs.writeFileSync(
+    path.join(dataDir, "packs", `${COURSE}.draft.json`),
+    JSON.stringify({ ...syntheticPack(), courseId: COURSE, units: "none" }),
+  );
+  const notAPack = await get(app, `/api/packs/${COURSE}`);
+  expect(notAPack.status).toBe(422);
+  expect(notAPack.body.error.message).toBe(
+    `The pack file could not be read: ${COURSE}.draft.json, units: Invalid input: expected array, received string.`,
+  );
 });

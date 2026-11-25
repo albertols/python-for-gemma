@@ -7,6 +7,7 @@ import {
 } from "@planner/domain";
 import { ApiError } from "../errors.ts";
 import type { PackStore, Repos } from "../repos/ports.ts";
+import { courseOrThrow } from "./plan-inputs.ts";
 import { proposePlan } from "./propose-plan.ts";
 
 const STALE =
@@ -26,6 +27,7 @@ export function acceptPlan(
   body: { baseRevisionId: string | null; candidateKey: string },
   meta: { id: string; createdAt: string },
 ): PlanRevision {
+  courseOrThrow(repos, courseId);
   return repos.transaction(() => {
     const head = repos.plans.head(courseId);
     if ((head?.id ?? null) !== body.baseRevisionId)

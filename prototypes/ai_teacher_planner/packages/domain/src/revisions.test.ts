@@ -14,6 +14,7 @@ import {
   snapshotKey,
   undo,
 } from "./revisions.ts";
+import type { SowItem } from "./scheme.ts";
 import { sequence } from "./sequence.ts";
 
 const world = paceWorld();
@@ -487,6 +488,75 @@ describe("is the plan up to date", () => {
     expect(
       check(at("2026-11-16", { slots: cancelled.slots }), cancelled.slots),
     ).toBe(false);
+  });
+
+  test("conflicts and absorbed buffer lessons are seen as of today: a missed deadline on a lesson now behind her is not a change", () => {
+    // c3#1 must be taught by 10 Nov and is planned for 23 Nov: a not-after-missed conflict
+    const pinned: PlanInputs = {
+      ...world,
+      pins: [
+        {
+          id: "na",
+          groupId: "13 1",
+          lessonId: "c3#1",
+          kind: "not-after",
+          date: "2026-11-10",
+        },
+      ],
+    };
+    const head = sequence(pinned);
+    expect(head.conflicts).toEqual([
+      expect.objectContaining({
+        kind: "not-after-missed",
+        lessonId: "c3#1",
+        plannedDate: "2026-11-23",
+      }),
+    ]);
+    const items = world.items.map((i) =>
+      i.assessment
+        ? { ...i, assessment: { ...i.assessment, status: "sat" as const } }
+        : i,
+    );
+    // by 2 Dec c3#1 is in the past: a new plan says nothing about its deadline
+    const fresh = sequence({
+      ...pinned,
+      items,
+      today: "2026-12-02",
+      previous: head,
+    });
+    expect(fresh.conflicts).toEqual([]);
+    const ok = (h: PlanSnapshot, f: PlanSnapshot) =>
+      isUpToDate({ head: h, fresh: f, slots: world.slots, flexEdits: [] });
+    expect(ok(head, fresh)).toBe(true);
+    // before the lesson, the deadline is still missed, and the conflict is the same in both
+    const before = sequence({ ...pinned, today: "2026-11-16", previous: head });
+    expect(before.conflicts).toEqual(head.conflicts);
+    expect(ok(head, before)).toBe(true);
+
+    // buffer lessons dropped before a checkpoint that is still ahead stay dropped a week later
+    const withBuffer: PlanInputs = {
+      ...world,
+      items: [
+        ...world.items,
+        {
+          ...(world.items.find((i) => i.id === "c2") as SowItem),
+          id: "b1",
+          kind: "buffer",
+          order: 2.5,
+          lessons: 4,
+          title: "b1",
+        },
+      ],
+    };
+    const bufferHead = sequence(withBuffer);
+    expect(bufferHead.absorbed.length).toBeGreaterThan(0);
+    const weekLater = sequence({
+      ...withBuffer,
+      today: "2026-11-16",
+      previous: bufferHead,
+    });
+    expect(weekLater.absorbed).toEqual(bufferHead.absorbed);
+    expect(ok(bufferHead, weekLater)).toBe(true);
   });
 });
 

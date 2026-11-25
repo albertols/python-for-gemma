@@ -15,6 +15,14 @@ import type { GroupId } from "./timetable.ts";
 
 const isFlex = (lessonId: LessonId) => lessonId.startsWith("flex:");
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+/** History that counts as done (history.ts `delivered`); a skipped lesson is still to teach. */
+const DELIVERED_STATES: ReadonlySet<PlacementState> = new Set([
+  "declared",
+  "assumed",
+  "taught",
+  "cover",
+  "homework",
+]);
 
 export interface PlanDiffEntry {
   groupId: GroupId;
@@ -369,6 +377,10 @@ export function sameExceptHistoryStates(
  * lessons dated before today that were only planned are assumed, past spare
  * lessons she did not edit are dropped (a new plan drops them), and past
  * assessments, checkpoints and the overflow at those checkpoints are gone.
+ * Conflicts that a new plan no longer reports go too: a pin or deadline on a
+ * lesson that is now behind her is moot, and a frozen assessment whose slot is
+ * past is no longer frozen. Absorbed buffer lessons are kept as they are: they
+ * carry no date, and a new plan absorbs them again while their checkpoint is ahead.
  */
 function headAsOf(
   head: PlanSnapshot,
@@ -378,24 +390,44 @@ function headAsOf(
   const past = (key: SlotKey | null) => key !== null && slotDate(key) < today;
   const checkpoints = head.checkpoints.filter((c) => c.date >= today);
   const kept = new Set(checkpoints.map((c) => c.id));
+  const placements = head.placements
+    .filter(
+      (p) =>
+        !(
+          past(p.slotKey) &&
+          isFlex(p.lessonId) &&
+          p.state === "planned" &&
+          !editedFlex.has(p.lessonId)
+        ),
+    )
+    .map((p) =>
+      past(p.slotKey) && p.state === "planned"
+        ? { ...p, state: "assumed" as const }
+        : p,
+    );
+  const done = new Set(
+    placements
+      .filter((p) => DELIVERED_STATES.has(p.state))
+      .map((p) => `${p.groupId}\u0000${p.lessonId}`),
+  );
+  const moot = (c: Conflict): boolean => {
+    switch (c.kind) {
+      case "pin-frozen":
+      case "pin-slot-unavailable":
+      case "not-after-missed":
+      case "hl-prerequisite":
+        return done.has(`${c.groupId}\u0000${c.lessonId}`);
+      case "anchor-frozen":
+        return past(c.slotKey);
+      default:
+        return false;
+    }
+  };
   return {
     ...head,
     today,
-    placements: head.placements
-      .filter(
-        (p) =>
-          !(
-            past(p.slotKey) &&
-            isFlex(p.lessonId) &&
-            p.state === "planned" &&
-            !editedFlex.has(p.lessonId)
-          ),
-      )
-      .map((p) =>
-        past(p.slotKey) && p.state === "planned"
-          ? { ...p, state: "assumed" as const }
-          : p,
-      ),
+    placements,
+    conflicts: head.conflicts.filter((c) => !moot(c)),
     assessments: head.assessments.filter((a) => !past(a.slotKey)),
     checkpoints,
     overflow: head.overflow.filter(

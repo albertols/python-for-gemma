@@ -281,12 +281,14 @@ export interface PlanRepo {
 
 /**
  * Curriculum packs, as JSON files in `data/packs/` (`<courseId>.draft.json` and
- * `<courseId>.json`). The database keeps only the locked pack's hash, so a file
- * changed after locking is not taken as locked.
+ * `<courseId>.json`). The database keeps only the hash of the pack she locked.
+ * Reading a locked pack compares the `hash` field written in its file with that
+ * stored hash; it does not recompute the hash from the file's content (the lock
+ * route does, with `lockPack`). A file that is not a pack is a 422, never guessed at.
  */
 export interface PackStore {
   draft(courseId: CourseId): CurriculumPack | null;
-  /** The locked pack, or null when there is none or its file no longer matches the stored hash. */
+  /** The locked pack, or null when there is none or the `hash` field in its file differs from the stored hash. */
   locked(courseId: CourseId): CurriculumPack | null;
   saveDraft(pack: CurriculumPack): void;
   /** Writes the file and the hash. The pack must be locked (`lockPack`). */
