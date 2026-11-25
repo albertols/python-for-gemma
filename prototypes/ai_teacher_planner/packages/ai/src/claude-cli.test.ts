@@ -894,8 +894,11 @@ describe("available", () => {
     );
     const res = await t.provider.available();
     expect(res.ok).toBe(false);
-    expect(res.ok === false && res.reason).toMatch(/signed out/i);
-    expect(res.ok === false && res.reason).toMatch(/claude/i);
+    expect(res).toEqual({
+      ok: false,
+      reason:
+        "Claude Code is signed out. Run `claude` in a terminal and sign in, then try again.",
+    });
   });
 
   test("a missing claude command is not available, with a sentence she can act on", async () => {
@@ -909,7 +912,33 @@ describe("available", () => {
     });
     const res = await provider.available();
     expect(res.ok).toBe(false);
-    expect(res.ok === false && res.reason).toMatch(/install/i);
+    expect(res).toEqual({
+      ok: false,
+      reason:
+        "Claude Code is not installed on this Mac. Everything else still works.",
+    });
+  });
+
+  test("any other outcome is one fixed sentence: raw stderr and spawn errors are never passed on", async () => {
+    const generic =
+      "Claude Code did not say whether you are signed in. Open it in a terminal and check.";
+    const failing = setup(() =>
+      scripted([], { code: 1, stderr: "boom at /Users/someone/x" }),
+    );
+    expect(await failing.provider.available()).toEqual({
+      ok: false,
+      reason: generic,
+    });
+    const odd = new ClaudeCodeCliProvider({
+      spawn: () => {
+        throw Object.assign(new Error("spawn /opt/bin/claude EPERM"), {
+          code: "EPERM",
+        });
+      },
+      env: {},
+      readSkillText: async () => "S",
+    });
+    expect(await odd.available()).toEqual({ ok: false, reason: generic });
   });
 
   test("output that is not JSON, or a failing command, is not available", async () => {
@@ -918,7 +947,7 @@ describe("available", () => {
     const failing = setup(() => scripted([], { code: 1, stderr: "boom" }));
     const res = await failing.provider.available();
     expect(res.ok).toBe(false);
-    expect(res.ok === false && res.reason).toContain("boom");
+    expect(res.ok === false && res.reason).not.toContain("boom");
   });
 
   test("the auth check never sees an API key either", async () => {

@@ -69,6 +69,13 @@ export const FAILURE: Record<AiErrorReason, string> = {
   failed: "Claude stopped with an error. Nothing was saved.",
 };
 
+/** A provider's reason, only when it is one of our own sentences; anything else is the generic one. */
+export function knownSentence(text: string): string {
+  return (Object.values(FAILURE) as string[]).includes(text)
+    ? text
+    : FAILURE.failed;
+}
+
 // ---- item handlers ----
 
 const handlers = new Map<SkillId, ItemHandler>();
@@ -203,8 +210,6 @@ function emitRun(ctx: JobContext, runner: Runner, id: string): void {
   if (run) runner.events.emit(id, { type: "run", run });
 }
 
-const MAX_SENTENCE = 300;
-
 async function execute(
   ctx: JobContext,
   runner: Runner,
@@ -234,8 +239,7 @@ async function execute(
     if (!ai) throw new Refusal(AI_OFF);
     // every job asks first: she may have signed out since the last one
     const available = await ai.available();
-    if (!available.ok)
-      throw new Refusal(available.reason.slice(0, MAX_SENTENCE));
+    if (!available.ok) throw new Refusal(knownSentence(available.reason));
     if (signal.aborted) throw new AiError("cancelled");
 
     const skill = getSkill(request.skillId);

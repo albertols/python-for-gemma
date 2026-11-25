@@ -856,3 +856,31 @@ test("a job with an input the skill does not accept fails as a sentence, and a b
     failure: "Claude stopped with an error. Nothing was saved.",
   });
 });
+
+test("a provider's words about availability never reach the browser: config, the refusal and the failed run show a fixed sentence", async () => {
+  const leaky = "Cannot run /Users/someone/x: spawn ENOENT";
+  const refusing = new FakeAiProvider({ [SKILL]: output });
+  refusing.available = async () => ({ ok: false, reason: leaky });
+  const app = build(refusing);
+  const config = (await call(app, "GET", "/api/config")).body.ai;
+  expect(config.reason).toBe(
+    "Claude stopped with an error. Nothing was saved.",
+  );
+  const refused = await start(app);
+  expect(refused.status).toBe(409);
+  expect(refused.body.error.message).toBe(config.reason);
+
+  let asked = 0;
+  const late = new FakeAiProvider({ [SKILL]: output });
+  late.available = async () =>
+    ++asked <= 2 ? { ok: true } : { ok: false, reason: leaky };
+  const app2 = build(late);
+  await tick();
+  const id = (await start(app2)).body.id;
+  const run = await finished(app2, id);
+  expect(run.failure).toBe("Claude stopped with an error. Nothing was saved.");
+  const { text } = await events(app2, id);
+  expect(text).not.toContain("/Users");
+  expect(text).not.toContain("ENOENT");
+  expect(text).toContain(run.failure);
+});

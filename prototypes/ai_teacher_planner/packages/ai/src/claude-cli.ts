@@ -39,9 +39,11 @@ export const nodeSpawn: SpawnLike = (command, args, options) =>
   nodeSpawnProcess(command, args, options);
 
 const UNAVAILABLE =
-  "Claude Code is not installed on this Mac, or the app cannot find it. Install Claude Code, sign in, then try again.";
+  "Claude Code is not installed on this Mac. Everything else still works.";
 const SIGNED_OUT =
-  "Claude Code is signed out. Open Claude Code in a terminal, sign in, then try again.";
+  "Claude Code is signed out. Run `claude` in a terminal and sign in, then try again.";
+const UNKNOWN_STATUS =
+  "Claude Code did not say whether you are signed in. Open it in a terminal and check.";
 const UNREADABLE_REQUEST =
   "Claude could not read the request. Please tell Alberto.";
 const SIGKILL_AFTER_MS = 5_000;
@@ -212,7 +214,14 @@ export class ClaudeCodeCliProvider implements AiProvider {
         collect,
       );
     } catch (e) {
-      return { ok: false, reason: messageOf(e) };
+      // only a fixed sentence: a spawn error can hold a path
+      return {
+        ok: false,
+        reason:
+          spawnProblem(e).reason === "unavailable"
+            ? UNAVAILABLE
+            : UNKNOWN_STATUS,
+      };
     }
     // `claude auth status` may exit non-zero when signed out, so the JSON comes first.
     if (run.outcome.ok) {
@@ -224,14 +233,7 @@ export class ClaudeCodeCliProvider implements AiProvider {
         // fall through to the generic sentence
       }
     }
-    const said = cutForUser(lastLine(run.stderr));
-    return {
-      ok: false,
-      reason:
-        said !== ""
-          ? said
-          : "Claude Code did not say whether you are signed in. Open it in a terminal and check.",
-    };
+    return { ok: false, reason: UNKNOWN_STATUS };
   }
 
   async run<T>(

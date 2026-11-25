@@ -6,6 +6,7 @@ import {
   AI_OFF,
   FAILURE,
   type JobContext,
+  knownSentence,
 } from "./usecases/ai-jobs.ts";
 
 type Availability = { available: boolean; reason: string | null };
@@ -49,7 +50,7 @@ export function createAiState(opts: {
       const r = await provider.available();
       return r.ok
         ? { available: true, reason: null }
-        : { available: false, reason: r.reason };
+        : { available: false, reason: knownSentence(r.reason) };
     } catch {
       return { available: false, reason: FAILURE.failed };
     }

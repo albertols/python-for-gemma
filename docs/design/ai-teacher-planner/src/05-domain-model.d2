@@ -42,6 +42,7 @@ decisions: "Her decisions and recorded facts (stored rows)" {
   disruption: "Disruption\nscope, dates, effect, reason" {class: win}
   eventconfirm: "EventClassification\nwording, year, dates, groups,\nperiods, until" {class: win}
   todo: "TodoNote\ntext, day or week, date, done" {class: win}
+  airun: "AiRun and AiItem\nrun outcome; each item waits\nfor her review, with its course" {class: win}
 }
 
 derived: "Derived by the engine" {
@@ -83,6 +84,7 @@ derived.slot -> derived.placement: {class: flow}
 derived.placement -> proposal: "diffed against the head" {class: flow}
 proposal -> revision: "saved on accept,\nonly if the head is unchanged" {class: flow}
 provenance -> decisions: "on every stored item" {class: aiflow}
+provenance -> decisions.airun: "review state" {class: aiflow}
 
 vars: {
   d2-legend: {
