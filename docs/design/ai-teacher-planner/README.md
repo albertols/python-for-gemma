@@ -33,7 +33,7 @@ Look for the two things that import the engine (the web app and the API) and the
 
 Look for the direction of the arrows: use cases call ports, while disk, files and the model sit behind adapters at the edge. The M1b routes and tables (disruptions, corrections, events, exams, to-do notes) all live in the same routes, use cases and repository box.
 
-![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review), use cases, job queue, engine, driven adapters with migrations 0001-0008, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
+![Backend components: HTTP routes (calendar, corrections, events, disruptions, exams, todos, AI jobs and review), use cases, job queue, engine, driven adapters (importers read calendar and specification PDF text) with migrations 0001-0008, ResourceGateway, SQLite file, AI providers](03-backend-components.svg)
 
 ## 4. Frontend components
 
@@ -69,7 +69,7 @@ Look for the red dashed arrows: each one ends at a guard.
 
 Look for the exact versions: every library built in milestone M1 is pinned, and the office-file readers for later milestones are marked "later".
 
-![Tech stack: runtime, language and lint, web, API, data, tests, office files, diagrams, AI, with the exact pinned versions](09-tech-stack.svg)
+![Tech stack: runtime, language and lint, web, API, data, tests, office and PDF files, diagrams, AI, with the exact pinned versions](09-tech-stack.svg)
 
 ## 10. Roadmap
 

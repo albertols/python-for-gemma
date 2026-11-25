@@ -30,6 +30,8 @@ const input = {
   items: [{ id: "c1", title: "Chapter one", lessons: null }],
   unitTotals: [{ unitId: "u1", lessons: 12 }],
 };
+/** Registered skills the temporary roots below do not hold: they count as pending there. */
+const OTHER_SKILLS: SkillId[] = ["planner-build-curriculum-pack"];
 const registered = Object.values(skills).filter((s) => s !== undefined);
 const withText = registered.filter((s) => !PENDING_SKILL_TEXT.includes(s.id));
 
@@ -289,30 +291,36 @@ describe("registry", () => {
       const root = fakeRoot({
         [`.claude/skills/${id}/SKILL.md`]: goodText(APP),
       });
-      const problems = skillFileProblems(root, [id]);
+      const problems = skillFileProblems(root, [id, ...OTHER_SKILLS]);
       expect(problems.join("\n")).toMatch(
         /planner-suggest-lesson-counts.*PENDING_SKILL_TEXT/,
       );
     });
 
     test("a pending skill with no SKILL.md is fine", () => {
-      expect(skillFileProblems(fakeRoot({}), [id])).toEqual([]);
+      expect(skillFileProblems(fakeRoot({}), [id, ...OTHER_SKILLS])).toEqual(
+        [],
+      );
     });
 
     test("a live skill with no SKILL.md, or a stale schema.json, is a problem", () => {
-      expect(skillFileProblems(fakeRoot({}), []).join()).toMatch(/SKILL\.md/);
+      expect(skillFileProblems(fakeRoot({}), OTHER_SKILLS).join()).toMatch(
+        /SKILL\.md/,
+      );
       const stale = fakeRoot({
         [`.claude/skills/${id}/SKILL.md`]: goodText(APP),
         [`.claude/skills/${id}/schema.json`]: "{}",
       });
-      expect(skillFileProblems(stale, []).join()).toMatch(/schema\.json/);
+      expect(skillFileProblems(stale, OTHER_SKILLS).join()).toMatch(
+        /schema\.json/,
+      );
       const current = fakeRoot({
         [`.claude/skills/${id}/SKILL.md`]: goodText(APP),
         [`.claude/skills/${id}/schema.json`]: JSON.stringify(
           jsonSchemaFor(lessonCounts),
         ),
       });
-      expect(skillFileProblems(current, [])).toEqual([]);
+      expect(skillFileProblems(current, OTHER_SKILLS)).toEqual([]);
     });
 
     test("a planner or content SKILL.md with an interactive-looking description is a problem, registered or not", () => {
@@ -322,7 +330,7 @@ describe("registry", () => {
         ".claude/skills/planner-run-and-verify/SKILL.md": goodText("Run it."),
         ".claude/skills/lesson-creator/SKILL.md": goodText("Anything."),
       });
-      const problems = skillFileProblems(root, [id]);
+      const problems = skillFileProblems(root, [id, ...OTHER_SKILLS]);
       expect(problems).toHaveLength(1);
       expect(problems[0]).toMatch(/content-not-registered.*description/);
     });
@@ -356,6 +364,7 @@ describe("registry", () => {
     try {
       const problems = skillFileProblems(root, [
         "planner-suggest-lesson-counts",
+        ...OTHER_SKILLS,
       ]);
       expect(problems).toHaveLength(1);
       expect(problems[0]).toMatch(/odd-registered-skill.*description/);
@@ -385,6 +394,7 @@ describe("registry", () => {
     try {
       const problems = skillFileProblems(root, [
         "planner-suggest-lesson-counts",
+        ...OTHER_SKILLS,
       ]);
       expect(problems.join("\n")).toMatch(/content-cover-lesson.*description/);
       expect(problems.join("\n")).not.toMatch(/no SKILL\.md/);

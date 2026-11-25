@@ -1,12 +1,17 @@
 import path from "node:path";
 import type { AiProvider } from "@planner/ai";
 import { TEACHER_PRINCIPAL } from "@planner/domain";
-import { buildSyntheticWorkbook } from "@planner/fixtures";
+import { buildSyntheticWorkbook, syntheticSpecPdf } from "@planner/fixtures";
 import { createApp } from "./app.ts";
 import type { Config } from "./config.ts";
 import { loadConfig } from "./config.ts";
 import { openDatabase } from "./db/connection.ts";
 import { migrate } from "./db/migrate.ts";
+import {
+  CALENDAR_WORKBOOK_PATTERN,
+  matchesGlob,
+  TIMETABLE_IMAGE_PATTERN,
+} from "./gateway/allowlist.ts";
 import {
   ResourceDenied,
   type ResourceGateway,
@@ -48,15 +53,31 @@ export function fakeGateway(
       }));
     },
     async find(pattern) {
-      return pattern === "calendar-workbook" ? Object.keys(files) : [];
+      const glob =
+        pattern === "calendar-workbook"
+          ? CALENDAR_WORKBOOK_PATTERN
+          : TIMETABLE_IMAGE_PATTERN;
+      return Object.keys(files).filter((name) => matchesGlob(glob, [name]));
     },
   };
 }
 
 export const SYNTHETIC_FILE = "Synthetic Secondary Calendar 2026-27.xlsx";
 
-export async function syntheticGateway(): Promise<ResourceGateway> {
-  return fakeGateway({ [SYNTHETIC_FILE]: await buildSyntheticWorkbook() });
+/** An allowlisted specification path (invented bytes) and a textbook path the allowlist refuses. */
+export const SYNTHETIC_SPEC_PATH =
+  "ial/ial Specification & Textbook/IAL BUSINESS SPECIFICATION.pdf";
+export const TEXTBOOK_PATH = "ial/ial Specification & Textbook/Textbook.pdf";
+
+/** The synthetic calendar and the two-page synthetic specification; `extra` adds or replaces files. */
+export async function syntheticGateway(
+  extra: Record<string, Uint8Array> = {},
+): Promise<ResourceGateway> {
+  return fakeGateway({
+    [SYNTHETIC_FILE]: await buildSyntheticWorkbook(),
+    [SYNTHETIC_SPEC_PATH]: syntheticSpecPdf(),
+    ...extra,
+  });
 }
 
 export async function buildTestApp(
