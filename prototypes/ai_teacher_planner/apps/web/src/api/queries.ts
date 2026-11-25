@@ -596,6 +596,8 @@ export function useSaveDraftPack(courseId: string) {
       qc.setQueryData<PackData>(["packs", courseId], (old) =>
         old ? { ...old, draft } : old,
       );
+      // saving can clear the ticks of units she changed, so the stored list is read again
+      void qc.invalidateQueries({ queryKey: ["packs", courseId] });
     },
   });
 }

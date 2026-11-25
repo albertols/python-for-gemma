@@ -16,6 +16,23 @@ export function packState(packs: PackStore, courseId: CourseId): PackState {
   return packs.draft(courseId) ? "draft" : "none";
 }
 
+/**
+ * What a unit is, for deciding whether she changed it: the unit, its spec points, and every
+ * chapter that sits in it or links one of its points (so a changed link shows in both units it joins).
+ */
+function unitSignatures(pack: CurriculumPack): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const unit of pack.units) {
+    const points = pack.specPoints.filter((p) => p.unitId === unit.id);
+    const ids = new Set(points.map((p) => p.id));
+    const chapters = pack.chapters.filter(
+      (c) => c.unitId === unit.id || c.specPointIds.some((id) => ids.has(id)),
+    );
+    out.set(unit.id, JSON.stringify([unit, points, chapters]));
+  }
+  return out;
+}
+
 /** Stores her corrections to the draft. The locked pack, if any, stays until she locks again. */
 export function saveDraft(
   repos: Repos,
@@ -30,7 +47,16 @@ export function saveDraft(
       "invalid-pack",
       `This pack is for ${pack.courseId}, not for this course.`,
     );
+  const before = packs.draft(courseId);
   packs.saveDraft(pack);
+  // A unit she changed after ticking it must be checked again; the others keep their tick.
+  const ticked = packs.draftReview(courseId)?.checkedUnits ?? [];
+  if (before && ticked.length > 0) {
+    const was = unitSignatures(before);
+    const now = unitSignatures(pack);
+    const kept = ticked.filter((id) => was.get(id) === now.get(id));
+    if (kept.length !== ticked.length) packs.saveCheckedUnits(courseId, kept);
+  }
   return packs.draft(courseId) as CurriculumPack;
 }
 

@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { CourseId, CurriculumPack } from "@planner/domain";
+import type { CourseId } from "@planner/domain";
 import { curriculumPackSchema } from "@planner/importers";
 import type { z } from "zod";
 import type { Database } from "../../db/connection.ts";
 import { ApiError } from "../../errors.ts";
 import { draftNotesSchema } from "../draft-notes.ts";
-import type { PackDraftNotes, PackStore } from "../ports.ts";
+import type { PackStore } from "../ports.ts";
 
 /** Course ids are slugs; anything else could name a file outside the folder. */
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
@@ -55,10 +55,10 @@ export function createPackStore(db: Database, dir: string): PackStore {
     return parsed.data;
   };
   const read = (p: string) => readFile(p, curriculumPackSchema);
-  const write = (p: string, pack: CurriculumPack | PackDraftNotes) => {
+  const write = (p: string, content: object) => {
     fs.mkdirSync(dir, { recursive: true });
     // written beside it, then renamed, so a crash never leaves half a pack
-    fs.writeFileSync(`${p}.tmp`, `${JSON.stringify(pack, null, 2)}\n`);
+    fs.writeFileSync(`${p}.tmp`, `${JSON.stringify(content, null, 2)}\n`);
     fs.renameSync(`${p}.tmp`, p);
   };
   return {
@@ -68,13 +68,14 @@ export function createPackStore(db: Database, dir: string): PackStore {
       write(reviewFile(courseId), notes);
     },
     saveCheckedUnits(courseId, unitIds) {
-      const notes = readFile(reviewFile(courseId), draftNotesSchema) ?? {
-        linkReasons: [],
-        unsure: [],
-        meta: null,
-        checkedUnits: [],
-      };
-      write(reviewFile(courseId), { ...notes, checkedUnits: unitIds });
+      const p = reviewFile(courseId);
+      // Validated first (a bad file is a 422), then merged into the stored object so that
+      // fields the schema leaves out (issues, durationMs, ...) are kept as they were.
+      const valid = readFile(p, draftNotesSchema);
+      const stored: Record<string, unknown> = valid
+        ? JSON.parse(fs.readFileSync(p, "utf8"))
+        : { linkReasons: [], unsure: [], meta: null };
+      write(p, { ...stored, checkedUnits: unitIds });
     },
     locked(courseId) {
       const row = db

@@ -493,6 +493,42 @@ test("a direct lock of a mapped draft whose units are not checked is refused wit
   );
 });
 
+test("editing a link under a ticked unit clears its tick, and lock is refused until it is checked again", async () => {
+  const { app } = await planner("m2-draft-pack");
+  await tick(app, "u1");
+  const put = await send(
+    app,
+    "PUT",
+    `/api/packs/${COURSE}/draft`,
+    fixedDraft(),
+  );
+  expect(put.status).toBe(200);
+  const review = (await get(app, `/api/packs/${COURSE}`)).body.review;
+  expect(review.checkedUnits).toEqual([]);
+  const refused = await send(app, "POST", `/api/packs/${COURSE}/lock`);
+  expect(refused.status).toBe(409);
+  expect(refused.body.error.message).toBe("Units not checked yet: U1.");
+});
+
+test("saving a draft with nothing changed in a ticked unit keeps its tick, and a change in another unit does not touch it", async () => {
+  const { app } = await planner("m2-draft-pack");
+  await tick(app, "u1");
+  await tick(app, "u2");
+  const stored = (await get(app, `/api/packs/${COURSE}`)).body.draft;
+  await send(app, "PUT", `/api/packs/${COURSE}/draft`, stored);
+  const ticks = async () =>
+    (await get(app, `/api/packs/${COURSE}`)).body.review.checkedUnits.sort();
+  expect(await ticks()).toEqual(["u1", "u2"]);
+  const renamed = {
+    ...stored,
+    specPoints: stored.specPoints.map((p: Json) =>
+      p.id === "sp7" ? { ...p, title: "Corrected" } : p,
+    ),
+  };
+  await send(app, "PUT", `/api/packs/${COURSE}/draft`, renamed);
+  expect(await ticks()).toEqual(["u1"]);
+});
+
 test("an unlinked point is still a 422, even when every unit is checked", async () => {
   const { app } = await planner("m2-draft-pack");
   await tick(app, "u1");

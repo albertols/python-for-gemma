@@ -128,3 +128,32 @@ test("checked units are kept in the notes file, which is made if there is none, 
   });
   expect(fs.readdirSync(dir)).toEqual(["ial-business-u4.draft-review.json"]);
 });
+
+test("ticking a unit keeps every other field in the notes file, including ones the screen does not use", () => {
+  const { dir, packs } = setup();
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, "ial-business-u4.draft-review.json");
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      issues: ["Spec point 1.2 is not written on page 12."],
+      linkReasons: [],
+      unsure: [],
+      meta: {
+        provider: "fake",
+        model: "fake",
+        skillId: "planner-build-curriculum-pack",
+        startedAt: "2026-11-24T09:00:00.000Z",
+        durationMs: 1234,
+        sources: [],
+      },
+      extra: { kept: true },
+    }),
+  );
+  packs.saveCheckedUnits("ial-business-u4", ["u1"]);
+  const after = JSON.parse(fs.readFileSync(file, "utf8"));
+  expect(after.issues).toEqual(["Spec point 1.2 is not written on page 12."]);
+  expect(after.meta.durationMs).toBe(1234);
+  expect(after.extra).toEqual({ kept: true });
+  expect(after.checkedUnits).toEqual(["u1"]);
+});
