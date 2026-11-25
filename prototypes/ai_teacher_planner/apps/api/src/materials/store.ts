@@ -182,15 +182,25 @@ function verify(file: string, ext: Extension): void {
   }
   if (!startsWith(head, ZIP_SIGNATURE)) throw wrongContent(ext);
   const names: string[] = [];
+  let relsCount = 0;
+  let relsBytes = 0;
+  let relsOverLimit = false;
   let parts: Record<string, Uint8Array>;
   try {
     // only the small types part is ever unpacked: everything else is skipped
     parts = unzipSync(new Uint8Array(fs.readFileSync(file)), {
       filter: (entry) => {
         names.push(entry.name);
+        if (partName(entry.name).endsWith(".rels")) {
+          relsCount += 1;
+          relsBytes += entry.originalSize;
+          // past the caps nothing more is inflated, and the file is refused below
+          if (relsCount > MAX_RELS_PARTS || relsBytes > MAX_RELS_BYTES)
+            relsOverLimit = true;
+          return !relsOverLimit && entry.originalSize <= MAX_TYPES_PART_BYTES;
+        }
         return (
-          (entry.name === "[Content_Types].xml" ||
-            partName(entry.name).endsWith(".rels")) &&
+          entry.name === "[Content_Types].xml" &&
           entry.originalSize <= MAX_TYPES_PART_BYTES
         );
       },
@@ -199,7 +209,7 @@ function verify(file: string, ext: Extension): void {
     throw wrongContent(ext);
   }
   const types = parts["[Content_Types].xml"];
-  if (!types) throw wrongContent(ext);
+  if (!types || relsOverLimit) throw wrongContent(ext);
   const decoder = new TextDecoder();
   const relationships = Object.entries(parts)
     .filter(([name]) => name !== "[Content_Types].xml")
@@ -220,6 +230,14 @@ function partName(raw: string): string {
     name = name.slice(name.startsWith("/") ? 1 : 2);
   return name;
 }
+
+/** An element's name without its namespace prefix, lower case. */
+const localName = (qualified: string | undefined) =>
+  (qualified ?? "").split(":").pop()?.toLowerCase() ?? "";
+
+/** The .rels parts together: at most this many, and this many declared bytes. */
+const MAX_RELS_PARTS = 500;
+const MAX_RELS_BYTES = 5 * 1024 * 1024;
 
 /** Relationship types that pull in something from outside the file when the target is external. */
 const REMOTE_RELATIONSHIPS = new Set([
@@ -292,7 +310,11 @@ function isPlainOffice(
     seen.add(name);
     if (/vbaproject|activex|macrosheet|dialogsheet/.test(name)) return false;
     if (/(^|\/)embeddings\/oleobject/.test(name)) return false;
-    if (/(^|\/)embeddings\//.test(name) && !EMBEDDED_DOCUMENT.test(name))
+    if (
+      !name.endsWith("/") && // a directory entry holds nothing
+      /(^|\/)embeddings\//.test(name) &&
+      !EMBEDDED_DOCUMENT.test(name)
+    )
       return false;
     if (
       /^(word|xl|ppt)\//.test(name) &&
@@ -305,7 +327,7 @@ function isPlainOffice(
     if (/<!|<\?(?!xml\b)/i.test(rels.replace(/^\s*<\?xml[^>]*\?>/i, "")))
       return false;
     for (const tag of rels.matchAll(TAG)) {
-      if ((tag[1] ?? "").toLowerCase() !== "relationship") continue;
+      if (localName(tag[1]) !== "relationship") continue;
       const attributes = new Map<string, string>();
       for (const attribute of (tag[2] ?? "").matchAll(ATTRIBUTE)) {
         const value = decodeXml(attribute[2] ?? attribute[3] ?? "");
@@ -323,7 +345,7 @@ function isPlainOffice(
   }
   let hasMain = false;
   for (const tag of xml.matchAll(TAG)) {
-    const element = (tag[1] ?? "").toLowerCase();
+    const element = localName(tag[1]);
     for (const attribute of (tag[2] ?? "").matchAll(ATTRIBUTE)) {
       const value = decodeXml(attribute[2] ?? attribute[3] ?? "");
       if (value === null) return false;

