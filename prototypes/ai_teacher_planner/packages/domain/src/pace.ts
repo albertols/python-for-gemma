@@ -76,8 +76,10 @@ const isBuffer = (e: StreamEntry) => e.kind === "buffer";
  * ends at `canonical[j]`: the longest prefix whose last lesson comes no later in
  * the course's own order. A run that ends an item takes every lesson the group
  * has of it (an override may lengthen it), and the run to the end of the course
- * takes everything left. Entries the course list does not have (an undated
- * assessment, an item only this group teaches) travel with the lesson after them.
+ * takes everything left. An item ranks by its place in the scheme, so the lessons
+ * of an item the course list has none of (an override gives a group some) are in
+ * every run that passes that place, for every group alike. Undated assessments
+ * are not lessons: they travel with the lesson after them.
  */
 function shareOf(
   rest: readonly StreamEntry[],
@@ -124,11 +126,16 @@ export function planWindows(args: {
   requiredBefore: (checkpoint: Checkpoint) => Set<string>;
   /** The track's lessons with no overrides: "the next lesson" means the same for every group. */
   canonical: Lesson[];
+  /**
+   * The track's item ids in scheme order, including items the course list has no
+   * lessons of. Without it, items are ranked from `canonical` alone.
+   */
+  itemOrder?: readonly string[];
 }): WindowPlan[] {
   const ids = args.groups.map((g) => g.id).sort(cmp);
   const rank = new Map<string, number>();
-  for (const l of args.canonical)
-    if (!rank.has(l.itemId)) rank.set(l.itemId, rank.size);
+  for (const id of args.itemOrder ?? args.canonical.map((l) => l.itemId))
+    if (!rank.has(id)) rank.set(id, rank.size);
   const remaining = new Map<GroupId, StreamEntry[]>(
     ids.map((g) => [g, [...(args.streams[g] ?? [])]]),
   );

@@ -577,6 +577,7 @@ function planPaceSet(
             return new Set(trackItems.slice(0, at).map((i) => i.id));
           },
           canonical,
+          itemOrder: trackItems.map((i) => i.id),
         });
 
   for (const p of set) {

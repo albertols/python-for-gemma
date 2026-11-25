@@ -364,6 +364,31 @@ describe("the pace line before an assessment", () => {
     // The others are unchanged.
     expect(short.placementsOf("13 1")).toEqual(base.placementsOf("13 1"));
   });
+
+  test("an item the course has no lessons of keeps its place in the scheme order for the run", () => {
+    // From a pace property counterexample (seed -502150774). The course has no c3
+    // lessons, but 13 1 and 13 5 each teach one by override, and 13 1 drops c4.
+    // c3 still sits between c2 and c4, so the run to c4#1 takes c3#1 for both:
+    // 13 5 must not have c3#1 before the assessment while 13 1 does not.
+    // Slack is 2, 3 and 2; the shares of the run to c4#1 are 1, 1 and 2.
+    const w = paceWorld();
+    item(w, "c3").lessons = 0;
+    w.overrides = [
+      { groupId: "13 1", itemId: "c3", lessons: 1 },
+      { groupId: "13 1", itemId: "c4", lessons: 0 },
+      { groupId: "13 5", itemId: "c3", lessons: 1 },
+    ];
+    const plan = planOf(w);
+    for (const g of ["13 1", "13 5"])
+      expect(plan.dateIn(g, "c3#1") < plan.anchorDate(g, "a1"), g).toBe(true);
+    for (const g of ["13 3", "13 5"])
+      expect(plan.dateIn(g, "c4#1") < plan.anchorDate(g, "a1"), g).toBe(true);
+    expect(plan.spareCount("cp:a1")).toEqual({
+      "13 1": 1,
+      "13 3": 2,
+      "13 5": 0,
+    });
+  });
 });
 
 describe("planWindows", () => {
