@@ -1,6 +1,7 @@
 import type { TeachingBlock } from "./calendar.ts";
 import { daysBetween, type IsoDate, mondayOf } from "./dates.ts";
 import type { ExternalExam } from "./exams.ts";
+import { carryHistory, freezeHorizonEnd } from "./history.ts";
 import { expandLessons, type Lesson, type LessonId } from "./lessons.ts";
 import {
   byCheckpointOrder,
@@ -105,6 +106,10 @@ interface Prepared {
   secondOf: Map<LessonId, LessonId>;
   known: Set<LessonId>;
   undeclared: Set<LessonId>;
+  /** Every lesson id already in the group's placements; a new spare lesson never reuses one. */
+  taken: Set<LessonId>;
+  /** Frozen placements, by lesson: the slot each is copied on. */
+  frozenAt: Map<LessonId, SlotKey>;
   /** Usable slots in the group's revision block, in slot order; empty when it has none. */
   revision: Slot[];
 }
@@ -123,6 +128,7 @@ function prepareGroup(
   g: Group,
   inputs: PlanInputs,
   cutoff: IsoDate | null,
+  horizonEnd: IsoDate | null,
 ): Prepared | GroupPlan {
   const out: GroupPlan = {
     placements: [],
@@ -135,15 +141,6 @@ function prepareGroup(
   const lessons = expandLessons(inputs.items, inputs.overrides, g.id, g.track);
   const position = inputs.positions.find((p) => p.groupId === g.id);
   const declared = declaredLessons(lessons, position);
-  if (declared === null) {
-    out.conflicts.push({
-      kind: "position-unknown",
-      groupId: g.id,
-      lessonId: position?.nextLessonId ?? "",
-    });
-    return out;
-  }
-  const doneItems = new Set(position?.doneItemIds ?? []);
   const usable = inputs.slots
     .filter(
       (s) =>
@@ -152,6 +149,27 @@ function prepareGroup(
         (cutoff === null || s.date < cutoff),
     )
     .sort(bySlotOrder);
+  const carried = carryHistory({
+    previous: inputs.previous,
+    groupId: g.id,
+    today,
+    horizonEnd,
+    declared: declared ?? new Set(),
+    usable: new Set(usable.map((s) => s.key)),
+    log: inputs.log,
+    editedFlex: new Set(inputs.flexEdits.map((e) => e.flexId)),
+  });
+  if (declared === null) {
+    // Nothing is planned, but what is behind her is never lost.
+    out.placements.push(...carried.history);
+    out.conflicts.push({
+      kind: "position-unknown",
+      groupId: g.id,
+      lessonId: position?.nextLessonId ?? "",
+    });
+    return out;
+  }
+  const doneItems = new Set(position?.doneItemIds ?? []);
   const usableByKey = new Map(usable.map((s) => [s.key, s]));
   const reserved = new Set<SlotKey>();
   const wholeReserved = new Set<SlotKey>();
@@ -168,9 +186,22 @@ function prepareGroup(
         viaCover: false,
       });
 
+  out.placements.push(...carried.history);
+  // Today and the next teaching day are frozen: copied as they are, their slots taken.
+  const frozenAt = new Map<LessonId, SlotKey>();
+  for (const f of carried.frozen) {
+    out.placements.push(f);
+    if (f.slotKey !== null) {
+      reserved.add(f.slotKey);
+      frozenAt.set(f.lessonId, f.slotKey);
+    }
+  }
+
   // Slot pins fix a lesson; one that cannot be honoured is a conflict and the lesson stays in the stream.
   const undeclared = new Set(
-    lessons.filter((l) => !declared.has(l.id)).map((l) => l.id),
+    lessons
+      .filter((l) => !declared.has(l.id) && !carried.deliveredIds.has(l.id))
+      .map((l) => l.id),
   );
   const known = new Set(lessons.map((l) => l.id));
   const pinnedLessons = new Set<LessonId>();
@@ -191,6 +222,19 @@ function prepareGroup(
     }
     // A pin on a lesson already taught is moot.
     if (!undeclared.has(pin.lessonId)) continue;
+    // A frozen lesson stays where it is; a pin that asks for another slot cannot be honoured.
+    const frozenSlot = frozenAt.get(pin.lessonId);
+    if (frozenSlot !== undefined) {
+      if (frozenSlot !== pin.slotKey)
+        out.conflicts.push({
+          kind: "pin-slot-unavailable",
+          pinId: pin.id,
+          groupId: g.id,
+          lessonId: pin.lessonId,
+          slotKey: pin.slotKey,
+        });
+      continue;
+    }
     const slot = usableByKey.get(pin.slotKey);
     if (!slot || reserved.has(slot.key) || pinnedLessons.has(pin.lessonId)) {
       out.conflicts.push({
@@ -210,7 +254,8 @@ function prepareGroup(
   }
 
   const stream = lessons.filter(
-    (l) => undeclared.has(l.id) && !pinnedLessons.has(l.id),
+    (l) =>
+      undeclared.has(l.id) && !pinnedLessons.has(l.id) && !frozenAt.has(l.id),
   );
   const secondOf = usableMerges(
     inputs.merges.filter((m) => m.groupId === g.id),
@@ -304,6 +349,8 @@ function prepareGroup(
     secondOf,
     known,
     undeclared,
+    taken: new Set(out.placements.map((x) => x.lessonId)),
+    frozenAt,
     revision: [],
   };
 }
@@ -502,11 +549,15 @@ function planPaceSet(
     };
     const flexCount = new Map<string, number>();
     const flex = (checkpointId: string, slot: Slot) => {
-      const n = (flexCount.get(checkpointId) ?? 0) + 1;
+      let n = flexCount.get(checkpointId) ?? 0;
+      let id: LessonId;
+      do {
+        n += 1;
+        id = `flex:${g}:${checkpointId}#${n}`;
+      } while (p.taken.has(id));
       flexCount.set(checkpointId, n);
-      p.out.placements.push(
-        placementOn(g, `flex:${g}:${checkpointId}#${n}`, slot),
-      );
+      p.taken.add(id);
+      p.out.placements.push(placementOn(g, id, slot));
     };
     const placeEntry = (id: string, slot: Slot) => {
       const e = entryOf.get(id);
@@ -711,8 +762,12 @@ export function sequence(inputs: PlanInputs): PlanSnapshot {
       .sort()
       .at(-1) ?? null;
 
+  const horizonEnd = freezeHorizonEnd(
+    inputs.today,
+    inputs.slots.filter((s) => ours.has(s.groupId)),
+  );
   const results = groups.map((g) =>
-    prepareGroup(g, inputs, cutoffs.get(g.id) ?? null),
+    prepareGroup(g, inputs, cutoffs.get(g.id) ?? null, horizonEnd),
   );
   const prepared = results.filter((r): r is Prepared => "group" in r);
   for (const p of prepared) {

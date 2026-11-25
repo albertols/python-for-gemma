@@ -51,7 +51,7 @@ Look for the colour split: green is stored, blue is worked out by the engine eac
 
 Look for the amber gate: a candidate revision becomes the head revision only when Gemma accepts the diff. Before that, the pace line keeps parallel groups level at each checkpoint and turns their free slots into spare lessons.
 
-![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff and accept, head revision](06-scheduling-pipeline.svg)
+![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, history and the freeze horizon, per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff and accept, head revision](06-scheduling-pipeline.svg)
 
 ## 7. AI flow
 
