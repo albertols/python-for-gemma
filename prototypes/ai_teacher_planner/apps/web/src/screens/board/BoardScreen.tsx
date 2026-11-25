@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import {
   useBoardDays,
+  useBoardPlacements,
   useBoardSlots,
   useConfig,
   useEvents,
@@ -10,6 +11,10 @@ import {
   useLastDaysBeforeBreaks,
   useTimetable,
 } from "../../api/queries.ts";
+import {
+  OutOfDatePlans,
+  UndoLastChange,
+} from "../../components/PlanNotices.tsx";
 import { Button } from "../../components/ui/button.tsx";
 import {
   EmptyState,
@@ -26,6 +31,7 @@ import {
   weeksOf,
   weekToShow,
 } from "./board-model.ts";
+import { cardsFor, declaredFor } from "./board-plan.ts";
 import { FortnightGrid, WeekPanel } from "./FortnightGrid.tsx";
 import { GroupFilter } from "./GroupFilter.tsx";
 import { groupsParam, parseGroups, toggleGroup } from "./group-filter.ts";
@@ -47,6 +53,8 @@ const PRESSED =
 export function BoardScreen() {
   const [params, setParams] = useSearchParams();
   const [notice, setNotice] = useState<string | null>(null);
+  /** What the last accept or undo did. */
+  const [planNote, setPlanNote] = useState<string | null>(null);
   const config = useConfig();
   const fortnights = useFortnights();
   const timetable = useTimetable();
@@ -102,6 +110,20 @@ export function BoardScreen() {
     : rangeOf(current);
   const days = useBoardDays(range?.from ?? null, range?.to ?? null);
   const slots = useBoardSlots(range?.from ?? null, range?.to ?? null);
+  const placements = useBoardPlacements(range?.from ?? null, range?.to ?? null);
+  const plan = useMemo(
+    () =>
+      placements.data
+        ? {
+            cards: cardsFor(
+              placements.data.placements,
+              placements.data.assessments,
+            ),
+            declared: declaredFor(placements.data.declared),
+          }
+        : null,
+    [placements.data],
+  );
 
   const failed = [config, fortnights, timetable, days, slots, events].find(
     (q) => q.isError,
@@ -146,11 +168,18 @@ export function BoardScreen() {
     else next.delete("groups");
     setParams(next);
   };
-  const options = { groups: chosen, lastDays: lastDays.data };
+  const options = {
+    groups: chosen,
+    lastDays: lastDays.data,
+    cards: plan?.cards,
+    declared: plan?.declared,
+  };
   const colours = new Map(
     timetable.data.groups.map((g) => [g.id, g.colour] as const),
   );
-  const ready = !weekView && current && days.data && slots.data;
+  // The board waits for the plan too, so a lesson never shows first without its card.
+  const planReady = placements.data !== undefined || placements.isError;
+  const ready = !weekView && current && days.data && slots.data && planReady;
   const board = ready
     ? boardFor(
         current,
@@ -162,7 +191,7 @@ export function BoardScreen() {
       )
     : null;
   const oneWeek =
-    weekView && mondayShown && days.data && slots.data
+    weekView && mondayShown && days.data && slots.data && planReady
       ? weekFor(
           mondayShown,
           days.data,
@@ -294,6 +323,26 @@ export function BoardScreen() {
           {message}
         </p>
       ) : null}
+      {placements.isError ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          The plan could not be loaded, so the board shows the timetable only.
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <UndoLastChange
+          onUndone={(label) =>
+            setPlanNote(
+              `Undid "${label}". It stays in the plan's history; cancelled lessons and what you logged are kept.`,
+            )
+          }
+        />
+        {planNote ? <p role="status">{planNote}</p> : null}
+      </div>
+      <div className="mt-3">
+        <OutOfDatePlans
+          onAccepted={(label) => setPlanNote(`Accepted "${label}".`)}
+        />
+      </div>
       <div className="mt-6">
         {oneWeek ? (
           <WeekPanel week={oneWeek} colours={colours} />

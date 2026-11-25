@@ -12,6 +12,7 @@ export function Disclosure({
   defaultOpen = false,
   className = "",
   panelClassName = "",
+  buttonClassName = "",
   side = false,
 }: {
   /** The panel's name. */
@@ -22,6 +23,8 @@ export function Disclosure({
   defaultOpen?: boolean;
   className?: string;
   panelClassName?: string;
+  /** Added to the button's own classes, for a button that must fit a small space. */
+  buttonClassName?: string;
   /** A tall panel fixed to the right edge of the window, with its own Close button. */
   side?: boolean;
 }) {
@@ -102,7 +105,7 @@ export function Disclosure({
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         onClick={() => setOpen(!open)}
-        className="rounded-md border border-border bg-card px-2 py-1 text-sm font-medium text-card-foreground hover:bg-muted"
+        className={`rounded-md border border-border bg-card px-2 py-1 text-sm font-medium text-card-foreground hover:bg-muted ${buttonClassName}`}
       >
         {buttonLabel ?? label}
       </button>

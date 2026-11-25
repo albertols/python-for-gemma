@@ -3,15 +3,18 @@ import {
   type CalendarDay,
   type DayKind,
   type Fortnight,
+  type GroupId,
   type IsoDate,
   type Period,
   type Slot,
+  type SlotKey,
   type TimetableVersion,
   versionOn,
   type Weekday,
   type WeekLabel,
   weekdayOf,
 } from "@planner/domain";
+import { type CardModel, sameCard } from "./board-plan.ts";
 
 export interface BoardCell {
   period: Period;
@@ -20,12 +23,19 @@ export interface BoardCell {
   slot: Slot | null;
   /** The group of a lesson, or the label of a duty. */
   label: string | null;
-  /** The first half of a double whose two periods are in the same state: it is drawn joined to the next period. */
+  /**
+   * The first half of a double whose two periods are in the same state and
+   * hold the same card (or none): it is drawn joined to the next period.
+   */
   joinsNext: boolean;
   /** Unconfirmed calendar events that might cancel this lesson. */
   possible: string[];
   /** The other period of a double, even when the two are drawn apart because one is cancelled. */
   doublePartner: Period | null;
+  /** What the plan puts in this lesson; null when no plan does. */
+  card: CardModel | null;
+  /** Before the group's position: the topics declared as taught then. Null otherwise. */
+  declared: string[] | null;
 }
 export interface BoardDay {
   date: IsoDate;
@@ -63,6 +73,12 @@ export interface BoardOptions {
   /** Only these groups' lessons are drawn; null or absent means all. */
   groups?: ReadonlySet<string> | null;
   lastDays?: ReadonlySet<IsoDate> | undefined;
+  /** The plans' cards by slot (`cardsFor`). */
+  cards?: ReadonlyMap<SlotKey, CardModel> | undefined;
+  /** Each group's declared topics and the day her position was given (`declaredFor`). */
+  declared?:
+    | ReadonlyMap<GroupId, { before: IsoDate; topics: string[] }>
+    | undefined;
 }
 
 function dayOf(
@@ -94,6 +110,8 @@ function dayOf(
         joinsNext: false,
         doublePartner: null,
         possible: [],
+        card: null,
+        declared: null,
       })),
     };
   const duties = versionOn(timetables, date)?.duties ?? [];
@@ -116,6 +134,9 @@ function dayOf(
           ? ((period % 2 === 1 ? period + 1 : period - 1) as Period)
           : null;
         const partner = slotsOnDate.find((s) => s.key === slot.doubleWith);
+        const cardOf = (key: SlotKey) => options.cards?.get(key) ?? null;
+        const card = cardOf(slot.key);
+        const band = options.declared?.get(slot.groupId);
         return {
           period,
           date,
@@ -123,12 +144,17 @@ function dayOf(
           slot,
           label: slot.groupId,
           // A double with one period cancelled is drawn as two cells, so the one that still runs does not look lost.
+          // Two different lessons in a double are two cards, so they are drawn apart too.
           joinsNext:
             partner !== undefined &&
             period % 2 === 1 &&
-            sameState(slot, partner, possibleOf),
+            sameState(slot, partner, possibleOf) &&
+            sameCard(card, cardOf(partner.key)),
           doublePartner,
           possible: possibleOf(slot),
+          card,
+          declared:
+            card === null && band && date < band.before ? band.topics : null,
         };
       }
       const duty = duties.find(
@@ -146,6 +172,8 @@ function dayOf(
         joinsNext: false,
         doublePartner: null,
         possible: [],
+        card: null,
+        declared: null,
       };
     }),
   };

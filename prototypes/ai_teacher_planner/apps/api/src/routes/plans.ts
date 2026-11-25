@@ -12,6 +12,7 @@ import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
 import {
   assessmentView,
+  declaredView,
   errorResponse,
   isoDate,
   placementView,
@@ -145,11 +146,12 @@ const placements = createRoute({
   responses: {
     200: {
       description:
-        "Every plan's head in the days from `from` to `to`: lessons with title, kind and provenance, and assessments, in slot order. The state shown is her logged outcome, else the stored history state, else assumed for a planned lesson before today; a past spare lesson she did not edit is left out",
+        "Every plan's head in the days from `from` to `to`: lessons with title, kind and provenance, and assessments, in slot order. The state shown is her logged outcome, else the stored history state, else assumed for a planned lesson before today; a past spare lesson she did not edit is left out. `declared` lists, for every group, the topics its position declares as taught before the day she gave it",
       content: json(
         z.object({
           placements: z.array(placementView),
           assessments: z.array(assessmentView),
+          declared: z.array(declaredView),
         }),
       ),
     },

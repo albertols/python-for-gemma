@@ -1,0 +1,68 @@
+// The browser steps of features/08-undo.feature (spec section 17, scenario 8).
+import { expect } from "@playwright/test";
+import { Given, Then, When } from "../support/fixtures.ts";
+import {
+  boardCells,
+  cancelDay,
+  planStatus,
+  proposalDialog,
+  resetTo,
+  SEED_HEAD,
+} from "../support/plan.ts";
+
+/** The board as it was before the reflow was accepted. */
+let before: string[] = [];
+let reflowLabel = "";
+
+Given("I accepted a reflow", async ({ page, request }) => {
+  await resetTo(request, "m2-planned");
+  // a fact: 13 1's lessons on Monday 23 November were cancelled
+  await cancelDay(request, "13 1", "2026-11-23");
+  await page.goto("/board");
+  await expect(
+    page.getByRole("region", { name: "The plan is out of date" }),
+  ).toBeVisible();
+  before = await boardCells(page);
+  await page.getByRole("button", { name: "See what changes" }).click();
+  const dialog = proposalDialog(page);
+  await expect(dialog).toBeVisible();
+  reflowLabel =
+    (await dialog.getByRole("heading", { level: 2 }).textContent())?.replace(
+      /^Proposal: /,
+      "",
+    ) ?? "";
+  await dialog.getByRole("button", { name: "Accept" }).click();
+  await expect(dialog).toBeHidden();
+  // the reflow moved lessons: the board is not as it was
+  await expect.poll(() => boardCells(page)).not.toEqual(before);
+  expect((await planStatus(request)).head?.label).toBe(reflowLabel);
+});
+
+When("I undo it", async ({ page }) => {
+  await page.getByRole("button", { name: "Undo last change" }).click();
+});
+
+Then("the plan is exactly as before", async ({ page, request }) => {
+  await expect.poll(() => boardCells(page)).toEqual(before);
+  const status = await planStatus(request);
+  expect(status.head?.id).toBe(SEED_HEAD);
+  expect(status.canUndo).toBe(false);
+  // the fact is kept: the lesson on the cancelled day is waiting again
+  await expect(
+    page.getByRole("region", { name: "The plan is out of date" }),
+  ).toBeVisible();
+});
+
+Then(
+  "the reflow is still in the history so I can see what was undone",
+  async ({ page }) => {
+    await expect(
+      page.getByRole("status").filter({ hasText: "Undid" }),
+    ).toHaveText(
+      `Undid "${reflowLabel}". It stays in the plan's history; cancelled lessons and what you logged are kept.`,
+    );
+    await expect(
+      page.getByRole("button", { name: "Undo last change" }),
+    ).toHaveCount(0);
+  },
+);

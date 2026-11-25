@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import { afterAll, expect, test } from "vitest";
 import { seededRepos } from "../test-support.ts";
+import { acceptPlan } from "./accept-plan.ts";
 import { placementsIn } from "./placements.ts";
+import { savePositions } from "./positions.ts";
+import { proposePlan } from "./propose-plan.ts";
 
 const COURSE = "ial-business-u4";
 const dirs: string[] = [];
@@ -115,4 +118,66 @@ test("a past spare lesson she did not edit is not shown, and one she edited is a
     ["flex:13 5:cp:block:T1b#1", "2026-12-11", "planned", "Spare lesson"],
     ["flex:13 1:cp:block:T1b#1", "2026-12-11", "planned", "Spare lesson"],
   ]);
+});
+
+test("a spare lesson carries the purpose she gave it; a content lesson has none", async () => {
+  const { repos } = await planned();
+  repos.decisions.replace(COURSE, "flexEdits", [
+    { flexId: "flex:13 3:cp:a-ch2#1", title: null, purpose: "support" },
+  ]);
+  const { placements } = placementsIn(
+    repos,
+    "2026-11-26",
+    "2026-11-26",
+    "2026-11-20",
+  );
+  const purposeOf = (lessonId: string) =>
+    placements.find((p) => p.lessonId === lessonId)?.purpose;
+  expect(purposeOf("flex:13 3:cp:a-ch2#1")).toBe("support");
+  expect(purposeOf("ch3#4")).toBeNull();
+});
+
+test("the topics declared before each group's position are listed with the date she gave it", async () => {
+  const s = await seededRepos("m2-no-positions");
+  dirs.push(s.dataDir);
+  const { repos, packs } = s;
+  const today = "2026-11-20";
+  savePositions(
+    repos,
+    COURSE,
+    ["13 1", "13 3", "13 5"].map((groupId) => ({
+      groupId,
+      nextLessonId: "ch2#1",
+      // 13 1 taught Prices out of order
+      doneItemIds: groupId === "13 1" ? ["ch4"] : [],
+      asOf: today,
+    })),
+  );
+  const proposal = proposePlan(repos, packs, COURSE, today);
+  acceptPlan(
+    repos,
+    packs,
+    COURSE,
+    today,
+    { baseRevisionId: null, candidateKey: proposal.candidateKey },
+    { id: "r:test", createdAt: "2026-11-20T09:00:00Z" },
+  );
+  const { declared } = placementsIn(repos, "2026-11-16", "2026-11-29", today);
+  expect(declared).toEqual([
+    {
+      courseId: COURSE,
+      groupId: "13 1",
+      before: today,
+      topics: ["Demand", "Prices"],
+    },
+    { courseId: COURSE, groupId: "13 3", before: today, topics: ["Demand"] },
+    { courseId: COURSE, groupId: "13 5", before: today, topics: ["Demand"] },
+  ]);
+});
+
+test("a group whose position declares nothing has no declared band", async () => {
+  const { repos } = await planned();
+  expect(
+    placementsIn(repos, "2026-11-16", "2026-11-29", "2026-11-20").declared,
+  ).toEqual([]);
 });

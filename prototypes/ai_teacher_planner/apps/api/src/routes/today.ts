@@ -4,14 +4,15 @@ import type { Repos } from "../repos/ports.ts";
 import { todayOf } from "../today.ts";
 import { todayView } from "../usecases/today-view.ts";
 import { createRouter } from "./router.ts";
-import { isoDate, reminder, slot, weekLabel } from "./schemas.ts";
+import { isoDate, reminder, slot, todayLesson, weekLabel } from "./schemas.ts";
 
 const getToday = createRoute({
   method: "get",
   path: "/api/today",
   responses: {
     200: {
-      description: "Today's lessons, the next teaching day and reminders",
+      description:
+        "Today's lessons, each with the lesson the plans put there (the same as the board), the next teaching day and reminders",
       content: {
         "application/json": {
           schema: z.object({
@@ -26,7 +27,12 @@ const getToday = createRoute({
             ]),
             weekLabel: weekLabel.nullable(),
             lessons: z.array(
-              z.object({ slot, start: z.string(), end: z.string() }),
+              z.object({
+                slot,
+                start: z.string(),
+                end: z.string(),
+                lesson: todayLesson,
+              }),
             ),
             nextTeachingDay: isoDate.nullable(),
             reminders: z.array(reminder),

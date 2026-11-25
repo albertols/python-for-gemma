@@ -34,6 +34,7 @@ import {
 } from "../../api/queries.ts";
 import { EditCount } from "../../components/ActivityDrawer.tsx";
 import { AiBadge, aiOutline } from "../../components/AiBadge.tsx";
+import { OutOfDatePlans } from "../../components/PlanNotices.tsx";
 import { ProvenancePopover } from "../../components/ProvenancePopover.tsx";
 import { ReviewBar } from "../../components/ReviewBar.tsx";
 import { Button } from "../../components/ui/button.tsx";
@@ -496,6 +497,11 @@ export function SchemeScreen() {
       <h1 id="scheme-title" className="text-2xl font-semibold">
         Scheme of work{course ? `: ${course.title}` : ""}
       </h1>
+      {course ? (
+        <div className="mt-4">
+          <OutOfDatePlans only={course.id} />
+        </div>
+      ) : null}
       {body}
     </section>
   );

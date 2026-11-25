@@ -2,6 +2,8 @@ import {
   type AssessmentPlacement,
   type CourseId,
   ENGINE,
+  type FlexEdit,
+  type GroupId,
   type IsoDate,
   type LessonLogEntry,
   lessonsFor,
@@ -22,6 +24,8 @@ export type PlacementView = Placement & {
   title: string;
   kind: SowItem["kind"] | "flex";
   provenance: Provenance;
+  /** What she said a spare lesson is for; null for a content lesson or a spare one she did not edit. */
+  purpose: FlexEdit["purpose"];
 };
 export type AssessmentView = AssessmentPlacement & {
   courseId: CourseId;
@@ -30,6 +34,19 @@ export type AssessmentView = AssessmentPlacement & {
   title: string;
   provenance: Provenance;
 };
+/**
+ * The topics a group's position declares as taught before the day she gave it
+ * (the lessons before her "next lesson", and the items done out of order). The
+ * board draws them as one band before that day, never as dated lessons.
+ */
+export interface DeclaredView {
+  courseId: CourseId;
+  groupId: GroupId;
+  /** The day she gave the position (`Position.asOf`). */
+  before: IsoDate;
+  /** Item titles, in scheme order. */
+  topics: string[];
+}
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const partsOf = (slotKey: string) => {
@@ -86,15 +103,21 @@ export function placementsIn(
   from: IsoDate,
   to: IsoDate,
   today: IsoDate,
-): { placements: PlacementView[]; assessments: AssessmentView[] } {
+): {
+  placements: PlacementView[];
+  assessments: AssessmentView[];
+  declared: DeclaredView[];
+} {
   const placements: PlacementView[] = [];
   const assessments: AssessmentView[] = [];
+  const declared: DeclaredView[] = [];
   for (const head of repos.plans.heads()) {
     const courseId = head.planId;
     const items = new Map(repos.scheme.items(courseId).map((i) => [i.id, i]));
     const overrides = repos.scheme.overrides(courseId);
     const flexEdits = repos.decisions.forCourse(courseId).flexEdits;
     const flexTitles = new Map(flexEdits.map((e) => [e.flexId, e.title]));
+    const flexPurposes = new Map(flexEdits.map((e) => [e.flexId, e.purpose]));
     const groupIds = [
       ...new Set(head.snapshot.placements.map((p) => p.groupId)),
     ];
@@ -133,6 +156,7 @@ export function placementsIn(
           title: flexTitles.get(p.lessonId) ?? "Spare lesson",
           kind: "flex",
           provenance: ENGINE,
+          purpose: flexPurposes.get(p.lessonId) ?? null,
         });
         continue;
       }
@@ -151,8 +175,12 @@ export function placementsIn(
         title: item?.title ?? itemId,
         kind: item?.kind ?? "teaching",
         provenance: item?.provenance ?? ENGINE,
+        purpose: null,
       });
     }
+    declared.push(
+      ...declaredOf(head.snapshot.placements, courseId, items, repos),
+    );
     for (const a of head.snapshot.assessments) {
       const { date, period } = partsOf(a.slotKey);
       if (date < from || date > to) continue;
@@ -173,5 +201,39 @@ export function placementsIn(
   ) => cmp(a.date, b.date) || a.period - b.period || cmp(a.groupId, b.groupId);
   placements.sort((a, b) => bySlot(a, b) || cmp(a.lessonId, b.lessonId));
   assessments.sort((a, b) => bySlot(a, b) || cmp(a.itemId, b.itemId));
-  return { placements, assessments };
+  declared.sort(
+    (a, b) => cmp(a.courseId, b.courseId) || cmp(a.groupId, b.groupId),
+  );
+  return { placements, assessments, declared };
+}
+
+/** Each group's declared topics in one head (declared placements have no slot), dated by its position. */
+function declaredOf(
+  snapshot: readonly Placement[],
+  courseId: CourseId,
+  items: ReadonlyMap<string, SowItem>,
+  repos: Repos,
+): DeclaredView[] {
+  const asOf = new Map(
+    repos.facts.positions(courseId).map((p) => [p.groupId, p.asOf]),
+  );
+  const byGroup = new Map<GroupId, Set<string>>();
+  for (const p of snapshot) {
+    if (p.state !== "declared" || p.slotKey !== null) continue;
+    const itemId = p.lessonId.split("#")[0] ?? "";
+    const set = byGroup.get(p.groupId) ?? new Set<string>();
+    set.add(itemId);
+    byGroup.set(p.groupId, set);
+  }
+  const out: DeclaredView[] = [];
+  for (const [groupId, itemIds] of byGroup) {
+    const before = asOf.get(groupId);
+    if (!before) continue;
+    const order = (id: string) => items.get(id)?.order ?? Number.MAX_VALUE;
+    const topics = [...itemIds]
+      .sort((a, b) => order(a) - order(b) || cmp(a, b))
+      .map((id) => items.get(id)?.title ?? id);
+    out.push({ courseId, groupId, before, topics });
+  }
+  return out;
 }

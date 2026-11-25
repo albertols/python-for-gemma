@@ -363,6 +363,9 @@ export const placementView = z.object({
     "flex",
   ]),
   provenance,
+  purpose: z
+    .enum(["exam-practice", "support", "independent-study", "revision"])
+    .nullable(),
 });
 export const assessmentView = z.object({
   courseId: z.string(),
@@ -375,6 +378,20 @@ export const assessmentView = z.object({
   title: z.string(),
   provenance,
 });
+export const declaredView = z.object({
+  courseId: z.string(),
+  groupId: z.string(),
+  before: isoDate,
+  topics: z.array(z.string()),
+});
+/** The lesson a plan puts in one of today's slots, or null when no plan does. */
+export const todayLesson = z
+  .object({
+    lessonId: z.string(),
+    title: z.string(),
+    kind: placementView.shape.kind,
+  })
+  .nullable();
 
 /** A run of the AI, as every route that starts or lists one answers it. */
 export const SKILL_IDS = [

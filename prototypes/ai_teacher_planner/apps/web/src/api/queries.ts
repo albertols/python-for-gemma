@@ -1,7 +1,13 @@
-import { lastDaysBeforeBreaks, type PlanInputs } from "@planner/domain";
+import {
+  lastDaysBeforeBreaks,
+  type PlanInputs,
+  type Position,
+  type Proposal,
+} from "@planner/domain";
 import {
   QueryClient,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -771,5 +777,124 @@ export function useSuggestCounts(courseId: string) {
         }),
       ),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["ai"] }),
+  });
+}
+
+// ---- Plans: positions, proposals, accept, undo, and what the board shows ----
+
+export type PlacementsData = InferResponseType<
+  typeof api.api.placements.$get,
+  200
+>;
+export type PlacementView = PlacementsData["placements"][number];
+export type AssessmentView = PlacementsData["assessments"][number];
+export type DeclaredView = PlacementsData["declared"][number];
+export type PlanStatusData = InferResponseType<
+  (typeof api.api.plans)[":courseId"]["$get"],
+  200
+>;
+/** The engine's Proposal (the API passes it through) and the key the accept sends back. */
+export type PlanProposal = Proposal & { candidateKey: string };
+
+/** What every plan puts in the days on screen. Under "board", so whatever refreshes the board refreshes it. */
+export function useBoardPlacements(from: string | null, to: string | null) {
+  return useQuery({
+    queryKey: ["board", "placements", from, to],
+    enabled: from !== null && to !== null,
+    queryFn: () =>
+      call<PlacementsData>(() =>
+        api.api.placements.$get({ query: { from: from ?? "", to: to ?? "" } }),
+      ),
+  });
+}
+
+const planStatusQuery = (courseId: string) => ({
+  // under "board": a changed calendar, scheme or timetable can leave the plan out of date
+  queryKey: ["board", "plans", courseId],
+  queryFn: () =>
+    call<PlanStatusData>(() =>
+      api.api.plans[":courseId"].$get({ param: { courseId } }),
+    ),
+});
+
+/** The accepted plan of each course that has one: undo, and whether it is still up to date. */
+export function usePlanStatuses(courseIds: readonly string[]) {
+  return useQueries({
+    queries: courseIds.map((id) => planStatusQuery(id)),
+  });
+}
+
+export function usePositions(courseId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["positions", courseId],
+    enabled,
+    queryFn: () =>
+      call<Position[]>(() =>
+        api.api.positions[":courseId"].$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** A plan change: the board, Today, the scheme's totals and the course list all follow it. */
+function invalidatePlan(qc: QueryClient, courseId: string) {
+  void qc.invalidateQueries({ queryKey: ["courses"] });
+  void qc.invalidateQueries({ queryKey: ["plan-inputs", courseId] });
+  invalidateBoard(qc);
+}
+
+export function useSavePositions(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (positions: Position[]) =>
+      call<Position[]>(() =>
+        api.api.positions[":courseId"].$put({
+          param: { courseId },
+          json: { positions },
+        }),
+      ),
+    onSuccess: (stored) => {
+      qc.setQueryData(["positions", courseId], stored);
+      invalidatePlan(qc, courseId);
+    },
+  });
+}
+
+/** A proposal from what is stored now. Nothing is stored. */
+export function useProposePlan(courseId: string) {
+  return useMutation({
+    mutationFn: () =>
+      call<PlanProposal>(() =>
+        api.api.plans[":courseId"].proposals.$post({ param: { courseId } }),
+      ),
+  });
+}
+
+/** Stores the proposal she saw; refused (409 stale-proposal) when the plan changed meanwhile. */
+export function useAcceptPlan(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: Pick<PlanProposal, "baseRevisionId" | "candidateKey">) =>
+      call<PlanStatusData>(() =>
+        api.api.plans[":courseId"].accept.$post({
+          param: { courseId },
+          json: {
+            baseRevisionId: p.baseRevisionId,
+            candidateKey: p.candidateKey,
+          },
+        }),
+      ),
+    onSuccess: () => invalidatePlan(qc, courseId),
+  });
+}
+
+/** The plan goes back to its parent. Facts (cancelled lessons, the log) stay. */
+export function useUndoPlan(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<PlanStatusData>(() =>
+        api.api.plans[":courseId"].undo.$post({ param: { courseId } }),
+      ),
+    onSuccess: () => invalidatePlan(qc, courseId),
   });
 }

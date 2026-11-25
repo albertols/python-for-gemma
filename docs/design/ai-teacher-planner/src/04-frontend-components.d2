@@ -9,7 +9,7 @@ vars: {
 
 title: |md
   # Frontend components: screens and shared pieces
-  Eleven screens share six pieces; the purple ones are where AI shows up. Previews run in the browser because the engine is imported directly.
+  Eleven screens share seven pieces; the purple ones are where AI shows up. Every plan change goes through the proposal dialog before it is stored.
 | {near: top-center}
 
 grid-columns: 1
@@ -21,9 +21,9 @@ screens: "Screens" {
   grid-columns: 6
   grid-gap: 16
 
-  today: "Today\nlessons, reminders, check-in,\ncancel lessons, to-do notes" {class: concept}
-  board: "Fortnight board\nWeek 1 | Week 2, week view,\nclass filter, holiday marker" {class: concept}
-  sow: "Scheme of work\nher order, live fit totals,\nimport preview, AI counts\nas differences" {class: ai}
+  today: "Today\nlessons with the plan's lesson,\nreminders, cancel lessons,\nto-do notes, out-of-date banner" {class: concept}
+  board: "Fortnight board\nlesson cards and states,\nspare lessons, declared band,\nundo, out-of-date banner" {class: concept}
+  sow: "Scheme of work\nlive fit totals, import preview,\nAI counts as differences,\nout-of-date banner" {class: ai}
   parity: "Parity\nslack, gaps,\ncatch-up options" {class: concept}
   audit: "Slot audit\nlost lessons and why,\nlast lessons, official exams" {class: concept}
   hl: "IB HL helper\nteachable now,\nunlocks on" {class: concept}
@@ -31,17 +31,18 @@ screens: "Screens" {
   assess: "Assessments\nand reports\nclashes, deadlines" {class: concept}
   resources: "Resources\nrefresher, cover,\nindependent task" {class: ai}
   packreview: "Pack review\nunits, spec points, chapter links,\nAI reasons, lock" {class: ai}
-  setup: "Setup\ncalendar + corrections,\ntimetable, cancelled lessons,\ncalendar events she confirms,\nofficial exams" {class: concept}
+  setup: "Setup\ncalendar + corrections, timetable,\ncancelled lessons, events, exams,\npositions + ask for a plan" {class: concept}
 }
 
 shared: "Shared pieces" {
   class: group
   grid-rows: 1
-  grid-columns: 6
+  grid-columns: 7
   grid-gap: 16
 
   badge: "AI badge + popover\nsparkle, dashed outline,\nprovider, model, sources" {class: ai}
-  diff: "Proposal diff\npreview, accept,\nreject, undo" {class: concept}
+  diff: "Proposal dialog + diff\nsummary, conflicts, changes;\naccept or cancel, stale refusal" {class: concept}
+  card: "Lesson card\nlesson, state in words,\nspare lesson, assessment chip" {class: concept}
   drawer: "Activity drawer + job chip\nevery AI run, live progress,\naccept, edit, reject" {class: ai}
   legend: "Legend\nwhat each mark means" {class: ai}
   client: "API client\ntyped from\nOpenAPI" {class: concept}

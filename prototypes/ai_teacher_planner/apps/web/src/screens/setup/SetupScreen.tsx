@@ -3,6 +3,7 @@ import { DisruptionsCard } from "./DisruptionsCard.tsx";
 import { EventsCard } from "./EventsCard.tsx";
 import { ExamsCard } from "./ExamsCard.tsx";
 import { PacksCard } from "./PacksCard.tsx";
+import { PositionsCard } from "./PositionsCard.tsx";
 import { TermsCard } from "./TermsCard.tsx";
 import { TimetableEditor } from "./TimetableEditor.tsx";
 
@@ -15,6 +16,7 @@ export function SetupScreen() {
       <div className="mt-6 space-y-6">
         <CalendarImportCard />
         <PacksCard />
+        <PositionsCard />
         <TermsCard />
         <DisruptionsCard />
         <EventsCard />

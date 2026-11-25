@@ -1,11 +1,19 @@
+import { weekdayOf } from "@planner/domain";
+import { useId } from "react";
+import { LessonCard, stateOutline } from "../../components/LessonCard.tsx";
 import { fullDay } from "../../lib/dates.ts";
 import { groupColour } from "../../theme/group-colours.ts";
 import type { BoardCell } from "./board-model.ts";
+import { describeCard } from "./board-plan.ts";
 
 const PERIODS_PER_DAY = 6;
 const base = "border border-border overflow-hidden p-1 text-sm";
 
-/** One period of one day. In M1 a lesson shows only its group and room; M2 adds the lesson. */
+/**
+ * One period of one day: the group and room, and the lesson the plan puts
+ * there. The cell's accessible name stays the slot's ("13 1, Friday 8 January,
+ * period 6, room 206"); the lesson is its description.
+ */
 export function SlotCell({
   cell,
   colour,
@@ -18,6 +26,7 @@ export function SlotCell({
   reason: string | null;
 }) {
   const when = `${fullDay(cell.date)}, period ${cell.period}`;
+  const descriptionId = useId();
   const common = {
     "data-kind": cell.kind,
     "data-date": cell.date,
@@ -36,7 +45,9 @@ export function SlotCell({
       ? `, double with period ${cell.doublePartner}`
       : "";
     const cancelled = slot.status === "cancelled";
+    const { card, declared } = cell;
     // A cancelled lesson is muted and striped, with the group's colour kept as a left bar.
+    // A declared band is muted and plain: the past at topic level, not lessons.
     const look = cancelled
       ? {
           background:
@@ -44,22 +55,54 @@ export function SlotCell({
           color: "var(--foreground)",
           borderLeft: `6px solid ${bg}`,
         }
-      : { background: bg, color: fg };
+      : declared
+        ? {
+            background: "var(--muted)",
+            color: "var(--foreground)",
+            borderLeft: `6px solid ${bg}`,
+          }
+        : {
+            background: bg,
+            color: fg,
+            ...(card ? stateOutline(card.state) : {}),
+          };
+    const description = card
+      ? describeCard(card, slot.status)
+      : declared
+        ? `Declared: ${declared.join(", ")}`
+        : null;
+    // a spare lesson's panel must not be cut off by the cell
+    const clip = card?.kind === "flex" ? "" : "overflow-hidden";
     return (
       <td
         {...common}
         data-status={slot.status}
+        data-state={card?.state}
         rowSpan={cell.joinsNext ? 2 : 1}
         aria-label={`${slot.groupId}, ${when}${slot.room ? `, room ${slot.room}` : ""}${double}${status}${possible ? `, ${possible}` : ""}`}
-        className={`${base} align-top ${cell.joinsNext ? "border-b-0" : ""}`}
+        aria-describedby={description ? descriptionId : undefined}
+        className={`${base.replace("overflow-hidden", clip)} align-top ${cell.joinsNext ? "border-b-0" : ""}`}
         style={look}
       >
-        <span aria-hidden="true" className="block font-semibold">
-          {slot.groupId}
+        <span aria-hidden="true" className="flex items-baseline gap-1">
+          <span className="font-semibold">{slot.groupId}</span>
+          {slot.room ? <span className="text-xs">{slot.room}</span> : null}
         </span>
-        {slot.room ? (
-          <span aria-hidden="true" className="block text-xs">
-            {slot.room}
+        {description ? (
+          <span id={descriptionId} hidden>
+            {description}
+          </span>
+        ) : null}
+        {card ? (
+          <LessonCard
+            card={card}
+            status={slot.status}
+            popoverOnLeft={weekdayOf(cell.date) >= 4}
+          />
+        ) : declared ? (
+          <span aria-hidden="true" className="block text-[11px] leading-tight">
+            <span className="block font-semibold italic">Declared:</span>
+            <span className="block truncate"> {declared.join(", ")}</span>
           </span>
         ) : null}
         {slot.status === "open" ? null : (

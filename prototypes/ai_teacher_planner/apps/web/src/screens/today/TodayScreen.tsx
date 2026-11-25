@@ -11,6 +11,7 @@ import {
   useToday,
 } from "../../api/queries.ts";
 import { GroupBadge } from "../../components/GroupBadge.tsx";
+import { OutOfDatePlans } from "../../components/PlanNotices.tsx";
 import { Button } from "../../components/ui/button.tsx";
 import {
   EmptyState,
@@ -94,13 +95,16 @@ function Lessons({ today }: { today: TodayData }) {
             <th scope="col" className="py-2 pr-4">
               Group
             </th>
-            <th scope="col" className="py-2">
+            <th scope="col" className="py-2 pr-4">
               Room
+            </th>
+            <th scope="col" className="py-2">
+              Lesson
             </th>
           </tr>
         </thead>
         <tbody>
-          {today.lessons.map(({ slot, start, end }) => (
+          {today.lessons.map(({ slot, start, end, lesson }) => (
             <tr key={slot.key} className="border-b border-border">
               <th scope="row" className="py-2 pr-4 font-medium">
                 {slot.period}
@@ -130,8 +134,24 @@ function Lessons({ today }: { today: TodayData }) {
                   </span>
                 ))}
               </td>
-              <td className="py-2">
+              <td className="py-2 pr-4">
                 {slot.room ? `Room ${slot.room}` : "No room set"}
+              </td>
+              <td className="py-2">
+                {lesson ? (
+                  <>
+                    {lesson.title}
+                    {slot.status === "cancelled" ? (
+                      <span className="ml-2 text-sm text-muted-foreground">
+                        not moved until you accept a new plan
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    No lesson planned
+                  </span>
+                )}
               </td>
             </tr>
           ))}
@@ -220,6 +240,9 @@ export function TodayScreen() {
         <p className="mt-1 text-lg">Week {data.weekLabel.slice(1)}</p>
       ) : null}
       <CancelLessons today={data.date} />
+      <div className="mt-4">
+        <OutOfDatePlans />
+      </div>
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div>
           <div>
