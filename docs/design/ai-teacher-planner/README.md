@@ -88,7 +88,7 @@ If you are Claude, follow the `architecture-visual-docs` skill (`.claude/skills/
 
 `sh docs/design/render.sh --check` re-renders and fails if any committed SVG differs from its source. CI uses it to catch stale diagrams. Rendering is deterministic, so an unchanged source always gives an identical SVG.
 
-Layout: ELK is the default. Diagrams 01, 03, 05, 06 and 08 set `layout-engine: tala` at the top of the file because it gave a more compact result. Keep each diagram to about twelve nodes; split it if it needs more.
+Layout: ELK is the default. Diagrams 01, 03, 05 and 06 set `layout-engine: tala` at the top of the file because it gave a more compact result. Diagram 08 sets `layout-engine: elk` because its tala layout changed on every render. Keep each diagram to about twelve nodes; split it if it needs more.
 
 ## Screenshots
 
