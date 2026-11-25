@@ -187,6 +187,31 @@ describe("history carried forward", () => {
     expect(delivered(changed, "13 1").has("c1#1")).toBe(false);
   });
 
+  test("for one placement the entry written later wins, even when it carries an earlier recordedOn", () => {
+    const slot = "13 1|2026-11-09|5";
+    // the log is in the order written: the second entry was back-dated
+    const s = sequence(
+      later("2026-11-16", {
+        log: [
+          entry("13 1", "c1#1", "taught", slot, "2026-11-16"),
+          entry("13 1", "c1#1", "skipped", slot, "2026-11-10"),
+        ],
+      }),
+    );
+    expect(placementsOf(s, "13 1", "c1#1")[0]?.state).toBe("skipped");
+    // different placements are independent of each other's dates
+    const two = sequence(
+      later("2026-11-16", {
+        log: [
+          entry("13 1", "c1#2", "cover", "13 1|2026-11-11|2", "2026-11-16"),
+          entry("13 1", "c1#1", "skipped", slot, "2026-11-10"),
+        ],
+      }),
+    );
+    expect(stateOf(two, "13 1", "c1#2")).toEqual(["cover"]);
+    expect(placementsOf(two, "13 1", "c1#1")[0]?.state).toBe("skipped");
+  });
+
   test("an answer recorded on a later day replaces a stored state carried from an older plan", () => {
     const slot = "13 1|2026-11-09|5";
     const skip = [entry("13 1", "c1#1", "skipped", slot, "2026-11-16")];

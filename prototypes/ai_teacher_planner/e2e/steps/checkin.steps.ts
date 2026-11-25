@@ -28,7 +28,12 @@ const weekOf = (page: Page, monday: string) =>
 interface Waiting {
   weeks: {
     weekOf: string;
-    lessons: { groupId: string; lessonId: string; slotKey: string }[];
+    lessons: {
+      groupId: string;
+      lessonId: string;
+      slotKey: string;
+      date: string;
+    }[];
   }[];
 }
 async function waiting(request: APIRequestContext): Promise<Waiting> {
@@ -139,7 +144,12 @@ let posted: Promise<Request> | null = null;
 let marked = "";
 When(
   "I mark one of {word} {int}'s lessons as skipped with the note {string}",
-  async ({ page }, year: string, n: number, note: string) => {
+  async ({ page, request }, year: string, n: number, note: string) => {
+    // the first lesson of that group in the first week, as the planner lists it
+    const [week] = (await waiting(request)).weeks;
+    const mine = week?.lessons.find((l) => l.groupId === `${year} ${n}`);
+    expect(mine).toBeDefined();
+    marked = `${dayWords(mine?.date ?? "")}, period ${mine?.slotKey.split("|")[2]}`;
     posted = page.waitForRequest(
       (r) => r.method() === "POST" && r.url().endsWith("/api/checkin"),
     );
@@ -151,7 +161,6 @@ When(
     const button = first
       .getByRole("button", { name: /^Not as planned/ })
       .first();
-    marked = (await button.getAttribute("aria-label")) ?? "";
     await button.click();
     const form = page.getByRole("group", { name: /^What happened to/ });
     await form.getByRole("radio", { name: "Skipped" }).check();
@@ -198,7 +207,7 @@ Then(
     ).toHaveCount(1);
     await expect(
       changes.getByRole("listitem").filter({
-        hasText: `did not happen on ${marked.split(", ").slice(-1)[0]}`,
+        hasText: `did not happen on ${marked}`,
       }),
     ).toHaveCount(1);
   },
@@ -211,6 +220,18 @@ Then("the check-in shows three weeks, oldest first", async ({ page }) => {
     `Week of ${dayWords(LAST_WEEK)}`,
   ]);
 });
+
+Then(
+  "every waiting lesson is listed under its own week",
+  async ({ page, request }) => {
+    const { weeks } = await waiting(request);
+    expect(weeks).toHaveLength(3);
+    for (const w of weeks)
+      await expect(
+        weekOf(page, w.weekOf).getByRole("button", { name: /^Not as planned/ }),
+      ).toHaveCount(w.lessons.length);
+  },
+);
 
 Then("Today still shows today's lessons above it", async ({ page }) => {
   const lessons = page.getByRole("table", {
@@ -252,5 +273,123 @@ When(
     await expect(
       page.getByRole("group", { name: /^What happened to/ }),
     ).toBeVisible();
+  },
+);
+
+/** 13 3's lessons on Thursday 12 November, by period: a double. */
+async function doubleOf(request: APIRequestContext) {
+  const { weeks } = await waiting(request);
+  const lessons = weeks
+    .flatMap((w) => w.lessons)
+    .filter((l) => l.groupId === "13 3" && l.date === "2026-11-12")
+    .sort((a, b) => a.slotKey.localeCompare(b.slotKey));
+  expect(lessons).toHaveLength(2);
+  return lessons;
+}
+const doubleButtons = (page: Page) =>
+  weekOf(page, "2026-11-09").getByRole("button", {
+    name: /^Not as planned: 13 3, .*Thursday 12 November/,
+  });
+
+Then(
+  "13 3's double on 12 November has two buttons with different names",
+  async ({ page }) => {
+    await expect(doubleButtons(page)).toHaveCount(2);
+    const names = await doubleButtons(page).evaluateAll((els) =>
+      els.map((e) => e.getAttribute("aria-label")),
+    );
+    expect(new Set(names).size).toBe(2);
+  },
+);
+
+let laterId = "";
+When(
+  "I mark the later half of that double as skipped",
+  async ({ page, request }) => {
+    const [, later] = await doubleOf(request);
+    laterId = later?.lessonId ?? "";
+    posted = page.waitForRequest(
+      (r) => r.method() === "POST" && r.url().endsWith("/api/checkin"),
+    );
+    const period = later?.slotKey.split("|")[2];
+    await weekOf(page, "2026-11-09")
+      .getByRole("button", {
+        name: new RegExp(`^Not as planned: 13 3, .*period ${period}$`),
+      })
+      .click();
+    await page
+      .getByRole("group", { name: new RegExp(`period ${period}\\?$`) })
+      .getByRole("radio", { name: "Skipped" })
+      .check();
+    await checkIn(page).getByRole("button", { name: "Save answer" }).click();
+  },
+);
+
+Then("the answer is written for the later lesson only", async ({ request }) => {
+  const body = (await posted)?.postDataJSON() as {
+    entries: { groupId: string; lessonId: string }[];
+  };
+  expect(body.entries).toHaveLength(1);
+  expect(body.entries[0]).toMatchObject({ groupId: "13 3", lessonId: laterId });
+  // the earlier half is the one still waiting
+  await expect
+    .poll(async () => {
+      const left = (await waiting(request)).weeks
+        .flatMap((w) => w.lessons)
+        .filter((l) => l.groupId === "13 3" && l.date === "2026-11-12");
+      return left.map((l) => l.lessonId);
+    })
+    .toHaveLength(1);
+  const left = (await waiting(request)).weeks
+    .flatMap((w) => w.lessons)
+    .filter((l) => l.groupId === "13 3" && l.date === "2026-11-12");
+  expect(left[0]?.lessonId).not.toBe(laterId);
+});
+
+let noteTyped = "";
+When(
+  "I open the form for 13 1's first lesson and type the note {string}",
+  async ({ page }, note: string) => {
+    noteTyped = note;
+    await weekOf(page, "2026-10-26")
+      .getByRole("button", { name: /^Not as planned: 13 1/ })
+      .first()
+      .click();
+    const form = page.getByRole("group", { name: /^What happened to/ });
+    await form.getByRole("radio", { name: "Skipped" }).check();
+    await form.getByLabel("Note (optional)").fill(note);
+  },
+);
+
+When("the planner refuses the next save", async ({ page }) => {
+  await page.route("**/api/checkin", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({
+          status: 422,
+          json: {
+            error: {
+              code: "invalid-checkin",
+              message: "Nothing was saved from this check-in.",
+              issues: ["That lesson is not waiting for an answer."],
+            },
+          },
+        })
+      : route.continue(),
+  );
+});
+
+When("I save the answer", async ({ page }) => {
+  await checkIn(page).getByRole("button", { name: "Save answer" }).click();
+});
+
+Then(
+  "I am told it was refused and the form still holds my note",
+  async ({ page }) => {
+    await expect(checkIn(page).getByRole("alert")).toContainText(
+      "Nothing was saved from this check-in.",
+    );
+    const form = page.getByRole("group", { name: /^What happened to/ });
+    await expect(form.getByLabel("Note (optional)")).toHaveValue(noteTyped);
+    await expect(form.getByRole("radio", { name: "Skipped" })).toBeChecked();
   },
 );

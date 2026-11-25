@@ -22,7 +22,21 @@ Feature: Weekly check-in
   Scenario: Three weeks away
     Given three weeks of lessons have not been confirmed
     Then the check-in shows three weeks, oldest first
+    And every waiting lesson is listed under its own week
     And Today still shows today's lessons above it
+
+  Scenario: The two halves of a double are told apart
+    Given three weeks of lessons have not been confirmed
+    Then 13 3's double on 12 November has two buttons with different names
+    When I mark the later half of that double as skipped
+    Then the answer is written for the later lesson only
+
+  Scenario: A refused save keeps what I typed
+    Given three weeks of lessons have not been confirmed
+    When I open the form for 13 1's first lesson and type the note "Fire drill"
+    And the planner refuses the next save
+    And I save the answer
+    Then I am told it was refused and the form still holds my note
 
   Scenario: Everything confirmed leaves one line
     Given three weeks of lessons have not been confirmed

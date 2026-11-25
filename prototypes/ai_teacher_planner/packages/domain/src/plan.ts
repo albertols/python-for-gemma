@@ -34,6 +34,8 @@ export interface Position {
   doneItemIds: string[];
   asOf: IsoDate;
 }
+/** A note on a lesson-log answer: at most this many characters. */
+export const LOG_NOTE_LIMIT = 200;
 export interface LessonLogEntry {
   groupId: GroupId;
   lessonId: LessonId;
@@ -204,6 +206,7 @@ export interface PlanInputs {
   items: SowItem[];
   overrides: GroupOverride[];
   positions: Position[];
+  /** In the order written (the log is append-only): for one placement the later entry wins, whatever its `recordedOn`. */
   log: LessonLogEntry[];
   pins: Pin[];
   merges: Merge[];

@@ -3,6 +3,8 @@ import {
   type GroupId,
   type IsoDate,
   type LessonLogEntry,
+  LOG_NOTE_LIMIT,
+  lessonsFor,
   mondayOf,
   type SlotKey,
   sequence,
@@ -19,6 +21,9 @@ export interface CheckInLesson {
   slotKey: SlotKey;
   date: IsoDate;
   title: string;
+  /** "Demand 2 of 3": the lesson's number and the item's count for this group. Null for a spare lesson. */
+  index: number | null;
+  of: number | null;
 }
 export interface CheckInWeek {
   /** The Monday. */
@@ -32,15 +37,15 @@ export interface CheckInEntry {
   note: string | null;
 }
 
-const NOTE_LIMIT = 200;
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const period = (key: SlotKey) => Number(key.split("|")[2] ?? 0);
 
 /**
  * Past lessons that were planned and that she has not said anything about, for
  * every course with a plan. They are the `assumed` placements of a plan made
- * today on top of the head, so a spare lesson in the past is never one (a new
- * plan drops it), and a lesson she logged is no longer one.
+ * today on top of the head. A past spare lesson she did not edit is never one
+ * (a new plan drops it, ruling 14); one she edited (a title or a purpose) is a
+ * lesson she planned, so it is listed. A lesson she logged is no longer one.
  */
 function assumedLessons(
   repos: Repos,
@@ -52,23 +57,28 @@ function assumedLessons(
     const courseId = head.planId;
     if (packs.locked(courseId) === null) continue;
     const inputs = loadPlanInputs(repos, packs, courseId, today);
-    const titles = new Map(inputs.items.map((i) => [i.id, i.title]));
+    const itemsById = new Map(inputs.items.map((i) => [i.id, i]));
     const flexTitles = new Map(
       inputs.flexEdits.map((e) => [e.flexId, e.title ?? "Spare lesson"]),
     );
     const fresh = sequence(inputs);
     for (const p of fresh.placements) {
       if (p.state !== "assumed" || p.slotKey === null) continue;
-      const itemId = p.lessonId.split("#")[0] ?? "";
+      const [itemId = "", n = ""] = p.lessonId.split("#");
+      const item = itemsById.get(itemId);
+      const spare = p.lessonId.startsWith("flex:");
       out.push({
         courseId,
         groupId: p.groupId,
         lessonId: p.lessonId,
         slotKey: p.slotKey,
         date: p.slotKey.split("|")[1] ?? "",
-        title: p.lessonId.startsWith("flex:")
+        title: spare
           ? (flexTitles.get(p.lessonId) ?? "Spare lesson")
-          : (titles.get(itemId) ?? itemId),
+          : (item?.title ?? itemId),
+        index: spare || !item ? null : Number(n),
+        of:
+          spare || !item ? null : lessonsFor(item, inputs.overrides, p.groupId),
       });
     }
   }
@@ -133,9 +143,9 @@ export function recordCheckIn(
         continue;
       }
       seen.add(key);
-      if (note !== null && [...note].length > NOTE_LIMIT) {
+      if (note !== null && [...note].length > LOG_NOTE_LIMIT) {
         issues.push(
-          `The note for ${e.groupId} ${e.lessonId} is longer than ${NOTE_LIMIT} characters.`,
+          `The note for ${e.groupId} ${e.lessonId} is longer than ${LOG_NOTE_LIMIT} characters.`,
         );
         continue;
       }

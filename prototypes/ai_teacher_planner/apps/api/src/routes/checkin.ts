@@ -1,4 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi";
+import { LOG_NOTE_LIMIT } from "@planner/domain";
 import type { Config } from "../config.ts";
 import type { PackStore, Repos } from "../repos/ports.ts";
 import { todayOf } from "../today.ts";
@@ -18,6 +19,8 @@ const lesson = z.object({
   slotKey: z.string(),
   date: isoDate,
   title: z.string(),
+  index: z.number().int().nullable(),
+  of: z.number().int().nullable(),
 });
 const list = createRoute({
   method: "get",
@@ -50,10 +53,12 @@ const record = createRoute({
                 groupId: z.string(),
                 lessonId: z.string(),
                 outcome: z.enum(["taught", "cover", "skipped", "homework"]),
-                note: z.string().nullable().openapi({
-                  description:
-                    "Her words, at most 200 characters. No student names.",
-                }),
+                note: z
+                  .string()
+                  .nullable()
+                  .openapi({
+                    description: `Her words, at most ${LOG_NOTE_LIMIT} characters. No student names.`,
+                  }),
               }),
             )
             .min(1),

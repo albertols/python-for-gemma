@@ -119,14 +119,6 @@ export interface Carried {
 }
 
 /**
- * Oldest first, so a later answer wins. The log is append-only and arrives in
- * the order it was written; two answers recorded on the same day stay in that
- * order (the sort is stable), so "actually that one was skipped" always wins.
- */
-const byRecorded = (a: LessonLogEntry, b: LessonLogEntry) =>
-  cmp(a.recordedOn, b.recordedOn);
-
-/**
  * Carries one group's history and frozen placements out of the previous plan.
  *
  * - A placement dated before today is history. Its state is the log's outcome
@@ -205,8 +197,9 @@ export function carryHistory(args: {
     );
 
   const entries = args.log
-    .filter((e) => e.groupId === groupId && !declared.has(e.lessonId))
-    .sort(byRecorded);
+    // `log` is in the order written (plan.ts): for one placement the entry
+    // written later wins, whatever `recordedOn` says; no sort is wanted here
+    .filter((e) => e.groupId === groupId && !declared.has(e.lessonId));
   const added: Placement[] = [];
   for (const e of entries) {
     const own = past.filter((p) => p.lessonId === e.lessonId);

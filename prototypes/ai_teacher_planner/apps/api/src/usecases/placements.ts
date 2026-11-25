@@ -66,9 +66,9 @@ function loggedOutcomes(
   const key = (groupId: string, lessonId: string, slotKey: string) =>
     `${groupId}\u0000${lessonId}\u0000${slotKey}`;
   const out = new Map<string, LessonLogEntry["outcome"]>();
-  // oldest first (stable, so the order recorded breaks ties): a later answer wins
-  const ordered = [...log].sort((a, b) => cmp(a.recordedOn, b.recordedOn));
-  for (const e of ordered) {
+  // the log is in the order written: for one placement the later entry wins,
+  // whatever day it says it was recorded on
+  for (const e of log) {
     let slotKey = e.slotKey;
     if (slotKey === null)
       slotKey =

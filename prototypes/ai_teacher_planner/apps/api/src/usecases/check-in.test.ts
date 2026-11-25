@@ -118,3 +118,68 @@ test("a changed answer is the latest log entry: the board and the next plan use 
   // and the plan on hand is no longer up to date: there is something to accept
   expect(planStatus(repos, packs, COURSE, "2026-11-23").upToDate).toBe(false);
 });
+
+test("a back-dated answer written later still wins on the board", async () => {
+  const { repos, packs } = await planned();
+  const lesson = checkInWeeks(repos, packs, TODAY)[0]?.lessons.find(
+    (l) => l.groupId === "13 1",
+  );
+  if (!lesson) throw new Error("13 1 has a lesson to check in");
+  const { groupId, lessonId, slotKey, date } = lesson;
+  repos.facts.append([
+    {
+      groupId,
+      lessonId,
+      slotKey,
+      outcome: "taught",
+      recordedOn: TODAY,
+      note: null,
+    },
+    {
+      groupId,
+      lessonId,
+      slotKey,
+      outcome: "skipped",
+      recordedOn: "2026-10-30",
+      note: null,
+    },
+  ]);
+  expect(shown(repos, groupId, lessonId, date)).toBe("skipped");
+});
+
+test("the check-in names each lesson by its number, so the halves of a double differ", async () => {
+  const { repos, packs } = await planned();
+  const double = checkInWeeks(repos, packs, TODAY)
+    .flatMap((w) => w.lessons)
+    .filter((l) => l.groupId === "13 3" && l.date === "2026-11-12");
+  expect(double).toHaveLength(2);
+  expect(new Set(double.map((l) => l.lessonId)).size).toBe(2);
+  expect(double.map((l) => [l.index, l.of])).toEqual(
+    double.map((l) => [Number(l.lessonId.split("#")[1]), 4]),
+  );
+  expect(double.map((l) => l.slotKey.split("|")[2])).toEqual(
+    [...double.map((l) => l.slotKey.split("|")[2])].sort(),
+  );
+});
+
+test("a past spare lesson she edited is in the check-in, one she did not edit is not", async () => {
+  const { repos, packs } = await planned();
+  const today = "2026-12-09";
+  const spare = () =>
+    checkInWeeks(repos, packs, today)
+      .flatMap((w) => w.lessons)
+      .filter((l) => l.lessonId.startsWith("flex:"))
+      .map((l) => [l.lessonId, l.title, l.date]);
+  // nothing edited: every past spare lesson is dropped by a new plan, so none is asked about
+  expect(spare()).toEqual([]);
+  repos.decisions.replace(COURSE, "flexEdits", [
+    {
+      flexId: "flex:13 1:cp:a-ch3#1",
+      title: "Past paper",
+      purpose: "exam-practice",
+    },
+  ]);
+  expect(spare()).toEqual([
+    ["flex:13 1:cp:a-ch3#1", "Past paper", "2026-12-04"],
+  ]);
+});

@@ -3,6 +3,7 @@ import {
   answerSentence,
   confirmSentence,
   groupsOf,
+  lessonLabel,
   MAX_WEEKS,
   moreWeeksSentence,
   type WaitingLesson,
@@ -16,6 +17,8 @@ const lesson = (
   date: string,
   title = "Demand",
 ): WaitingLesson => ({
+  index: Number(lessonId.split("#")[1]),
+  of: 3,
   courseId: "ial-business-u4",
   groupId,
   lessonId,
@@ -72,12 +75,32 @@ test("headings and the sentences that say what was saved", () => {
   );
   const l = lesson("13 3", "ch1#1", "2026-10-26");
   expect(answerSentence(l, "skipped", false)).toBe(
-    "13 3, Demand, Monday 26 October: saved as skipped.",
+    "13 3, Demand 1 of 3, Monday 26 October, period 5: saved as skipped.",
   );
   expect(answerSentence(l, "homework", false)).toBe(
-    "13 3, Demand, Monday 26 October: saved as set as homework.",
+    "13 3, Demand 1 of 3, Monday 26 October, period 5: saved as set as homework.",
   );
   expect(answerSentence(l, "cover", true)).toBe(
-    "13 3, Demand, Monday 26 October: saved as cover. The plan is now out of date: the notice above offers See what changes.",
+    "13 3, Demand 1 of 3, Monday 26 October, period 5: saved as cover. The plan is now out of date: the notice above offers See what changes.",
   );
+});
+
+test("each lesson is named by its number and period, so the halves of a double differ", () => {
+  const a = lesson("13 3", "ch1#2", "2026-11-12");
+  const b = {
+    ...lesson("13 3", "ch1#3", "2026-11-12"),
+    slotKey: "13 3|2026-11-12|4",
+  };
+  expect(lessonLabel(a)).toBe("Demand 2 of 3, Thursday 12 November, period 5");
+  expect(lessonLabel(b)).toBe("Demand 3 of 3, Thursday 12 November, period 4");
+  // a spare lesson has no number
+  expect(
+    lessonLabel({
+      ...a,
+      lessonId: "flex:13 3:cp:a-ch3#1",
+      title: "Past paper",
+      index: null,
+      of: null,
+    }),
+  ).toBe("Past paper, Thursday 12 November, period 5");
 });

@@ -10,6 +10,9 @@ export interface WaitingLesson {
   slotKey: string;
   date: string;
   title: string;
+  /** The lesson's number and the item's count for this group; null for a spare lesson. */
+  index: number | null;
+  of: number | null;
 }
 export interface WaitingWeek {
   /** The Monday. */
@@ -68,13 +71,20 @@ export function groupsOf(
 export const confirmSentence = (groupId: string, monday: string): string =>
   `Confirmed ${groupId} for the week of ${fullDay(monday)}.`;
 
+/** "Demand 2 of 3, Thursday 12 November, period 4": the wording of the proposal, so a double's halves differ. */
+export function lessonLabel(l: WaitingLesson): string {
+  const period = l.slotKey.split("|")[2] ?? "";
+  const name = l.index === null ? l.title : `${l.title} ${l.index} of ${l.of}`;
+  return `${name}, ${fullDay(l.date)}, period ${period}`;
+}
+
 /** What was saved for one lesson, and a pointer to the notice when the plan is now out of date. */
 export function answerSentence(
   lesson: WaitingLesson,
   outcome: LessonLogEntry["outcome"],
   outOfDate: boolean,
 ): string {
-  const said = `${lesson.groupId}, ${lesson.title}, ${fullDay(lesson.date)}: saved as ${outcome === "homework" ? "set as homework" : outcome}.`;
+  const said = `${lesson.groupId}, ${lessonLabel(lesson)}: saved as ${outcome === "homework" ? "set as homework" : outcome}.`;
   return outOfDate
     ? `${said} The plan is now out of date: the notice above offers See what changes.`
     : said;

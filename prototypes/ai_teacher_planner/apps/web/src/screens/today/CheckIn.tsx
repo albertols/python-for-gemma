@@ -1,3 +1,4 @@
+import { LOG_NOTE_LIMIT } from "@planner/domain";
 import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
 import { ApiError } from "../../api/client.ts";
 import {
@@ -9,11 +10,13 @@ import {
 import { GroupBadge } from "../../components/GroupBadge.tsx";
 import { StatusLine, useAnnounce } from "../../components/PlanNotices.tsx";
 import { Button } from "../../components/ui/button.tsx";
+import { Loading } from "../../components/ui/states.tsx";
 import { fullDay } from "../../lib/dates.ts";
 import {
   answerSentence,
   confirmSentence,
   groupsOf,
+  lessonLabel,
   moreWeeksSentence,
   NOTHING_TO_CONFIRM,
   OTHER_OUTCOMES,
@@ -23,8 +26,12 @@ import {
   weeksToShow,
 } from "./check-in-model.ts";
 
-const NOTE_LIMIT = 200;
 const field = "rounded-md border border-border bg-card px-2 py-1";
+/** Writes the answers; true when they were saved, false when the planner refused them. */
+type SaveFn = (
+  entries: CheckInBody["entries"],
+  saved: { sentence: (outOfDate: boolean) => string },
+) => Promise<boolean>;
 const lessonKey = (l: WaitingLesson) => `${l.groupId}\u0000${l.lessonId}`;
 
 type Outcome = CheckInBody["entries"][number]["outcome"];
@@ -55,7 +62,7 @@ function OtherAnswer({
     >
       <fieldset>
         <legend className="font-medium">
-          {`What happened to ${lesson.title} on ${fullDay(lesson.date)}?`}
+          {`What happened to ${lessonLabel(lesson)}?`}
         </legend>
         <div className="mt-1 flex flex-wrap gap-4">
           {OTHER_OUTCOMES.map((o) => (
@@ -76,12 +83,13 @@ function OtherAnswer({
           <input
             type="text"
             className={`${field} mt-1 block w-full max-w-md`}
-            maxLength={NOTE_LIMIT}
+            maxLength={LOG_NOTE_LIMIT}
             value={note}
+            aria-describedby={`${id}-hint`}
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p id={`${id}-hint`} className="mt-1 text-sm text-muted-foreground">
           A few words for yourself. No student names.
         </p>
       </fieldset>
@@ -122,10 +130,7 @@ export function CheckInView({
   error: string | null;
   /** The line that says what was saved; it takes the focus after an answer. */
   status?: ReactNode;
-  onSave: (
-    entries: CheckInBody["entries"],
-    saved: { sentence: (outOfDate: boolean) => string },
-  ) => void;
+  onSave: SaveFn;
 }) {
   const headingId = useId();
   const { shown, hidden } = weeksToShow(weeks);
@@ -190,10 +195,7 @@ function WeekSection({
   setOpen: (key: string | null) => void;
   closeForm: (key: string) => void;
   openers: Map<string, HTMLButtonElement>;
-  onSave: (
-    entries: CheckInBody["entries"],
-    saved: { sentence: (outOfDate: boolean) => string },
-  ) => void;
+  onSave: SaveFn;
 }) {
   const id = useId();
   return (
@@ -244,14 +246,12 @@ function WeekSection({
                 const key = lessonKey(l);
                 return (
                   <li key={key}>
-                    <span>
-                      {l.title}, {fullDay(l.date)}
-                    </span>
+                    <span>{lessonLabel(l)}</span>
                     <Button
                       type="button"
                       className="ml-3"
                       aria-expanded={open === key}
-                      aria-label={`Not as planned: ${l.groupId}, ${l.title}, ${fullDay(l.date)}`}
+                      aria-label={`Not as planned: ${l.groupId}, ${lessonLabel(l)}`}
                       ref={(el) => {
                         if (el) openers.set(key, el);
                         else openers.delete(key);
@@ -266,8 +266,8 @@ function WeekSection({
                         busy={busy}
                         onCancel={() => closeForm(key)}
                         onSave={(outcome, note) => {
-                          setOpen(null);
-                          onSave(
+                          // the form stays open, with her note, until the planner has said yes
+                          void onSave(
                             [
                               {
                                 groupId: l.groupId,
@@ -280,7 +280,9 @@ function WeekSection({
                               sentence: (outOfDate) =>
                                 answerSentence(l, outcome, outOfDate),
                             },
-                          );
+                          ).then((saved) => {
+                            if (saved) setOpen(null);
+                          });
                         }}
                       />
                     ) : null}
@@ -295,6 +297,11 @@ function WeekSection({
   );
 }
 
+/** Shown until the first answer from the planner arrives. */
+export function CheckInLoading() {
+  return <Loading what="the check-in" />;
+}
+
 /** The check-in on Today. It says what was saved on a status line and moves the keyboard there. */
 export function CheckIn() {
   const waiting = useCheckIn();
@@ -304,7 +311,7 @@ export function CheckIn() {
   const colours = new Map(
     (timetable.data?.groups ?? []).map((g) => [g.id, g.colour] as const),
   );
-  if (waiting.isPending) return null;
+  if (waiting.isPending) return <CheckInLoading />;
   if (waiting.isError)
     return (
       <section aria-label="Did these happen as planned?">
@@ -333,15 +340,16 @@ export function CheckIn() {
             : null
         }
         status={<StatusLine announce={announce} className="mb-2" />}
-        onSave={(entries, saved) => {
+        onSave={async (entries, saved) => {
           record.reset();
-          record.mutate(
-            { entries },
-            {
-              onSuccess: (done) =>
-                announce.say(saved.sentence(done.outOfDate.length > 0)),
-            },
-          );
+          try {
+            const done = await record.mutateAsync({ entries });
+            announce.say(saved.sentence(done.outOfDate.length > 0));
+            return true;
+          } catch {
+            // the alert above the weeks says why; the form stays as she left it
+            return false;
+          }
         }}
       />
     </div>
