@@ -93,6 +93,15 @@ export function createApp(deps: AppDeps) {
   // attached files live beside the database; the folder is made when the first file arrives
   const materials = createMaterialStore(path.join(config.dataDir, "materials"));
   firstRun(repos);
+  // files a crash left behind: old half-written uploads go, files with no row are only counted
+  const swept = materials.sweep({
+    knownStoredNames: new Set(repos.lessonNotes.storedNames()),
+    now: now(),
+  });
+  if (swept.withoutRow > 0)
+    console.warn(
+      `${swept.withoutRow} file${swept.withoutRow === 1 ? "" : "s"} in data/materials has no entry in the planner. They were left alone.`,
+    );
   registerLessonCountHandler();
   // a job that was running when the planner closed can never finish
   failInterrupted(repos);
@@ -100,6 +109,27 @@ export function createApp(deps: AppDeps) {
   void ai.availability(); // checked at start-up, then at most once a minute
   const base = createRouter();
   // Hono runs middleware in registration order, so this goes before every route.
+  // Only the planner's own address is answered: a page on another name that points at
+  // 127.0.0.1 (DNS rebinding) is refused before any route runs. Browsers always send Host;
+  // a request without one, such as the tests' in-process calls, has no page behind it.
+  const hosts = new Set([
+    `127.0.0.1:${config.port}`,
+    `localhost:${config.port}`,
+  ]);
+  base.use("*", async (c, next) => {
+    const host = c.req.header("host");
+    if (host !== undefined && !hosts.has(host.toLowerCase()))
+      return c.json(
+        {
+          error: {
+            code: "bad-host",
+            message: `The planner only answers at 127.0.0.1:${config.port} or localhost:${config.port}.`,
+          },
+        },
+        421,
+      );
+    await next();
+  });
   base.use("*", async (c, next) => {
     c.set("principal" as never, deps.principal as never);
     await next();

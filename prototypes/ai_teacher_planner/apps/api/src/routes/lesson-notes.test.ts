@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { AiProvider } from "@planner/ai";
 import { TEACHER_PRINCIPAL } from "@planner/domain";
-import { afterAll, expect, test } from "vitest";
+import { afterAll, expect, test, vi } from "vitest";
 import type { ResourceGateway } from "../gateway/resource-gateway.ts";
 import { CT, GOOD, ooxml, pdf, png, text } from "../materials/test-files.ts";
 import { buildTestApp, syntheticGateway } from "../test-support.ts";
@@ -561,4 +561,55 @@ test("the download header cannot be broken out of by a quote, a semicolon or a n
   expect(attachmentHeader("経済.pdf")).toBe(
     "attachment; filename=\"__.pdf\"; filename*=UTF-8''%E7%B5%8C%E6%B8%88.pdf",
   );
+});
+
+test("the download's length is the file on disk, and a .jpeg is stored as .jpg", async () => {
+  const { app, materials } = await planner();
+  const up = await attach(app, "13 1", "ch3#2", "a.pdf", pdf());
+  const file = path.join(materials, `${up.body.id}.pdf`);
+  fs.writeFileSync(
+    file,
+    Buffer.concat([Buffer.from(pdf()), Buffer.from("-longer on disk")]),
+  );
+  const res = await app.request(`/api/materials/${up.body.id}`);
+  const body = new Uint8Array(await res.arrayBuffer());
+  expect(res.headers.get("content-length")).toBe(String(body.length));
+  expect(body.length).toBe(pdf().length + "-longer on disk".length);
+  const jpeg = await attach(
+    app,
+    "13 1",
+    "ch3#2",
+    "Phone.jpeg",
+    new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 1]),
+  );
+  expect(jpeg.status).toBe(201);
+  expect(jpeg.body).toMatchObject({
+    name: "Phone.jpeg",
+    contentType: "image/jpeg",
+  });
+  expect(listDir(materials)).toContain(`${jpeg.body.id}.jpg`);
+});
+
+test("starting the planner sweeps old .part files from data/materials and leaves everything else", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-sweep-"));
+  dirs.push(dataDir);
+  const folder = path.join(dataDir, "materials");
+  fs.mkdirSync(folder);
+  const nowMs = Date.parse("2026-11-24T10:00:00Z");
+  const make = (name: string, ageMs: number) => {
+    const p = path.join(folder, name);
+    fs.writeFileSync(p, "x");
+    fs.utimesSync(p, new Date(nowMs - ageMs), new Date(nowMs - ageMs));
+  };
+  const old = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.pdf.part";
+  const fresh = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.pdf.part";
+  const orphan = "cccccccc-cccc-cccc-cccc-cccccccccccc.pdf";
+  make(old, 2 * 3600_000);
+  make(fresh, 10 * 60_000);
+  make(orphan, 9 * 3600_000);
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  await buildTestApp({ dataDir });
+  expect(fs.readdirSync(folder).sort()).toEqual([fresh, orphan].sort());
+  expect(warn.mock.calls.flat().join(" ")).toMatch(/1 file.*no entry/);
+  warn.mockRestore();
 });

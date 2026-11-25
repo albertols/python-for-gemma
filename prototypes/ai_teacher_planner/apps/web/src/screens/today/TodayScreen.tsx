@@ -114,8 +114,17 @@ function RemovedNotes() {
           >
             <h3 className="font-semibold">
               {n.groupId}: {n.title}
+              {n.groupMissing ? " (class no longer in the timetable)" : ""}
             </h3>
-            <LessonNotes groupId={n.groupId} lessonId={n.lessonId} />
+            {n.groupMissing ? (
+              <LessonNotes
+                groupId={n.groupId}
+                lessonId={n.lessonId}
+                readOnlyNote={{ text: n.text, materials: n.materials }}
+              />
+            ) : (
+              <LessonNotes groupId={n.groupId} lessonId={n.lessonId} />
+            )}
           </li>
         ))}
       </ul>

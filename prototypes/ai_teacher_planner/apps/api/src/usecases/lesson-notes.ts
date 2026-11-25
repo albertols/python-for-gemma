@@ -30,6 +30,8 @@ export interface LessonNoteView {
 }
 export interface RemovedLessonNote extends LessonNoteView {
   title: string;
+  /** The class has left the timetable since the note was written. */
+  groupMissing: boolean;
 }
 
 export const materialView = (m: StoredMaterial): MaterialView => ({
@@ -177,8 +179,13 @@ export function summary(repos: Repos) {
 /** Notes and files for lessons the plans no longer hold (taken out of the scheme). They are kept. */
 export function removedFromPlan(repos: Repos): RemovedLessonNote[] {
   const inPlan = lessonsInPlans(repos);
+  const groups = new Set(repos.timetable.groups().map((g) => g.id));
   return repos.lessonNotes
     .list()
     .filter((n) => !inPlan.has(key(n.groupId, n.lessonId)))
-    .map((n) => ({ ...viewOf(n.groupId, n.lessonId, n), title: n.title }));
+    .map((n) => ({
+      ...viewOf(n.groupId, n.lessonId, n),
+      title: n.title,
+      groupMissing: !groups.has(n.groupId),
+    }));
 }

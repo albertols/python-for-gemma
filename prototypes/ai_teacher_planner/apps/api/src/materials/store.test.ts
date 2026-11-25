@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { zipSync } from "fflate";
+import { strToU8, zipSync } from "fflate";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { ApiError } from "../errors.ts";
 import { createMaterialStore, MAX_MATERIAL_BYTES } from "./store.ts";
@@ -79,7 +79,6 @@ test("an extension that is not on the list is refused, whatever the bytes are", 
     "tool.exe",
     "script.js",
     "notes.txt",
-    "photo.jpeg",
     "noextension",
     "trailingdot.",
     "report.pdf.exe",
@@ -232,4 +231,226 @@ test("opening a stored name whose file is gone says so", async () => {
   expect(() => store.open(saved.storedName)).toThrow(
     /no longer on this computer/,
   );
+});
+
+const typesXml = (body: string) =>
+  `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${body}</Types>`;
+const docxWith = (types: string, parts: Record<string, Uint8Array> = {}) =>
+  zipSync({
+    "[Content_Types].xml": strToU8(typesXml(types)),
+    "word/document.xml": strToU8("<x/>"),
+    ...parts,
+  });
+
+test("the types part is parsed, not searched: character references, a decoy override and a binary macro part are refused", async () => {
+  const store = createMaterialStore(dir);
+  // the reviewer's probe: the real main part is macro-enabled, spelled with character references,
+  // beside a decoy override that carries the plain docx type
+  const probe = docxWith(
+    `<Default Extension="bin" ContentType="application/vnd.ms-office.&#118;baProject"/>` +
+      `<Override PartName="/decoy.xml" ContentType="${CT.docx}"/>` +
+      `<Override PartName="/word/document.xml" ContentType="application/vnd.ms-word.document.macro&#69;nabled.main+xml"/>`,
+    { "word/macros.bin": new Uint8Array([1, 2, 3]) },
+  );
+  const refused: [string, Uint8Array][] = [
+    ["probe.docx", probe],
+    // hex reference and a named entity in a macro type
+    [
+      "hex.docx",
+      docxWith(
+        `<Override PartName="/word/document.xml" ContentType="${CT.docx}"/>` +
+          `<Default Extension="bin" ContentType="application/vnd.ms-office.&#x76;baProject"/>`,
+      ),
+    ],
+    // any content type that is macro-enabled, even when the main part is right
+    [
+      "mixed.docx",
+      docxWith(
+        `<Override PartName="/word/document.xml" ContentType="${CT.docx}"/>` +
+          `<Override PartName="/other.xml" ContentType="${CT.xlsm}"/>`,
+      ),
+    ],
+    // a macro sheet (Excel 4 macros) in a workbook
+    [
+      "sheet.xlsx",
+      docxWith(
+        `<Override PartName="/xl/workbook.xml" ContentType="${CT.xlsx}"/>` +
+          `<Override PartName="/xl/macrosheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.macrosheet+xml"/>`,
+      ),
+    ],
+    // a binary part under word/, with an innocent types part
+    [
+      "bin.docx",
+      docxWith(
+        `<Override PartName="/word/document.xml" ContentType="${CT.docx}"/>`,
+        {
+          "word/macros.bin": new Uint8Array([1]),
+        },
+      ),
+    ],
+    [
+      "bin.pptx",
+      zipSync({
+        "[Content_Types].xml": strToU8(
+          typesXml(
+            `<Override PartName="/ppt/presentation.xml" ContentType="${CT.pptx}"/>`,
+          ),
+        ),
+        "ppt/activeX/activeX1.bin": new Uint8Array([1]),
+      }),
+    ],
+    // an embedded OLE object
+    [
+      "ole.docx",
+      docxWith(
+        `<Override PartName="/word/document.xml" ContentType="${CT.docx}"/>`,
+        {
+          "word/embeddings/oleObject1.bin": new Uint8Array([1]),
+        },
+      ),
+    ],
+    [
+      "ole2.xlsx",
+      zipSync({
+        "[Content_Types].xml": strToU8(
+          typesXml(
+            `<Override PartName="/xl/workbook.xml" ContentType="${CT.xlsx}"/>`,
+          ),
+        ),
+        "xl/embeddings/oleObject2.docx": new Uint8Array([1]),
+      }),
+    ],
+    // the main type only as a Default (not an Override), or only inside an attribute that is not ContentType
+    [
+      "decoy.docx",
+      docxWith(
+        `<Override PartName="/x.xml" Other="${CT.docx}" ContentType="text/plain"/>`,
+      ),
+    ],
+    // a DOCTYPE or entity declaration: refused rather than half-understood
+    [
+      "entity.docx",
+      zipSync({
+        "[Content_Types].xml": strToU8(
+          `<?xml version="1.0"?><!DOCTYPE Types [<!ENTITY m "macro">]>` +
+            typesXml(
+              `<Override PartName="/word/document.xml" ContentType="${CT.docx}"/>`,
+            ),
+        ),
+      }),
+    ],
+    // an entity the parser does not know
+    [
+      "unknown.docx",
+      docxWith(
+        `<Override PartName="/word/document.xml" ContentType="${CT.docx}&bogus;"/>`,
+      ),
+    ],
+  ];
+  for (const [name, bytes] of refused) {
+    const err = await refusal(store.save({ name, stream: from(bytes) }));
+    expect(err.code, name).toBe("material-content");
+  }
+  expect(files()).toEqual([]);
+});
+
+test("a valid Office file is accepted whatever quotes its writer used, with printer settings and an embedded image", async () => {
+  const store = createMaterialStore(dir);
+  const single = docxWith(
+    `<Override PartName='/word/document.xml' ContentType='${CT.docx}'/>`,
+  );
+  const spaced = docxWith(
+    `<Default Extension = "png" ContentType = "image/png" /><Override PartName="/word/document.xml"\n ContentType="${CT.docx}"/>`,
+  );
+  const withPrinter = zipSync({
+    "[Content_Types].xml": strToU8(
+      typesXml(
+        `<Default Extension="bin" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.printerSettings"/>` +
+          `<Override PartName="/xl/workbook.xml" ContentType="${CT.xlsx}"/>`,
+      ),
+    ),
+    "xl/printerSettings/printerSettings1.bin": new Uint8Array([1, 2]),
+    "xl/media/image1.png": new Uint8Array([1]),
+  });
+  for (const [name, bytes] of [
+    ["single.docx", single],
+    ["spaced.docx", spaced],
+    ["printer.xlsx", withPrinter],
+  ] as const) {
+    const saved = await store.save({ name, stream: from(bytes) });
+    expect(saved.storedName, name).toMatch(/\.(docx|xlsx)$/);
+  }
+});
+
+test(".jpeg is accepted like .jpg, checked the same way and stored as .jpg", async () => {
+  const store = createMaterialStore(dir);
+  const saved = await store.save({
+    name: "Phone photo.JPEG",
+    stream: from(jpg()),
+  });
+  expect(saved.storedName).toMatch(/^[0-9a-f-]{36}\.jpg$/);
+  expect(saved.contentType).toBe("image/jpeg");
+  expect(saved.name).toBe("Phone photo.JPEG");
+  const plain = await store.save({ name: "a.jpg", stream: from(jpg()) });
+  expect(plain.storedName).toMatch(/\.jpg$/);
+  for (const bytes of [png(), pdf(), text("<html>")]) {
+    const err = await refusal(
+      store.save({ name: "fake.jpeg", stream: from(bytes) }),
+    );
+    expect(err.code).toBe("material-content");
+  }
+});
+
+test("open reports the size of the file on disk", async () => {
+  const store = createMaterialStore(dir);
+  const saved = await store.save({ name: "a.pdf", stream: from(pdf()) });
+  fs.appendFileSync(path.join(dir, saved.storedName), "more");
+  const opened = store.open(saved.storedName);
+  expect(opened.size).toBe(pdf().length + 4);
+  // read it to the end so the file is closed before the folder goes
+  let length = 0;
+  for await (const chunk of opened.stream) length += (chunk as Buffer).length;
+  expect(length).toBe(opened.size);
+});
+
+test("the start-up sweep removes old .part files, counts files with no row, and touches nothing else", async () => {
+  const store = createMaterialStore(dir);
+  const known = await store.save({ name: "a.pdf", stream: from(pdf()) });
+  const orphan = await store.save({ name: "b.pdf", stream: from(pdf()) });
+  const uuid = "11111111-2222-3333-4444-555555555555";
+  const now = new Date("2026-11-25T12:00:00Z");
+  const ago = (ms: number) => new Date(now.getTime() - ms);
+  const put = (name: string, age: number) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, "x");
+    fs.utimesSync(p, ago(age), ago(age));
+  };
+  put(`${uuid}.pdf.part`, 2 * 3600_000);
+  put(`${uuid.replace("1", "2")}.png.part`, 30 * 60_000);
+  put("notes.txt", 5 * 3600_000);
+  put("old.part", 5 * 3600_000); // not one of ours by name: left alone
+  const result = store.sweep({
+    knownStoredNames: new Set([known.storedName]),
+    now,
+  });
+  expect(result).toEqual({ partialsRemoved: 1, withoutRow: 1 });
+  expect(files().sort()).toEqual(
+    [
+      known.storedName,
+      orphan.storedName,
+      `${uuid.replace("1", "2")}.png.part`,
+      "notes.txt",
+      "old.part",
+    ].sort(),
+  );
+  // a folder that does not exist yet is fine
+  expect(
+    createMaterialStore(path.join(root, "nope")).sweep({
+      knownStoredNames: new Set(),
+      now,
+    }),
+  ).toEqual({
+    partialsRemoved: 0,
+    withoutRow: 0,
+  });
 });

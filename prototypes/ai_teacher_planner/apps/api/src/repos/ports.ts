@@ -314,6 +314,8 @@ export interface LessonNoteRepo {
   /** Stores the row for a file, creating the lesson's row first if there is none. */
   addMaterial(material: StoredMaterial, title: string): void;
   material(id: string): StoredMaterial | null;
+  /** The stored file name of every attached file, for the start-up check of the folder. */
+  storedNames(): string[];
   /** Removes the row and returns it; the lesson's row goes too when nothing is left in it. */
   removeMaterial(id: string): StoredMaterial | null;
 }

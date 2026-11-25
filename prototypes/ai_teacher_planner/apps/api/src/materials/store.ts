@@ -10,6 +10,8 @@ import { ApiError } from "../errors.ts";
 /** Each file may be at most this big (25 MB). */
 export const MAX_MATERIAL_BYTES = 25 * 1024 * 1024;
 const MAX_NAME_LENGTH = 200;
+/** A half-written upload older than this was left by a crash. */
+const PARTIAL_MAX_AGE_MS = 60 * 60 * 1000;
 /** The zip part that names what an Office file is; a real one is a few hundred bytes. */
 const MAX_TYPES_PART_BYTES = 1024 * 1024;
 
@@ -63,6 +65,9 @@ const TYPES = {
 type Extension = keyof typeof TYPES;
 const isExtension = (s: string): s is Extension => Object.hasOwn(TYPES, s);
 
+/** Names that mean the same type; the file is stored under the first, whatever she called it. */
+const ALIASES: Record<string, Extension> = { jpeg: "jpg" };
+
 export const ACCEPTED_EXTENSIONS = Object.keys(TYPES) as Extension[];
 const ACCEPTED_WORDS =
   "Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF, PNG or JPG";
@@ -102,7 +107,16 @@ export interface SavedMaterial {
 export interface MaterialStore {
   /** Streams one upload to disk, checks it, and keeps it only if every check passed. */
   save(input: { name: string; stream: Readable }): Promise<SavedMaterial>;
-  open(storedName: string): fs.ReadStream;
+  /** The stream and the size of the file on disk. */
+  open(storedName: string): { stream: fs.ReadStream; size: number };
+  /**
+   * For start-up: deletes `<uuid>.<ext>.part` files older than an hour (left by a crash)
+   * and counts stored files that no database row names. Nothing else is touched.
+   */
+  sweep(input: { knownStoredNames: ReadonlySet<string>; now: Date }): {
+    partialsRemoved: number;
+    withoutRow: number;
+  };
   /** Removes a stored file; one that is already gone is not an error. */
   remove(storedName: string): void;
 }
@@ -130,8 +144,9 @@ export function checkedName(raw: string): string {
 
 function extensionOf(name: string): Extension {
   const dot = name.lastIndexOf(".");
-  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
-  if (!isExtension(ext))
+  const raw = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+  const ext = Object.hasOwn(ALIASES, raw) ? ALIASES[raw] : raw;
+  if (!ext || !isExtension(ext))
     throw refuse(
       "material-type",
       `Only ${ACCEPTED_WORDS} files can be attached.`,
@@ -184,11 +199,91 @@ function verify(file: string, ext: Extension): void {
   }
   const types = parts["[Content_Types].xml"];
   if (!types) throw wrongContent(ext);
-  const xml = new TextDecoder().decode(types);
-  const hasMacros =
-    names.some((n) => /(^|\/)vbaProject\.bin$/i.test(n)) ||
-    /macroEnabled|vbaProject/i.test(xml);
-  if (hasMacros || !xml.includes(`"${check.main}"`)) throw wrongContent(ext);
+  if (!isPlainOffice(names, new TextDecoder().decode(types), check.main))
+    throw wrongContent(ext);
+}
+
+/** Printer settings are the one kind of binary part a document may hold. */
+const PRINTER_SETTINGS =
+  /^(word|xl|ppt)\/printersettings\/printersettings\d+\.bin$/;
+
+/** Decodes character and entity references; null when one is unknown or the text is not well formed. */
+function decodeXml(text: string): string | null {
+  if (/&(?!(#x[0-9a-f]+|#[0-9]+|[a-z]+);)/i.test(text)) return null;
+  let bad = false;
+  const decoded = text.replace(
+    /&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi,
+    (_all, body: string) => {
+      const named: Record<string, string> = {
+        lt: "<",
+        gt: ">",
+        amp: "&",
+        quot: '"',
+        apos: "'",
+      };
+      try {
+        if (body.startsWith("#x"))
+          return String.fromCodePoint(parseInt(body.slice(2), 16));
+        if (body.startsWith("#"))
+          return String.fromCodePoint(parseInt(body.slice(1), 10));
+      } catch {
+        bad = true;
+        return "";
+      }
+      const value = named[body.toLowerCase()];
+      if (value === undefined) bad = true;
+      return value ?? "";
+    },
+  );
+  return bad ? null : decoded;
+}
+
+/** One start tag, quoted attribute values (which may hold a `>`) included. */
+const TAG = /<([A-Za-z_][\w:.-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+const ATTRIBUTE = /([A-Za-z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+/**
+ * Reads [Content_Types].xml as XML, not as text: every attribute value is decoded
+ * first. The file is refused (fail closed) when anything is macro-enabled, ActiveX or
+ * a VBA project, in any attribute or in any part name, when it holds an embedded OLE
+ * object or a binary part other than printer settings, when the markup uses a
+ * DOCTYPE, comment or CDATA section, or when no Override names the main type.
+ */
+function isPlainOffice(
+  names: readonly string[],
+  xml: string,
+  main: string,
+): boolean {
+  if (/<!|<\?(?!xml\b)/i.test(xml.replace(/^\s*<\?xml[^>]*\?>/i, "")))
+    return false;
+  for (const raw of names) {
+    const name = raw.replaceAll("\\", "/").toLowerCase();
+    if (/vbaproject|activex/.test(name)) return false;
+    if (/(^|\/)embeddings\/oleobject/.test(name)) return false;
+    if (
+      /^(word|xl|ppt)\//.test(name) &&
+      name.endsWith(".bin") &&
+      !PRINTER_SETTINGS.test(name)
+    )
+      return false;
+  }
+  let hasMain = false;
+  for (const tag of xml.matchAll(TAG)) {
+    const element = (tag[1] ?? "").toLowerCase();
+    for (const attribute of (tag[2] ?? "").matchAll(ATTRIBUTE)) {
+      const value = decodeXml(attribute[2] ?? attribute[3] ?? "");
+      if (value === null) return false;
+      const lower = value.toLowerCase();
+      if (/macro|vbaproject|activex/.test(lower)) return false;
+      if (
+        element === "override" &&
+        attribute[1] === "ContentType" &&
+        lower === main.toLowerCase()
+      )
+        hasMain = true;
+    }
+  }
+  return hasMain;
 }
 
 export function createMaterialStore(dir: string): MaterialStore {
@@ -249,13 +344,37 @@ export function createMaterialStore(dir: string): MaterialStore {
     },
     open(storedName) {
       const file = pathOf(storedName);
-      if (!fs.lstatSync(file, { throwIfNoEntry: false })?.isFile())
+      const info = fs.lstatSync(file, { throwIfNoEntry: false });
+      if (!info?.isFile())
         throw new ApiError(
           404,
           "material-missing",
           "That file is no longer on this computer. Attach it again.",
         );
-      return fs.createReadStream(file);
+      return { stream: fs.createReadStream(file), size: info.size };
+    },
+    sweep({ knownStoredNames, now }) {
+      const result = { partialsRemoved: 0, withoutRow: 0 };
+      if (!fs.existsSync(root)) return result;
+      for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        if (!entry.isFile()) continue;
+        if (entry.name.endsWith(".part")) {
+          const stored = entry.name.slice(0, -".part".length);
+          const file = path.join(root, entry.name);
+          if (
+            STORED_NAME.test(stored) &&
+            now.getTime() - fs.statSync(file).mtimeMs > PARTIAL_MAX_AGE_MS
+          ) {
+            fs.rmSync(file, { force: true });
+            result.partialsRemoved += 1;
+          }
+        } else if (
+          STORED_NAME.test(entry.name) &&
+          !knownStoredNames.has(entry.name)
+        )
+          result.withoutRow += 1;
+      }
+      return result;
     },
     remove(storedName) {
       fs.rmSync(pathOf(storedName), { force: true });

@@ -103,7 +103,9 @@ const removedRoute = createRoute({
         "Notes and files for lessons no longer in the plan (taken out of the scheme). They are kept",
       content: json(
         z.object({
-          items: z.array(note.extend({ title: z.string() })),
+          items: z.array(
+            note.extend({ title: z.string(), groupMissing: z.boolean() }),
+          ),
         }),
       ),
     },
@@ -219,10 +221,11 @@ export function lessonNoteRoutes(deps: {
     })
     .openapi(download, (c) => {
       const m = findMaterial(repos, c.req.valid("param").id);
-      const stream = store.open(m.storedName);
+      // the length is the file's own, never the stored number
+      const { stream, size } = store.open(m.storedName);
       return c.body(Readable.toWeb(stream) as ReadableStream, 200, {
         "content-type": m.contentType,
-        "content-length": String(m.size),
+        "content-length": String(size),
         "content-disposition": attachmentHeader(m.name),
         "x-content-type-options": "nosniff",
         "content-security-policy": "default-src 'none'; sandbox",

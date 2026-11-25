@@ -188,3 +188,41 @@ Then(
     await expect(region.getByRole("link", { name: file })).toBeVisible();
   },
 );
+
+/** The requests that tried to attach a file, per page. */
+const attachRequests = new WeakMap<Page, string[]>();
+
+When(
+  "I attach a file called {string} of {int} MB",
+  async ({ page }, name: string, mb: number) => {
+    const seen: string[] = [];
+    attachRequests.set(page, seen);
+    page.on("request", (r) => {
+      if (r.url().includes("/api/lesson-notes/materials"))
+        seen.push(r.method());
+    });
+    const buffer = Buffer.alloc(mb * 1024 * 1024);
+    SMALL_PDF.copy(buffer);
+    await page
+      .getByLabel("Attach a file")
+      .setInputFiles({ name, mimeType: "application/pdf", buffer });
+  },
+);
+
+Then("nothing was sent to attach a file", async ({ page }) => {
+  // give a wrongly sent request time to show up
+  await page.waitForTimeout(300);
+  expect(attachRequests.get(page)).toEqual([]);
+});
+
+When(
+  "I attach a small JPEG called {string}",
+  async ({ page }, name: string) => {
+    await page.getByLabel("Attach a file").setInputFiles({
+      name,
+      mimeType: "image/jpeg",
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]),
+    });
+    await expect(materials(page).getByRole("link", { name })).toBeVisible();
+  },
+);

@@ -1,5 +1,9 @@
 import { useId, useState } from "react";
-import { useLessonNote, useSaveLessonNote } from "../api/queries.ts";
+import {
+  type MaterialData,
+  useLessonNote,
+  useSaveLessonNote,
+} from "../api/queries.ts";
 import { MaterialsList } from "./MaterialsList.tsx";
 import { Button } from "./ui/button.tsx";
 
@@ -14,14 +18,32 @@ export const MAX_LESSON_NOTE = 2000;
 export function LessonNotes({
   groupId,
   lessonId,
+  readOnlyNote,
 }: {
   groupId: string;
   lessonId: string;
+  /** Set for a class that has left the timetable: the note comes from the removed list and is shown, not edited. */
+  readOnlyNote?: { text: string; materials: MaterialData[] };
 }) {
   const ids = useId();
   const note = useLessonNote(groupId, lessonId);
   const save = useSaveLessonNote(groupId, lessonId);
   const [draft, setDraft] = useState<string | null>(null);
+  if (readOnlyNote)
+    return (
+      <div>
+        <p className="font-semibold">Plan for this lesson</p>
+        <p className="mt-1 whitespace-pre-wrap break-words">
+          {readOnlyNote.text || "No plan was written."}
+        </p>
+        <MaterialsList
+          groupId={groupId}
+          lessonId={lessonId}
+          materials={readOnlyNote.materials}
+          canAttach={false}
+        />
+      </div>
+    );
   if (note.isPending)
     return <p className="text-muted-foreground">Loading the plan...</p>;
   if (note.isError)

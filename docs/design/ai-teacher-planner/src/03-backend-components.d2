@@ -14,7 +14,7 @@ title: |md
 
 direction: down
 
-http: "HTTP routes\nHono + OpenAPI: today (the plan's lesson and assessment),\ncalendar, corrections, events, disruptions, exams, todos,\nslots, lesson notes + materials (uploads),\nAI jobs and review; courses, packs, scheme + import\npreview + suggest-counts (starts the AI job), positions, plans\n(+ lessons without a slot), placements (+ declared), check-in" {class: concept}
+http: "HTTP routes (Host allowlist: 127.0.0.1 and\nlocalhost on our port only)\nHono + OpenAPI: today (the plan's lesson and assessment),\ncalendar, corrections, events, disruptions, exams, todos,\nslots, lesson notes + materials (uploads),\nAI jobs and review; courses, packs, scheme + import\npreview + suggest-counts (starts the AI job), positions, plans\n(+ lessons without a slot), placements (+ declared), check-in" {class: concept}
 
 core: "Core of apps/api" {
   class: group
@@ -40,7 +40,7 @@ adapters: "Driven adapters, each behind a port" {
   content -> port: {class: aiflow}
 }
 
-materials: "MaterialStore\ndata/materials/<uuid>.<ext>\nextension + magic bytes, 25 MB\nstreamed, never leaves data/" {class: warn}
+materials: "MaterialStore\ndata/materials/<uuid>.<ext>\nextension + magic bytes, 25 MB\nstreamed, .jpeg stored as .jpg,\nmacro and OLE parts refused,\nstart-up sweep of old .part files" {class: warn}
 db: "SQLite file + pack files\ndata/, git-ignored" {
   class: win
   shape: cylinder

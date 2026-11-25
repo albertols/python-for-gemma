@@ -1,4 +1,4 @@
-import { useId, useRef } from "react";
+import { useId, useRef, useState } from "react";
 import {
   type MaterialData,
   useAttachMaterial,
@@ -13,6 +13,10 @@ export function sizeWords(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** The same limit and sentence as the API, so a big file is stopped before it is sent. */
+export const MAX_MATERIAL_BYTES = 25 * 1024 * 1024;
+export const TOO_LARGE = "That file is over 25 MB, so it was not attached.";
+
 const ACCEPT = ".pptx,.docx,.xlsx,.pdf,.png,.jpg";
 
 /**
@@ -24,11 +28,15 @@ export function MaterialsList({
   groupId,
   lessonId,
   materials,
+  canAttach = true,
 }: {
   groupId: string;
   lessonId: string;
   materials: MaterialData[];
+  /** False for a class that has left the timetable: its files can be saved or removed, not added to. */
+  canAttach?: boolean;
 }) {
+  const [tooLarge, setTooLarge] = useState(false);
   const ids = useId();
   const input = useRef<HTMLInputElement>(null);
   const attach = useAttachMaterial(groupId, lessonId);
@@ -59,6 +67,7 @@ export function MaterialsList({
                 aria-label={`Remove ${m.name}`}
                 disabled={remove.isPending}
                 onClick={() => {
+                  setTooLarge(false);
                   attach.reset();
                   remove.mutate(m.id);
                 }}
@@ -69,30 +78,40 @@ export function MaterialsList({
           ))}
         </ul>
       )}
-      <div className="mt-2">
-        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-card-foreground hover:bg-muted focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
-          Attach a file
-          <input
-            ref={input}
-            type="file"
-            className="sr-only"
-            accept={ACCEPT}
-            aria-describedby={`${ids}-hint`}
-            disabled={attach.isPending}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              remove.reset();
-              if (file) attach.mutate(file);
-              // the same file can be chosen again after a refusal
-              e.target.value = "";
-            }}
-          />
-        </label>
-        <p id={`${ids}-hint`} className="mt-1 text-sm text-muted-foreground">
-          Word, Excel, PowerPoint, PDF, PNG or JPG, up to 25 MB. No student
-          names in file names.
+      {canAttach ? (
+        <div className="mt-2">
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-card-foreground hover:bg-muted focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+            Attach a file
+            <input
+              ref={input}
+              type="file"
+              className="sr-only"
+              accept={ACCEPT}
+              aria-describedby={`${ids}-hint`}
+              disabled={attach.isPending}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                remove.reset();
+                attach.reset();
+                setTooLarge(false);
+                if (file && file.size > MAX_MATERIAL_BYTES) setTooLarge(true);
+                else if (file) attach.mutate(file);
+                // the same file can be chosen again after a refusal
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <p id={`${ids}-hint`} className="mt-1 text-sm text-muted-foreground">
+            Word, Excel, PowerPoint, PDF, PNG or JPG, up to 25 MB. No student
+            names in file names.
+          </p>
+        </div>
+      ) : null}
+      {tooLarge ? (
+        <p role="alert" className="mt-1 text-danger">
+          {TOO_LARGE}
         </p>
-      </div>
+      ) : null}
       {attach.isPending ? (
         <p role="status" className="mt-1">
           Attaching...

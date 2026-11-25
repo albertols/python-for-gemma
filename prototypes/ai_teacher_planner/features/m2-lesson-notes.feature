@@ -41,6 +41,20 @@ Feature: A plan and materials for each lesson
     Then I am told "That file is not really a .pdf file, so it was not attached."
     And no file is listed under Materials
 
+  Scenario: A file over 25 MB is stopped before it is sent
+    Given the course has an accepted plan
+    When I open the plan and materials for 13 1 on Today
+    And I attach a file called "Big.pdf" of 26 MB
+    Then I am told "That file is over 25 MB, so it was not attached."
+    And nothing was sent to attach a file
+    And no file is listed under Materials
+
+  Scenario: A phone photo called .jpeg can be attached
+    Given the course has an accepted plan
+    When I open the plan and materials for 13 1 on Today
+    And I attach a small JPEG called "Whiteboard.jpeg"
+    Then "Whiteboard.jpeg" is listed under Materials
+
   Scenario: A lesson with no plan has no notes box
     When I look at Today
     Then no lesson offers a plan and materials

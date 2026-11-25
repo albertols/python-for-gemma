@@ -113,6 +113,13 @@ export function createLessonNoteRepo(db: Database): LessonNoteRepo {
         .get(id) as MaterialRecord | undefined;
       return r ? toMaterial(r) : null;
     },
+    storedNames() {
+      return (
+        db.prepare("select stored_name from lesson_materials").all() as {
+          stored_name: string;
+        }[]
+      ).map((r) => r.stored_name);
+    },
     removeMaterial(id) {
       return db.transaction(() => {
         const r = db
