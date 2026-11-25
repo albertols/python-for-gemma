@@ -5,7 +5,7 @@ import { lockDraft, saveDraft } from "../usecases/packs.ts";
 import { courseOrThrow } from "../usecases/plan-inputs.ts";
 import { guard } from "./require-access.ts";
 import { createRouter } from "./router.ts";
-import { curriculumPack, errorResponse } from "./schemas.ts";
+import { curriculumPack, draftNotes, errorResponse } from "./schemas.ts";
 
 const json = <T extends z.ZodType>(schema: T) => ({
   "application/json": { schema },
@@ -19,11 +19,12 @@ const get = createRoute({
   responses: {
     200: {
       description:
-        "The draft and the locked pack, each null when there is none",
+        "The draft, the locked pack and the AI's notes beside the draft, each null when there is none",
       content: json(
         z.object({
           draft: curriculumPack.nullable(),
           locked: curriculumPack.nullable(),
+          review: draftNotes.nullable(),
         }),
       ),
     },
@@ -71,8 +72,14 @@ export function packRoutes(deps: {
     .openapi(get, (c) => {
       const { courseId } = c.req.valid("param");
       courseOrThrow(repos, courseId);
+      const draft = packs.draft(courseId);
       return c.json(
-        { draft: packs.draft(courseId), locked: packs.locked(courseId) },
+        {
+          draft,
+          locked: packs.locked(courseId),
+          // notes without a draft would be about a pack that is gone
+          review: draft ? packs.draftReview(courseId) : null,
+        },
         200,
       );
     })

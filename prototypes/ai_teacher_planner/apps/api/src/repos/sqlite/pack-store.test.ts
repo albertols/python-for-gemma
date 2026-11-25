@@ -56,3 +56,48 @@ test("an unlocked pack is refused as locked, and a file that is not a pack is an
   );
   expect(() => packs.draft("../escape")).toThrow(/course id/);
 });
+
+test("the notes saved beside a draft are read back", () => {
+  const { dir, packs } = setup();
+  expect(packs.draftReview("ial-business-u4")).toBeNull();
+  fs.mkdirSync(dir, { recursive: true });
+  // what `pnpm pack:draft` writes: the notes, the issues and the run's meta (with a field the store ignores)
+  fs.writeFileSync(
+    path.join(dir, "ial-business-u4.draft-review.json"),
+    JSON.stringify({
+      issues: ["one"],
+      linkReasons: [
+        { chapterNumber: "1", specPointId: "sp1", reason: "Names the topic." },
+      ],
+      unsure: [{ about: "1.2", note: "Two readings." }],
+      meta: {
+        provider: "fake",
+        model: "fake",
+        skillId: "planner-build-curriculum-pack",
+        startedAt: "2026-11-24T09:00:00.000Z",
+        durationMs: 12,
+        sources: [],
+      },
+    }),
+  );
+  expect(packs.draftReview("ial-business-u4")).toEqual({
+    linkReasons: [
+      { chapterNumber: "1", specPointId: "sp1", reason: "Names the topic." },
+    ],
+    unsure: [{ about: "1.2", note: "Two readings." }],
+    meta: {
+      provider: "fake",
+      model: "fake",
+      skillId: "planner-build-curriculum-pack",
+      startedAt: "2026-11-24T09:00:00.000Z",
+      sources: [],
+    },
+  });
+  fs.writeFileSync(
+    path.join(dir, "ial-business-u4.draft-review.json"),
+    "{ not json",
+  );
+  expect(() => packs.draftReview("ial-business-u4")).toThrow(
+    "The pack file could not be read: ial-business-u4.draft-review.json is not JSON.",
+  );
+});

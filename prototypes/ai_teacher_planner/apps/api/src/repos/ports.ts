@@ -291,8 +291,28 @@ export interface PlanRepo {
  * stored hash; it does not recompute the hash from the file's content (the lock
  * route does, with `lockPack`). A file that is not a pack is a 422, never guessed at.
  */
+/**
+ * What the model said beside a draft pack: why each chapter links to a spec point, what it was
+ * unsure of, and which run made it. `pnpm pack:draft` writes it as `<courseId>.draft-review.json`.
+ */
+export interface PackDraftNotes {
+  linkReasons: { chapterNumber: string; specPointId: string; reason: string }[];
+  unsure: { about: string; note: string }[];
+  meta: {
+    provider: string;
+    model: string;
+    skillId: string;
+    startedAt: string;
+    sources: { url: string; title: string | null; opened: boolean }[];
+  } | null;
+}
+
 export interface PackStore {
   draft(courseId: CourseId): CurriculumPack | null;
+  /** The notes saved beside the draft, or null when there are none. A file that is not notes is a 422. */
+  draftReview(courseId: CourseId): PackDraftNotes | null;
+  /** Writes the notes beside the draft (the browser-test seed; `pnpm pack:draft` writes its own file). */
+  saveDraftReview(courseId: CourseId, notes: PackDraftNotes): void;
   /** The locked pack, or null when there is none or the `hash` field in its file differs from the stored hash. */
   locked(courseId: CourseId): CurriculumPack | null;
   saveDraft(pack: CurriculumPack): void;

@@ -2,9 +2,38 @@ import fs from "node:fs";
 import path from "node:path";
 import type { CourseId, CurriculumPack } from "@planner/domain";
 import { curriculumPackSchema } from "@planner/importers";
+import { z } from "zod";
 import type { Database } from "../../db/connection.ts";
 import { ApiError } from "../../errors.ts";
-import type { PackStore } from "../ports.ts";
+import type { PackDraftNotes, PackStore } from "../ports.ts";
+
+/** The part of `<id>.draft-review.json` that the screen uses; other fields (issues, durationMs) are left out. */
+const draftNotesSchema = z.object({
+  linkReasons: z.array(
+    z.object({
+      chapterNumber: z.string(),
+      specPointId: z.string(),
+      reason: z.string(),
+    }),
+  ),
+  unsure: z.array(z.object({ about: z.string(), note: z.string() })),
+  meta: z
+    .object({
+      provider: z.string(),
+      model: z.string(),
+      skillId: z.string(),
+      startedAt: z.string(),
+      sources: z.array(
+        z.object({
+          url: z.string(),
+          title: z.string().nullable(),
+          opened: z.boolean(),
+        }),
+      ),
+    })
+    .nullable()
+    .default(null),
+}) satisfies z.ZodType<PackDraftNotes, unknown>;
 
 /** Course ids are slugs; anything else could name a file outside the folder. */
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
@@ -15,6 +44,11 @@ const SLUG = /^[a-z0-9][a-z0-9-]*$/;
  * content is not hashed again here. Nothing is written until a save.
  */
 export function createPackStore(db: Database, dir: string): PackStore {
+  const reviewFile = (courseId: CourseId) => {
+    if (!SLUG.test(courseId))
+      throw new Error(`"${courseId}" is not a course id`);
+    return path.join(dir, `${courseId}.draft-review.json`);
+  };
   const file = (courseId: CourseId, draft: boolean) => {
     if (!SLUG.test(courseId))
       throw new Error(`"${courseId}" is not a course id`);
@@ -44,7 +78,7 @@ export function createPackStore(db: Database, dir: string): PackStore {
     }
     return parsed.data;
   };
-  const write = (p: string, pack: CurriculumPack) => {
+  const write = (p: string, pack: CurriculumPack | PackDraftNotes) => {
     fs.mkdirSync(dir, { recursive: true });
     // written beside it, then renamed, so a crash never leaves half a pack
     fs.writeFileSync(`${p}.tmp`, `${JSON.stringify(pack, null, 2)}\n`);
@@ -52,6 +86,33 @@ export function createPackStore(db: Database, dir: string): PackStore {
   };
   return {
     draft: (courseId) => read(file(courseId, true)),
+    draftReview(courseId) {
+      const p = reviewFile(courseId);
+      if (!fs.existsSync(p)) return null;
+      const name = path.basename(p);
+      const unreadable = (why: string) =>
+        new ApiError(
+          422,
+          "pack-unreadable",
+          `The pack file could not be read: ${name}${why}.`,
+        );
+      let json: unknown;
+      try {
+        json = JSON.parse(fs.readFileSync(p, "utf8"));
+      } catch {
+        throw unreadable(" is not JSON");
+      }
+      const parsed = draftNotesSchema.safeParse(json);
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
+        throw unreadable(`, ${where}${issue?.message ?? "not review notes"}`);
+      }
+      return parsed.data;
+    },
+    saveDraftReview(courseId, notes) {
+      write(reviewFile(courseId), notes);
+    },
     locked(courseId) {
       const row = db
         .prepare("select hash from pack_locks where course_id = ?")

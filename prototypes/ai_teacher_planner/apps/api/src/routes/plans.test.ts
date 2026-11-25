@@ -474,6 +474,20 @@ test("the reset takes a state and the default stays m1b", async () => {
   expect(unknown.status).toBe(422);
 });
 
+test("a draft pack comes with the AI's reasons and doubts, and a locked-only course with none", async () => {
+  const draft = await planner("m2-draft-pack");
+  const { review } = (await get(draft.app, `/api/packs/${COURSE}`)).body;
+  expect(review.linkReasons).toContainEqual(
+    expect.objectContaining({ chapterNumber: "1", specPointId: "sp1" }),
+  );
+  expect(review.unsure).toHaveLength(1);
+  expect(review.meta).toMatchObject({ provider: "fake", model: "fake" });
+  const locked = await planner("m2-no-positions");
+  expect(
+    (await get(locked.app, `/api/packs/${COURSE}`)).body.review,
+  ).toBeNull();
+});
+
 test("the pack hash is async and the lock route awaits it", async () => {
   const { app } = await planner("m2-draft-pack");
   const packs = (await get(app, `/api/packs/${COURSE}`)).body;

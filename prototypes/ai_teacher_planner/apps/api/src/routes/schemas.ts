@@ -245,6 +245,32 @@ export const curriculumPack = passThrough<CurriculumPack>(
   "A CurriculumPack (packages/domain pack.ts)",
 );
 
+export const draftNotes = z.object({
+  linkReasons: z.array(
+    z.object({
+      chapterNumber: z.string(),
+      specPointId: z.string(),
+      reason: z.string(),
+    }),
+  ),
+  unsure: z.array(z.object({ about: z.string(), note: z.string() })),
+  meta: z
+    .object({
+      provider: z.string(),
+      model: z.string(),
+      skillId: z.string(),
+      startedAt: z.string(),
+      sources: z.array(
+        z.object({
+          url: z.string(),
+          title: z.string().nullable(),
+          opened: z.boolean(),
+        }),
+      ),
+    })
+    .nullable(),
+});
+
 const origin = z.enum(["engine", "ai", "teacher", "import"]);
 export const provenance = z.object({
   origin,

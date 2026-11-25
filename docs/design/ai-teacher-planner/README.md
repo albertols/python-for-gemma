@@ -39,7 +39,7 @@ Look for the direction of the arrows: use cases call ports, while disk, files an
 
 Look for the six shared pieces every screen reuses; the purple ones are where AI shows up in the GUI: the badge and its popover, the activity drawer with the header job chip and review buttons, and the legend. Engine output carries no badge.
 
-![Frontend components: ten screens (board with class filter and week view, audit with official exams, Setup with events and exams), six shared pieces (AI badge and popover, proposal diff, activity drawer and job chip, legend, API client, engine import), and the API and engine they talk to](04-frontend-components.svg)
+![Frontend components: eleven screens (pack review with lock, board with class filter and week view, audit with official exams, Setup with events and exams), six shared pieces (AI badge and popover, proposal diff, activity drawer and job chip, legend, API client, engine import), and the API and engine they talk to](04-frontend-components.svg)
 
 ## 5. Domain model
 

@@ -14,7 +14,8 @@ const NAV = [
   { to: "/", label: "Today", end: true },
   { to: "/board", label: "Board", end: false },
   { to: "/audit", label: "Slot audit", end: false },
-  { to: "/setup", label: "Setup", end: false },
+  { to: "/setup", label: "Setup", end: true },
+  { to: "/setup/courses", label: "Curriculum", end: false },
 ];
 
 function ThemeToggle() {

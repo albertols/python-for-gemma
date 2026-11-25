@@ -43,6 +43,29 @@ export async function seedM2(
         c.id === "ch5" ? { ...c, specPointIds: [] } : c,
       ),
     });
+    // An invented review block, as `pnpm pack:draft` would save it: a reason for a link, and a doubt.
+    packs.saveDraftReview(COURSE, {
+      linkReasons: [
+        {
+          chapterNumber: "1",
+          specPointId: "sp1",
+          reason: "The chapter opens with the demand curve this point names.",
+        },
+      ],
+      unsure: [
+        {
+          about: "Invented point 5",
+          note: "No chapter seemed to cover this point. It may sit in a later chapter.",
+        },
+      ],
+      meta: {
+        provider: "fake",
+        model: "fake",
+        skillId: "planner-build-curriculum-pack",
+        startedAt: "2026-11-24T09:00:00.000Z",
+        sources: [],
+      },
+    });
     return;
   }
   packs.saveDraft(pack);

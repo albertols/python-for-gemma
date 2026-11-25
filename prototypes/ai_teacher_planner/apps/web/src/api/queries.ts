@@ -552,3 +552,65 @@ export function useRemoveTodo() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["todos"] }),
   });
 }
+
+export type CourseRow = InferResponseType<
+  typeof api.api.courses.$get,
+  200
+>[number];
+export type PackData = InferResponseType<
+  (typeof api.api.packs)[":courseId"]["$get"],
+  200
+>;
+export type PackReviewNotes = NonNullable<PackData["review"]>;
+
+export function useCourses() {
+  return useQuery({
+    queryKey: ["courses"],
+    queryFn: () => call<CourseRow[]>(() => api.api.courses.$get()),
+  });
+}
+
+/** The draft, the locked pack and the AI's notes beside the draft. */
+export function usePack(courseId: string) {
+  return useQuery({
+    queryKey: ["packs", courseId],
+    queryFn: () =>
+      call<PackData>(() =>
+        api.api.packs[":courseId"].$get({ param: { courseId } }),
+      ),
+  });
+}
+
+/** Her corrections to the draft. The answer is the stored draft, so the screen shows what was saved. */
+export function useSaveDraftPack(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pack: NonNullable<PackData["draft"]>) =>
+      call<NonNullable<PackData["draft"]>>(() =>
+        api.api.packs[":courseId"].draft.$put({
+          param: { courseId },
+          json: pack,
+        }),
+      ),
+    onSuccess: (draft) => {
+      qc.setQueryData<PackData>(["packs", courseId], (old) =>
+        old ? { ...old, draft } : old,
+      );
+    },
+  });
+}
+
+/** Locking is her review of the draft. A locked pack is what planning needs, so the course list is stale too. */
+export function useLockPack(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      call<NonNullable<PackData["locked"]>>(() =>
+        api.api.packs[":courseId"].lock.$post({ param: { courseId } }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["packs", courseId] });
+      void qc.invalidateQueries({ queryKey: ["courses"] });
+    },
+  });
+}
