@@ -153,26 +153,40 @@ describe("planningToItems", () => {
   test("importing again keeps item ids, so pins and overrides still point at them", async () => {
     const again = run({ schedule: await scheduleOf() });
     expect(again.items.map((i) => i.id)).toEqual(items.map((i) => i.id));
-    // and adding a chapter to the sheet leaves the others' ids alone
+    // a chapter inserted mid-sheet and two chapters reordered: ids follow the chapters, not their position
     const rows: SheetCell[][] = [
-      ...SYNTHETIC_PLANNING_ROWS.slice(0, 6),
+      ["Part A (7 classes)", null],
+      ["1 Demand", "3 (started last year)"],
+      ["2 Supply", 4],
       ["5 Costs", 1],
-      ...SYNTHETIC_PLANNING_ROWS.slice(6),
+      ["Part B (6 classes)", null],
+      ["4 Prices", 2],
+      ["3 Markets", 4],
     ];
-    const grown = run({
+    const moved = run({
       planning: await readPlanningSheet(
         await buildSyntheticPlanningSheet(rows),
       ),
     });
-    expect(grown.items.map((i) => i.id)).toEqual([
+    expect(moved.items.map((i) => i.id)).toEqual([
       "ch1",
       "ch2",
       "a-ch2",
+      "ch5",
+      "ch4",
       "ch3",
       "a-ch3",
-      "ch4",
-      "ch5",
     ]);
+    expect(item("ch3", moved.items)).toMatchObject({
+      title: "Markets",
+      lessons: 4,
+      packRefs: ["ch3"],
+    });
+    expect(item("ch4", moved.items)).toMatchObject({
+      title: "Prices",
+      lessons: 2,
+    });
+    expect(assessmentFor("a-ch3", moved.items)?.covers).toEqual(["ch3"]);
   });
 
   test("two assessments after the same chapter get different ids, in schedule order", async () => {

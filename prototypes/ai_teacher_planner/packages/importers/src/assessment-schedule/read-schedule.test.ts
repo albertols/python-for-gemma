@@ -75,6 +75,22 @@ describe("the assessment schedule", () => {
     });
   });
 
+  test("one heading never serves two columns: 'Assessment date' is the date, 'Type' the type", async () => {
+    const read = await readAssessmentSchedule(
+      await buildSyntheticSchedule(
+        [["27 Nov", "Chapter 2", "20 mark"]],
+        ["Assessment date", "Topic", "Type"],
+      ),
+      year,
+    );
+    expect(read.findings).toEqual([]);
+    expect(read.rows[0]).toMatchObject({
+      date: { date: "2026-11-27" },
+      type: "20 mark",
+      marks: 20,
+    });
+  });
+
   test("a table without a Date column is refused with a finding", async () => {
     const refused = await readAssessmentSchedule(
       await buildSyntheticSchedule([["a", "b", "c"]], ["X", "Y", "Z"]),

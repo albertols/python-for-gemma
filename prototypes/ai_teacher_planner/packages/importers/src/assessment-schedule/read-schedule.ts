@@ -58,8 +58,22 @@ const unreadable = (message: string) => ({
   ],
 });
 
-const columnOf = (header: string[], pattern: RegExp): number =>
-  header.findIndex((h) => pattern.test(h));
+/**
+ * The column for one role: an exact heading first, then the first heading that
+ * contains the word, never a column another role has taken.
+ */
+function columnOf(
+  header: string[],
+  exact: RegExp,
+  loose: RegExp,
+  taken: number[],
+): number {
+  const free = (at: number) => !taken.includes(at);
+  const exactAt = header.findIndex((h, at) => free(at) && exact.test(h.trim()));
+  return exactAt >= 0
+    ? exactAt
+    : header.findIndex((h, at) => free(at) && loose.test(h));
+}
 
 /**
  * Reads the first table of her assessment schedule (a Word file): one row per
@@ -81,9 +95,19 @@ export async function readAssessmentSchedule(
   if (table === null || table.length === 0)
     return unreadable("The document has no table.");
   const header = table[0] ?? [];
-  const dateAt = columnOf(header, /date/i);
-  const topicAt = columnOf(header, /topic|chapter|content|unit/i);
-  const typeAt = columnOf(header, /type|assessment|format/i);
+  const dateAt = columnOf(header, /^date$/i, /date/i, []);
+  const topicAt = columnOf(
+    header,
+    /^(topic|chapters?|content|unit)$/i,
+    /topic|chapter|content|unit/i,
+    [dateAt],
+  );
+  const typeAt = columnOf(
+    header,
+    /^(type|assessment|assessment type|format)$/i,
+    /type|assessment|format/i,
+    [dateAt, topicAt],
+  );
   if (dateAt < 0 || topicAt < 0 || typeAt < 0)
     return unreadable(
       "The first table needs a heading each for the date, the topic and the type.",

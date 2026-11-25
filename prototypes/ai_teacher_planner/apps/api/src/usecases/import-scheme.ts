@@ -41,9 +41,12 @@ async function planningFilesOf(
   courseId: CourseId,
 ): Promise<string[]> {
   const folder = BOARD_FOLDER[courseOrThrow(repos, courseId).board];
-  return (await gateway.find("planning-files")).filter(
-    (name) => name.split("/")[0]?.toLowerCase() === folder,
-  );
+  // No resources folder (as in CI, or before it is set up) means no files, not an error.
+  const all = await gateway.find("planning-files").catch((error: unknown) => {
+    if (error instanceof ResourceDenied) return [];
+    throw error;
+  });
+  return all.filter((name) => name.split("/")[0]?.toLowerCase() === folder);
 }
 
 export async function importSources(

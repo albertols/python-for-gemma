@@ -53,7 +53,8 @@ function readCount(text: string): {
   lessons: number | null;
   note: string | null;
 } {
-  const m = /^(\d+)\s*(.*)$/.exec(text);
+  // "4.5" and "3-4" are not whole numbers: they are not read as 4 or 3.
+  const m = /^(\d+)(?![.,]\d)(?!\s*[-–/]\s*\d)\s*(.*)$/.exec(text);
   if (m === null) return { lessons: null, note: null };
   const note = (m[2] ?? "").replace(/^[\s(\-–:,]+|[\s)]+$/g, "");
   return { lessons: Number(m[1]), note: note === "" ? null : note };
@@ -157,7 +158,9 @@ export async function readPlanningSheet(
           "missing-count",
           "warning",
           r,
-          `Row ${r} has no number of classes, so it has no lessons yet.`,
+          second === ""
+            ? `Row ${r} has no number of classes, so it has no lessons yet.`
+            : `Count is not a whole number: row ${r}, so it has no lessons yet.`,
         ),
       );
     rows.push({

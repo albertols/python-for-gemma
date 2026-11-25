@@ -99,6 +99,30 @@ describe("the planning sheet", () => {
     );
   });
 
+  test("a count that is not a whole number is a finding and gives no lessons", async () => {
+    for (const odd of ["4.5", "3-4", 4.5]) {
+      const rows: SheetCell[][] = SYNTHETIC_PLANNING_ROWS.map((r) =>
+        r[0] === "2 Supply" ? ["2 Supply", odd] : r,
+      );
+      const read = await readPlanningSheet(
+        await buildSyntheticPlanningSheet(rows),
+      );
+      expect(
+        read.rows.find((r) => r.number === "2")?.lessons,
+        String(odd),
+      ).toBeNull();
+      expect(
+        read.findings.filter((f) => f.kind === "missing-count"),
+        String(odd),
+      ).toEqual([
+        expect.objectContaining({
+          sheetRow: 4,
+          message: expect.stringContaining("not a whole number"),
+        }),
+      ]);
+    }
+  });
+
   test("a third column is kept as the chapter's exam-practice note", async () => {
     const noted = await readPlanningSheet(
       await withRows((rows) =>

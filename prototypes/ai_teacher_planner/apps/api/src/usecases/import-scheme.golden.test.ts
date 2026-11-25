@@ -29,7 +29,7 @@ describe.skipIf(files.length === 0)("her real IAL planning sheet", () => {
     console.info(
       `planning files ${files.length}, IAL sheets read ${ial.length}, starting at 22: ${sheets.length}`,
     );
-    expect(sheets).toHaveLength(1);
+    expect(sheets.length, "the number of IAL sheets starting at 22").toBe(1);
   });
 
   test("sixteen chapters, 22 to 37, summing to 70, with a stated total of 65", () => {
@@ -40,9 +40,10 @@ describe.skipIf(files.length === 0)("her real IAL planning sheet", () => {
     expect(chapters.map((c) => c.number)).toEqual(range(22, 37).map(String));
     expect(imp?.sum).toBe(70);
     expect(imp?.statedTotal).toBe(65);
-    expect(chapters.find((c) => c.number === "22")?.countNote).toBe(
-      "started in Y12",
-    );
+    expect(
+      chapters.find((c) => c.number === "22")?.countNote === "started in Y12",
+      "chapter 22's count note is not the expected one",
+    ).toBe(true);
   });
 
   test("the difference between the two totals is said, and no count is missing", () => {

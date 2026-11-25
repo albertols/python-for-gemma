@@ -5,6 +5,7 @@ import {
   CALENDAR_WORKBOOK_PATTERN,
   isAllowedSegments,
   isDeniedFolderName,
+  isPlanningFile,
   leadsToAllowed,
   matchesGlob,
   normaliseRelPath,
@@ -171,16 +172,44 @@ export function createResourceGateway(
 
   /**
    * Walks only through `list`, so every folder and file has passed the
-   * allowlist, the denied folder names and the symlink check already.
+   * allowlist, the denied folder names and the symlink check already. On top,
+   * each entry's real path must itself be under `<board>/Planning/`, so a link
+   * to a file elsewhere in the root is not returned, and each real folder and
+   * file is visited once, so a link back up the tree cannot repeat paths.
    */
   async function findPlanningFiles(): Promise<string[]> {
     const found: string[] = [];
+    const seen = new Set<string>();
     async function walk(dir: string, depth: number): Promise<void> {
       if (depth > MAX_WALK_DEPTH) return;
-      for (const e of await list(dir)) {
+      let entries: ResourceEntry[];
+      try {
+        entries = await list(dir);
+      } catch {
+        return;
+      }
+      for (const e of entries) {
         const child = `${dir}/${e.name}`;
-        if (e.kind === "dir") await walk(child, depth + 1);
-        else if (PLANNING_FILE.test(e.name)) found.push(child);
+        const real = await resolveReal(child.split("/")).catch(() => null);
+        if (real === null || seen.has(real.abs)) continue;
+        const [board, folder] = real.segments;
+        if (
+          board === undefined ||
+          folder === undefined ||
+          !BOARD_FOLDER.test(board) ||
+          !PLANNING_FOLDER.test(folder)
+        )
+          continue;
+        if (e.kind === "dir") {
+          seen.add(real.abs);
+          await walk(child, depth + 1);
+        } else if (
+          PLANNING_FILE.test(e.name) &&
+          isPlanningFile(real.segments)
+        ) {
+          seen.add(real.abs);
+          found.push(child);
+        }
       }
     }
     for (const board of await list("")) {

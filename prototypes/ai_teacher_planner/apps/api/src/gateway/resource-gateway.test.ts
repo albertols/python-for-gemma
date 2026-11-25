@@ -427,3 +427,62 @@ describe("find planning-files", () => {
       ).find("planning-files"),
     ).toEqual([]));
 });
+
+describe("find planning-files and symbolic links (an invented tree)", () => {
+  let tree: string;
+  let linkRoot: string;
+  const file = (rel: string) => {
+    const full = path.join(linkRoot, rel);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, "invented");
+  };
+  beforeAll(() => {
+    tree = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-links-"));
+    linkRoot = path.join(tree, "resources");
+    fs.mkdirSync(linkRoot);
+    fs.mkdirSync(path.join(tree, "elsewhere"));
+    fs.writeFileSync(path.join(tree, "elsewhere", "outside.xlsx"), "outside");
+    file("ial/Planning/real.xlsx");
+    file("ial/Planning/sub/inner.docx");
+    file("ial/1. Content/U4/PP/slides.xlsx");
+    const planning = path.join(linkRoot, "ial/Planning");
+    fs.symlinkSync(
+      path.join(tree, "elsewhere", "outside.xlsx"),
+      path.join(planning, "out-file.xlsx"),
+    );
+    fs.symlinkSync(
+      path.join(tree, "elsewhere"),
+      path.join(planning, "out-dir"),
+    );
+    fs.symlinkSync(
+      path.join(linkRoot, "ial/1. Content/U4/PP/slides.xlsx"),
+      path.join(planning, "pp-file.xlsx"),
+    );
+    fs.symlinkSync(
+      path.join(linkRoot, "ial/1. Content/U4/PP"),
+      path.join(planning, "pp-dir"),
+    );
+    fs.symlinkSync(planning, path.join(planning, "sub/loop"));
+  });
+  afterAll(() => fs.rmSync(tree, { recursive: true, force: true }));
+  const found = () => createResourceGateway(linkRoot).find("planning-files");
+
+  test("a link out of the root, to a file or a folder, is not returned", async () => {
+    const names = await found();
+    expect(names.filter((n) => n.includes("out-"))).toEqual([]);
+    expect(names.some((n) => n.includes("outside"))).toBe(false);
+  });
+
+  test("a link from Planning to an allowlisted file elsewhere in the root is not returned", async () => {
+    const names = await found();
+    expect(names.filter((n) => n.includes("pp-"))).toEqual([]);
+    expect(names.some((n) => n.includes("slides"))).toBe(false);
+  });
+
+  test("a folder link that loops returns each file once", async () => {
+    expect(await found()).toEqual([
+      "ial/Planning/real.xlsx",
+      "ial/Planning/sub/inner.docx",
+    ]);
+  });
+});

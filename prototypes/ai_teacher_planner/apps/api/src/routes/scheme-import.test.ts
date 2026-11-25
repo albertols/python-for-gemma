@@ -9,6 +9,7 @@ import {
   syntheticScheme,
 } from "@planner/fixtures";
 import { afterAll, expect, test } from "vitest";
+import { createResourceGateway } from "../gateway/resource-gateway.ts";
 import { buildTestApp, syntheticGateway } from "../test-support.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: the tests read loose JSON
@@ -169,4 +170,18 @@ test("a role that may not edit the scheme of work cannot run the import", async 
     role: "student",
   });
   expect((await send(app, "POST", importUrl, both)).status).toBe(403);
+});
+
+test("import-sources is empty, not an error, when the resources folder is missing", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "planner-import-"));
+  dirs.push(dataDir);
+  const missing = createResourceGateway(path.join(dataDir, "no-such-folder"));
+  const app = await buildTestApp({ dataDir, testRoutes: true }, missing);
+  await app.request("/api/test/reset", {
+    method: "POST",
+    headers: { "x-planner-test": "1", "content-type": "application/json" },
+    body: JSON.stringify({ state: "m2-no-positions" }),
+  });
+  const res = await send(app, "GET", `/api/scheme/${COURSE}/import-sources`);
+  expect(res).toEqual({ status: 200, body: { planning: [], schedules: [] } });
 });
