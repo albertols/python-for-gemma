@@ -824,6 +824,40 @@ export function usePlanStatuses(courseIds: readonly string[]) {
   });
 }
 
+export type CheckInData = InferResponseType<typeof api.api.checkin.$get, 200>;
+export type CheckInBody = InferRequestType<
+  typeof api.api.checkin.$post
+>["json"];
+export type CheckInResult = InferResponseType<
+  typeof api.api.checkin.$post,
+  200
+>;
+
+/** The past lessons she has not said anything about yet, by week, oldest first. */
+export function useCheckIn() {
+  return useQuery({
+    queryKey: ["checkin"],
+    queryFn: () => call<CheckInData>(() => api.api.checkin.$get()),
+  });
+}
+
+/**
+ * Writes her answers to the lesson log. The list shrinks, the board shows the
+ * new states and the plan may now be out of date, so all of them are fetched
+ * again, also after a refusal (the lesson may have been answered elsewhere).
+ */
+export function useRecordCheckIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (json: CheckInBody) =>
+      call<CheckInResult>(() => api.api.checkin.$post({ json })),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["checkin"] });
+      invalidateBoard(qc);
+    },
+  });
+}
+
 export function usePositions(courseId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["positions", courseId],

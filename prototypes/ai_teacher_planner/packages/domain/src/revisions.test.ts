@@ -274,6 +274,45 @@ describe("the diff", () => {
     });
   });
 
+  test("an earlier answer she changes (skipped to taught) is a correction, and confirming an assumed lesson is not a change", () => {
+    const slotKey = "13 1|2026-11-23|5";
+    const withState = (state: "skipped" | "taught"): PlanSnapshot => ({
+      ...first,
+      placements: first.placements.map((p) =>
+        p.groupId === "13 1" && p.lessonId === "c3#1" ? { ...p, state } : p,
+      ),
+    });
+    const diff = diffSnapshots(
+      withState("skipped"),
+      withState("taught"),
+      world.slots,
+    );
+    expect(diff.entries).toHaveLength(1);
+    expect(diff.entries[0]).toMatchObject({
+      groupId: "13 1",
+      lessonId: "c3#1",
+      change: "correction",
+      from: slotKey,
+      fromState: "skipped",
+      toState: "taught",
+    });
+    // a confirmation of what was only assumed is not a change to the plan
+    expect(
+      diffSnapshots(
+        {
+          ...first,
+          placements: first.placements.map((p) =>
+            p.groupId === "13 1" && p.lessonId === "c3#1"
+              ? { ...p, state: "assumed" }
+              : p,
+          ),
+        },
+        withState("taught"),
+        world.slots,
+      ).entries,
+    ).toEqual([]);
+  });
+
   test("identical snapshots give an empty diff", () =>
     expect(diffSnapshots(first, first, world.slots).entries).toEqual([]));
 });

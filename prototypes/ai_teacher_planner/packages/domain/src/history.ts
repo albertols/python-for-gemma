@@ -118,11 +118,13 @@ export interface Carried {
   consumed: PlanSnapshot["absorbed"];
 }
 
-/** The latest log entry per lesson, oldest first, so a later entry wins. */
+/**
+ * Oldest first, so a later answer wins. The log is append-only and arrives in
+ * the order it was written; two answers recorded on the same day stay in that
+ * order (the sort is stable), so "actually that one was skipped" always wins.
+ */
 const byRecorded = (a: LessonLogEntry, b: LessonLogEntry) =>
-  cmp(a.recordedOn, b.recordedOn) ||
-  cmp(a.outcome, b.outcome) ||
-  cmp(a.slotKey ?? "", b.slotKey ?? "");
+  cmp(a.recordedOn, b.recordedOn);
 
 /**
  * Carries one group's history and frozen placements out of the previous plan.

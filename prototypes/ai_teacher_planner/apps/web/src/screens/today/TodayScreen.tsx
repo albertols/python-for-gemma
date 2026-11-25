@@ -24,6 +24,7 @@ import {
 import { fullDayWithYear } from "../../lib/dates.ts";
 import { possibleOf } from "../../lib/possible.ts";
 import { CancelLessonsDialog } from "./CancelLessonsDialog.tsx";
+import { CheckIn } from "./CheckIn.tsx";
 import { RemindersList } from "./RemindersList.tsx";
 import { TodoNotes } from "./TodoNotes.tsx";
 import { whyNoLessons } from "./why-no-lessons.ts";
@@ -376,6 +377,9 @@ export function TodayScreen() {
           <div>
             <h2 className="mb-2 text-lg font-semibold">Lessons</h2>
             <Lessons today={data} />
+          </div>
+          <div className="mt-8">
+            <CheckIn />
           </div>
           <div className="mt-8">
             <h2 className="mb-2 text-lg font-semibold">Coming up</h2>

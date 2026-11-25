@@ -186,6 +186,9 @@ export function changeSentence(e: PlanDiffEntry, names: LessonNames): string {
     case "state":
       return `${what}${whenOf(e.to ?? e.from)}, ${e.fromState ? STATE_LABEL[e.fromState] : "none"} → ${e.toState ? STATE_LABEL[e.toState] : "none"}`;
     case "correction":
+      // an earlier answer she changed ("it was skipped" is now "taught")
+      if (e.toState !== "skipped")
+        return `${what}${whenOf(e.from)}, ${e.fromState ? STATE_LABEL[e.fromState] : "none"} → ${e.toState ? STATE_LABEL[e.toState] : "none"}`;
       return `${what}did not happen on ${whenOf(e.from)}, now ${whenOf(e.to)}`;
     default:
       return `${what}${whenOf(e.from)} → ${whenOf(e.to)}`;

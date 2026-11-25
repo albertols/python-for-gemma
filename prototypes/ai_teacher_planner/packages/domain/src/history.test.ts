@@ -161,6 +161,52 @@ describe("history carried forward", () => {
     expect(stateOf(s, "13 3", "c1#1")).toEqual(["assumed"]);
   });
 
+  test("when she answers the same lesson twice, the later entry wins, even on the same day", () => {
+    const slot = "13 1|2026-11-09|5";
+    // the log is oldest first: "skipped" and then "actually taught", both recorded on the 16th
+    const corrected = sequence(
+      later("2026-11-16", {
+        log: [
+          entry("13 1", "c1#1", "skipped", slot),
+          entry("13 1", "c1#1", "taught", slot),
+        ],
+      }),
+    );
+    expect(stateOf(corrected, "13 1", "c1#1")).toEqual(["taught"]);
+    expect(delivered(corrected, "13 1").has("c1#1")).toBe(true);
+    // the other way round: taught, then "actually that one was skipped"
+    const changed = sequence(
+      later("2026-11-16", {
+        log: [
+          entry("13 1", "c1#1", "taught", slot),
+          entry("13 1", "c1#1", "skipped", slot),
+        ],
+      }),
+    );
+    expect(stateOf(changed, "13 1", "c1#1")).toEqual(["skipped", "planned"]);
+    expect(delivered(changed, "13 1").has("c1#1")).toBe(false);
+  });
+
+  test("an answer recorded on a later day replaces a stored state carried from an older plan", () => {
+    const slot = "13 1|2026-11-09|5";
+    const skip = [entry("13 1", "c1#1", "skipped", slot, "2026-11-16")];
+    // a plan was accepted with the skip: the skip is now in its history
+    const withSkip = sequence(later("2026-11-16", { log: skip }));
+    expect(placementsOf(withSkip, "13 1", "c1#1")[0]?.state).toBe("skipped");
+    const next = sequence({
+      ...world(),
+      today: "2026-11-23",
+      previous: withSkip,
+      log: [...skip, entry("13 1", "c1#1", "taught", slot, "2026-11-20")],
+    });
+    const states = placementsOf(next, "13 1", "c1#1").map((p) => p.state);
+    // the original slot is taught now, and the lesson is not planned a third time
+    expect(states[0]).toBe("taught");
+    expect(states).not.toContain("planned");
+    expect(states).not.toContain("skipped");
+    expect(delivered(next, "13 1").has("c1#1")).toBe(true);
+  });
+
   test("a log entry with no slot applies to the lesson's placement that came before it", () => {
     const s = sequence(
       later("2026-11-16", {

@@ -256,6 +256,32 @@ test("a lesson whose slot no longer exists says so", () => {
   );
 });
 
+test("a skipped lesson is a correction, and a changed answer says what it was and is now", () => {
+  expect(
+    changeSentence(
+      entry({
+        change: "correction",
+        fromState: "assumed",
+        toState: "skipped",
+      }),
+      names,
+    ),
+  ).toBe(
+    "Markets 3 of 4: did not happen on Monday 23 November, period 5, now Wednesday 25 November, period 2",
+  );
+  expect(
+    changeSentence(
+      entry({
+        change: "correction",
+        fromState: "skipped",
+        toState: "taught",
+        to: null,
+      }),
+      names,
+    ),
+  ).toBe("Markets 3 of 4: Monday 23 November, period 5, Skipped → Taught");
+});
+
 test("the dialog lists the hit lessons first under their own heading, with the group", () => {
   const proposal = noChanges();
   proposal.diff = {

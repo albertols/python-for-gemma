@@ -15,6 +15,14 @@ import type { GroupId } from "./timetable.ts";
 
 const isFlex = (lessonId: LessonId) => lessonId.startsWith("flex:");
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+/** The states only her answer in the lesson log can give a past lesson. */
+const ANSWERS: ReadonlySet<PlacementState> = new Set([
+  "taught",
+  "cover",
+  "skipped",
+  "homework",
+]);
+
 /** History that counts as done (history.ts `delivered`); a skipped lesson is still to teach. */
 const DELIVERED_STATES: ReadonlySet<PlacementState> = new Set([
   "declared",
@@ -137,6 +145,31 @@ export function diffSnapshots(
         to: aLive?.slotKey ?? null,
         fromState: was.state,
         toState: "skipped",
+        hitByDisruption: false,
+        slotGone: false,
+      });
+      continue;
+    }
+    // she changed an earlier answer ("actually that one was skipped" is above;
+    // this is "it was skipped" turned into taught, cover or homework, and the like)
+    const changed = a.find(
+      (p) =>
+        p.slotKey !== null &&
+        ANSWERS.has(p.state) &&
+        ANSWERS.has(
+          b.find((q) => q.slotKey === p.slotKey)?.state ?? "planned",
+        ) &&
+        b.find((q) => q.slotKey === p.slotKey)?.state !== p.state,
+    );
+    if (changed) {
+      entries.push({
+        groupId,
+        lessonId,
+        change: "correction",
+        from: changed.slotKey,
+        to: aLive?.slotKey ?? null,
+        fromState: b.find((q) => q.slotKey === changed.slotKey)?.state ?? null,
+        toState: changed.state,
         hitByDisruption: false,
         slotGone: false,
       });
