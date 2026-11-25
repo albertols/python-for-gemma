@@ -47,6 +47,7 @@ import { SchemeTable } from "./SchemeTable.tsx";
 import { SchemeTotals } from "./SchemeTotals.tsx";
 import {
   addItem,
+  askedStatus,
   differenceText,
   lessonsPerFortnight,
   suggestionOf,
@@ -247,7 +248,7 @@ function SchemeEditor({
       i.review === "suggested",
   );
   const asking = suggest.isPending || (runId !== null && !job.ended);
-  const finishedRun = job.run;
+  const asked = askedStatus(job.run);
 
   const onAccept = (preview: ImportPreview) =>
     save.mutate(
@@ -266,22 +267,21 @@ function SchemeEditor({
       },
     );
 
-  const suggestionFor = (item: SowItem): ReactNode => {
-    const mine = waiting.find((w) => w.target === item.id);
-    if (!mine) return null;
-    return (
-      <SuggestionRow
-        key={mine.id}
-        item={mine}
-        run={runs.data?.find((r) => r.id === mine.runId)}
-        title={item.title}
-        columns={groupIds.length + 5}
-        locked={dirty}
-        timeZone={timeZone}
-        onReviewed={() => invalidateScheme(qc, course.id)}
-      />
-    );
-  };
+  const suggestionFor = (item: SowItem): ReactNode =>
+    waiting
+      .filter((w) => w.target === item.id)
+      .map((mine) => (
+        <SuggestionRow
+          key={mine.id}
+          item={mine}
+          run={runs.data?.find((r) => r.id === mine.runId)}
+          title={item.title}
+          columns={groupIds.length + 5}
+          locked={dirty}
+          timeZone={timeZone}
+          onReviewed={() => invalidateScheme(qc, course.id)}
+        />
+      ));
 
   return (
     <div className="mt-6 space-y-6">
@@ -320,14 +320,9 @@ function SchemeEditor({
       <div role="status">
         {asking ? (
           <p>Asking for lesson counts{job.note ? `: ${job.note}` : "..."}</p>
-        ) : finishedRun?.failure ? (
-          <p className="text-danger">{finishedRun.failure}</p>
-        ) : finishedRun?.status === "done" ? (
-          <p>
-            {finishedRun.itemIds.length === 0
-              ? "No suggestion differs from your numbers. "
-              : ""}
-            {finishedRun.note ?? ""}
+        ) : asked ? (
+          <p className={asked.problem ? "text-danger" : undefined}>
+            {asked.text}
           </p>
         ) : null}
       </div>
@@ -402,6 +397,11 @@ function SchemeEditor({
         groupIds={groupIds}
         perFortnight={perFortnight}
         pack={pack}
+        standing={{
+          pins: inputs.pins,
+          merges: inputs.merges,
+          positions: inputs.positions,
+        }}
         onItems={(next) => edit({ items: next })}
         onOverrides={(next) => edit({ overrides: next })}
         suggestionFor={suggestionFor}

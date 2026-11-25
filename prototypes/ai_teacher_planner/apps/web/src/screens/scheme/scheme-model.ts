@@ -1,5 +1,7 @@
 import {
   type CurriculumPack,
+  type DeleteContext,
+  deleteBlockers,
   fitFor,
   type GroupOverride,
   type ItemKind,
@@ -156,33 +158,28 @@ export function addItem(
   return renumbered([...items, item]);
 }
 
-/** The titles of the items that need this one: they name it as a prerequisite or an assessment covers it. */
-export function dependentsOf(items: readonly SowItem[], id: string): string[] {
-  return items
-    .filter(
-      (i) =>
-        i.id !== id &&
-        (i.prerequisites.includes(id) ||
-          (i.assessment?.covers ?? []).includes(id)),
-    )
-    .map((i) => i.title);
-}
-
 export type Removal =
   | { ok: true; items: SowItem[]; overrides: GroupOverride[] }
   | { ok: false; blockedBy: string[] };
 
-/** Deletes an item and the group counts that named it, unless another item depends on it. */
+/**
+ * Deletes an item and the group counts that named it, unless something depends on it: the
+ * engine's `deleteBlockers`, the same rule the server enforces when she saves.
+ */
 export function removeItem(
   items: readonly SowItem[],
   overrides: readonly GroupOverride[],
   id: string,
+  standing: DeleteContext,
 ): Removal {
-  const blockedBy = dependentsOf(items, id);
+  const gone = items.find((i) => i.id === id);
+  if (!gone) return { ok: true, items: [...items], overrides: [...overrides] };
+  const rest = items.filter((i) => i.id !== id);
+  const blockedBy = deleteBlockers(rest, gone, standing);
   if (blockedBy.length > 0) return { ok: false, blockedBy };
   return {
     ok: true,
-    items: renumbered(items.filter((i) => i.id !== id)),
+    items: renumbered(rest),
     overrides: overrides.filter((o) => o.itemId !== id),
   };
 }
@@ -246,4 +243,23 @@ export function suggestionOf(item: {
 /** "4 → 5", or just the new number when her old one is not known. */
 export function differenceText(from: number | null, to: number): string {
   return from === null ? String(to) : `${from} → ${to}`;
+}
+
+/** What the line under the buttons says about the last lesson-count run, or null for nothing. */
+export function askedStatus(
+  run: {
+    status: string;
+    failure: string | null;
+    note: string | null;
+    itemIds: readonly string[];
+  } | null,
+): { text: string; problem: boolean } | null {
+  if (!run) return null;
+  if (run.failure) return { text: run.failure, problem: true };
+  if (run.status !== "done") return null;
+  const parts = [
+    run.itemIds.length === 0 ? "No suggestion differs from your numbers." : "",
+    run.note ?? "",
+  ].filter((p) => p !== "");
+  return parts.length === 0 ? null : { text: parts.join(" "), problem: false };
 }

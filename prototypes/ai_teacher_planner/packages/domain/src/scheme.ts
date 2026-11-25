@@ -181,3 +181,42 @@ export function validateScheme(items: readonly SowItem[]): string[] {
   }
   return issues;
 }
+
+/** What stops an item being deleted: the decisions and facts that name its lessons (`${id}#n`). */
+export interface DeleteContext {
+  pins: readonly { lessonId: string }[];
+  merges: readonly { first: string; second: string }[];
+  positions: readonly { nextLessonId: string | null; doneItemIds: string[] }[];
+}
+
+/**
+ * Why `removed` cannot be taken out of the scheme, one clause each; empty when it can.
+ * `remaining` is the scheme without it. Items that need it or cover it, a pin or a merge
+ * on one of its lessons, and a group standing at it or past it all stop the delete.
+ */
+export function deleteBlockers(
+  remaining: readonly SowItem[],
+  removed: SowItem,
+  ctx: DeleteContext,
+): string[] {
+  const mine = (lessonId: string | null) =>
+    lessonId?.startsWith(`${removed.id}#`) === true;
+  const reasons: string[] = [];
+  for (const i of remaining)
+    if (i.prerequisites.includes(removed.id))
+      reasons.push(`"${i.title}" needs it first`);
+  for (const i of remaining)
+    if ((i.assessment?.covers ?? []).includes(removed.id))
+      reasons.push(`the assessment "${i.title}" covers it`);
+  if (ctx.pins.some((p) => mine(p.lessonId)))
+    reasons.push("a pin holds one of its lessons");
+  if (ctx.merges.some((m) => mine(m.first) || mine(m.second)))
+    reasons.push("a merge names one of its lessons");
+  if (
+    ctx.positions.some(
+      (p) => mine(p.nextLessonId) || p.doneItemIds.includes(removed.id),
+    )
+  )
+    reasons.push("a group is at one of its lessons or has finished it");
+  return reasons;
+}

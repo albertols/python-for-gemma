@@ -13,9 +13,11 @@ Feature: Scheme of work
     When I import the planning sheet
     Then I see that the sheet states 10 but its chapters add up to 13
     And the preview says "Supply" would change
+    And the preview says "Assessments kept (no schedule chosen)" and removes no assessment
     And nothing is saved until I accept
     When I accept the import
     Then "Supply" is saved with 4 lessons
+    And the assessments "20 mark" and "12 mark" are still in the scheme
 
   Scenario: A planning file that cannot be read gets one plain sentence
     Given the planner holds a planned scheme of work

@@ -129,10 +129,15 @@ test("a chapter missing from the stored scheme is added, and one the sheet lost 
     scheduleFile: null,
   });
   expect(res.body.changes).toEqual([
-    { id: "a-ch2", title: "20 mark", change: "removed" },
-    { id: "a-ch3", title: "12 mark", change: "removed" },
     { id: "ch4", title: "Prices", change: "removed" },
   ]);
+  // her assessments are carried through, not removed, when no schedule is chosen
+  expect(res.body.keptAssessments).toBe(2);
+  expect(
+    res.body.items
+      .filter((i: Json) => i.kind === "assessment")
+      .map((i: Json) => i.id),
+  ).toEqual(["a-ch2", "a-ch3"]);
 });
 
 test("a file that is not among the planning files is refused", async () => {

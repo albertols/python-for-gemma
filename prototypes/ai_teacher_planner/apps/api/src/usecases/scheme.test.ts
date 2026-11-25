@@ -1,11 +1,12 @@
+import fs from "node:fs";
 import { IMPORTED, type Merge, type SowItem } from "@planner/domain";
 import { syntheticScheme } from "@planner/fixtures";
 import { expect, test } from "vitest";
 import { ApiError } from "../errors.ts";
 import { createRepos } from "../repos/sqlite/index.ts";
-import { migratedDb } from "../test-support.ts";
+import { migratedDb, seededRepos } from "../test-support.ts";
 import { firstRun } from "./first-run.ts";
-import { saveMerges } from "./scheme.ts";
+import { saveMerges, saveScheme } from "./scheme.ts";
 
 const COURSE = "ial-business-u4";
 const buffer: SowItem = {
@@ -101,4 +102,107 @@ test("two merges with one id are refused", () => {
     ]),
   );
   expect(e.issues).toEqual(['The id "m1" is used twice.']);
+});
+
+/** The planned world, with the synthetic scheme saved, and what saving it without `gone` says. */
+async function deleting(
+  gone: string,
+  prepare: (
+    r: Awaited<ReturnType<typeof seededRepos>>["repos"],
+  ) => void = () => {},
+) {
+  const { repos, packs, dataDir } = await seededRepos("m2-no-positions");
+  prepare(repos);
+  const stored = repos.scheme.items(COURSE);
+  const e = refusal(() =>
+    saveScheme(
+      repos,
+      packs,
+      COURSE,
+      stored.filter((i) => i.id !== gone),
+      repos.scheme.overrides(COURSE),
+    ),
+  );
+  expect(repos.scheme.items(COURSE)).toEqual(stored);
+  fs.rmSync(dataDir, { recursive: true, force: true });
+  return e;
+}
+
+test("a chapter an assessment covers cannot be deleted: 422 with the reason, nothing saved", async () => {
+  const e = await deleting("ch1");
+  expect(e).toMatchObject({ status: 422, code: "invalid-scheme" });
+  expect(e.issues ?? []).toContain(
+    '"Demand" cannot be deleted: the assessment "20 mark" covers it.',
+  );
+});
+
+test("a chapter another item needs first cannot be deleted", async () => {
+  const e = await deleting("ch1", (repos) => {
+    const items = repos.scheme.items(COURSE);
+    repos.scheme.replace(
+      COURSE,
+      items.map((i) => (i.id === "ch2" ? { ...i, prerequisites: ["ch1"] } : i)),
+      [],
+    );
+  });
+  expect((e.issues ?? []).join(" ")).toContain('"Demand" cannot be deleted: ');
+  expect((e.issues ?? []).join(" ")).toContain('"Supply" needs it first');
+});
+
+test("a chapter with a pin on one of its lessons cannot be deleted", async () => {
+  const e = await deleting("ch4", (repos) =>
+    repos.decisions.replace(COURSE, "pins", [
+      {
+        id: "p1",
+        groupId: "13 1",
+        lessonId: "ch4#1",
+        kind: "not-after",
+        date: "2026-12-01",
+      },
+    ]),
+  );
+  expect(e.issues).toEqual([
+    '"Prices" cannot be deleted: a pin holds one of its lessons.',
+  ]);
+});
+
+test("a chapter with a merge naming one of its lessons cannot be deleted", async () => {
+  const e = await deleting("ch4", (repos) =>
+    repos.decisions.replace(COURSE, "merges", [
+      { id: "m1", groupId: "13 1", first: "ch4#1", second: "ch4#2" },
+    ]),
+  );
+  expect(e.issues).toEqual([
+    '"Prices" cannot be deleted: a merge names one of its lessons.',
+  ]);
+});
+
+test("a chapter a group stands at cannot be deleted", async () => {
+  const e = await deleting("ch4", (repos) =>
+    repos.facts.setPositions(COURSE, [
+      {
+        groupId: "13 1",
+        nextLessonId: "ch4#1",
+        doneItemIds: [],
+        asOf: "2026-11-20",
+      },
+    ]),
+  );
+  expect(e.issues).toEqual([
+    '"Prices" cannot be deleted: a group is at one of its lessons or has finished it.',
+  ]);
+});
+
+test("a chapter nothing names can be deleted", async () => {
+  const { repos, packs, dataDir } = await seededRepos("m2-no-positions");
+  const stored = repos.scheme.items(COURSE);
+  saveScheme(
+    repos,
+    packs,
+    COURSE,
+    stored.filter((i) => i.id !== "ch4"),
+    [],
+  );
+  expect(repos.scheme.items(COURSE).map((i) => i.id)).not.toContain("ch4");
+  fs.rmSync(dataDir, { recursive: true, force: true });
 });

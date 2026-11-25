@@ -381,3 +381,25 @@ Then(
     ).toHaveValue(String(n));
   },
 );
+
+Then(
+  "the preview says {string} and removes no assessment",
+  async ({ page }, sentence: string) => {
+    const dialog = importDialog(page);
+    await expect(dialog).toContainText(sentence);
+    await expect(
+      dialog.getByRole("list", { name: "What would change" }),
+    ).not.toContainText("mark");
+  },
+);
+
+Then(
+  "the assessments {string} and {string} are still in the scheme",
+  async ({ page, request }, a: string, b: string) => {
+    const stored = (await storedScheme(request)).items;
+    for (const title of [a, b])
+      expect(stored.find((i) => i.title === title)?.kind).toBe("assessment");
+    await expect(page.getByRole("row", { name: a, exact: true })).toBeVisible();
+    await expect(page.getByRole("row", { name: b, exact: true })).toBeVisible();
+  },
+);

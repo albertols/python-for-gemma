@@ -1,5 +1,6 @@
 import type {
   CurriculumPack,
+  DeleteContext,
   GroupOverride,
   ItemKind,
   SowItem,
@@ -190,6 +191,7 @@ export function SchemeTable({
   groupIds,
   perFortnight,
   pack,
+  standing,
   onItems,
   onOverrides,
   suggestionFor,
@@ -199,6 +201,8 @@ export function SchemeTable({
   groupIds: string[];
   perFortnight: Readonly<Record<string, number>>;
   pack: CurriculumPack;
+  /** The pins, merges and positions that stop an item being deleted. */
+  standing: DeleteContext;
   onItems: (items: SowItem[]) => void;
   onOverrides: (overrides: GroupOverride[]) => void;
   /** What to show under an item's row: the AI's suggestion for it, if there is one. */
@@ -411,14 +415,19 @@ export function SchemeTable({
                           type="button"
                           className="px-2 py-1"
                           onClick={() => {
-                            const done = removeItem(items, overrides, item.id);
+                            const done = removeItem(
+                              items,
+                              overrides,
+                              item.id,
+                              standing,
+                            );
                             if (done.ok) {
                               setRefusal(null);
                               onItems(done.items);
                               onOverrides(done.overrides);
                             } else
                               setRefusal(
-                                `${item.title} cannot be deleted while ${done.blockedBy.join(", ")} depend${done.blockedBy.length === 1 ? "s" : ""} on it.`,
+                                `${item.title} cannot be deleted: ${done.blockedBy.join("; ")}.`,
                               );
                           }}
                         >

@@ -4,6 +4,7 @@ import {
   type AssessmentSpec,
   defaultDuration,
   defaultSlotUse,
+  deleteBlockers,
   extraTimeWarning,
   type GroupOverride,
   type SowItem,
@@ -182,4 +183,65 @@ test("validateScheme refuses duplicate ids, a negative count, an assessment with
   expect(missing).toHaveLength(1);
   expect(missing[0]).toContain("c1");
   expect(missing[0]).toContain("zz");
+});
+
+const none = { pins: [], merges: [], positions: [] };
+
+test("an item nothing names can be deleted", () => {
+  const items = [item("c1"), item("c2")];
+  expect(
+    deleteBlockers([items[1] as SowItem], items[0] as SowItem, none),
+  ).toEqual([]);
+});
+
+test("an item that another needs first, or an assessment covers, cannot be deleted, and the reason says which", () => {
+  const c1 = item("c1", { title: "Demand" });
+  const needs = item("c2", { title: "Supply", prerequisites: ["c1"] });
+  const test1 = item("a1", {
+    title: "20 mark",
+    kind: "assessment",
+    lessons: 0,
+    assessment: spec({ covers: ["c1"] }),
+  });
+  expect(deleteBlockers([needs], c1, none)).toEqual([
+    '"Supply" needs it first',
+  ]);
+  expect(deleteBlockers([test1], c1, none)).toEqual([
+    'the assessment "20 mark" covers it',
+  ]);
+});
+
+test("a pin on one of its lessons, a merge naming one, or a group standing at one each stop the delete", () => {
+  const c1 = item("c1");
+  const pin = {
+    id: "p1",
+    groupId: "13 1",
+    lessonId: "c1#2",
+    kind: "not-after" as const,
+    date: "2026-12-01",
+  };
+  expect(deleteBlockers([], c1, { ...none, pins: [pin] })).toEqual([
+    "a pin holds one of its lessons",
+  ]);
+  const merge = { id: "m1", groupId: "13 1", first: "c0#1", second: "c1#3" };
+  expect(deleteBlockers([], c1, { ...none, merges: [merge] })).toEqual([
+    "a merge names one of its lessons",
+  ]);
+  const at = {
+    groupId: "13 3",
+    nextLessonId: "c1#1",
+    doneItemIds: [],
+    asOf: "2026-11-20",
+  };
+  expect(deleteBlockers([], c1, { ...none, positions: [at] })).toEqual([
+    "a group is at one of its lessons or has finished it",
+  ]);
+  const done = { ...at, nextLessonId: "c2#1", doneItemIds: ["c1"] };
+  expect(deleteBlockers([], c1, { ...none, positions: [done] })).toEqual([
+    "a group is at one of its lessons or has finished it",
+  ]);
+  // an item whose id only starts the same way is not named
+  expect(
+    deleteBlockers([], c1, { ...none, pins: [{ ...pin, lessonId: "c10#1" }] }),
+  ).toEqual([]);
 });

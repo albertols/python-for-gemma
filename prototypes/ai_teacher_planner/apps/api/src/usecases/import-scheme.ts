@@ -32,6 +32,8 @@ export interface SchemePreview {
   items: SowItem[];
   findings: ImportFinding[];
   changes: ItemChange[];
+  /** With no schedule chosen, her stored assessments are carried through; how many. */
+  keptAssessments: number;
 }
 
 /** The course's planning files, through the gateway: its board's folder only. */
@@ -96,6 +98,29 @@ function changesBetween(
         (i): ItemChange => ({ id: i.id, title: i.title, change: "removed" }),
       ),
   ];
+}
+
+/** `made` with the stored assessments put back after the item each followed (or last), and the order renumbered. */
+function carryAssessments(
+  stored: readonly SowItem[],
+  made: readonly SowItem[],
+): { items: SowItem[]; count: number } {
+  const items = [...made];
+  let count = 0;
+  stored.forEach((item, at) => {
+    if (item.kind !== "assessment") return;
+    count++;
+    const before = stored
+      .slice(0, at)
+      .map((s) => items.findIndex((i) => i.id === s.id))
+      .filter((n) => n >= 0)
+      .at(-1);
+    items.splice(before === undefined ? 0 : before + 1, 0, item);
+  });
+  return {
+    items: items.map((item, n) => ({ ...item, order: n + 1 })),
+    count,
+  };
 }
 
 async function readThroughGateway(
@@ -178,9 +203,17 @@ export async function importScheme(
     pack,
     today,
   });
+  // A schedule is the only thing that says what her assessments are. Without one, the ones she
+  // has are kept, each after the item it followed, and only the chapters are replaced.
+  const stored = repos.scheme.items(courseId);
+  const kept =
+    request.scheduleFile === null
+      ? carryAssessments(stored, made.items)
+      : { items: made.items, count: 0 };
   return {
-    items: made.items,
+    items: kept.items,
     findings: [...planning.findings, ...schedule.findings, ...made.findings],
-    changes: changesBetween(repos.scheme.items(courseId), made.items),
+    changes: changesBetween(stored, kept.items),
+    keptAssessments: kept.count,
   };
 }

@@ -14,7 +14,7 @@ import {
 import { expect, test } from "vitest";
 import {
   addItem,
-  dependentsOf,
+  askedStatus,
   differenceText,
   editItem,
   lessonsPerFortnight,
@@ -172,16 +172,20 @@ test("a new item goes last with an id nothing uses, and an assessment gets detai
   });
 });
 
+const standing = { pins: [], merges: [], positions: [] };
+
 test("an item nothing depends on can be deleted, with its group counts; one that is covered cannot", () => {
   const items = syntheticScheme("ial-business-u4");
-  expect(dependentsOf(items, "ch1")).toEqual(["20 mark"]);
-  const blocked = removeItem(items, [], "ch1");
-  expect(blocked).toEqual({ ok: false, blockedBy: ["20 mark"] });
+  const blocked = removeItem(items, [], "ch1", standing);
+  expect(blocked).toEqual({
+    ok: false,
+    blockedBy: ['the assessment "20 mark" covers it'],
+  });
   const overrides: GroupOverride[] = [
     { groupId: "13 1", itemId: "ch4", lessons: 1 },
     { groupId: "13 1", itemId: "ch2", lessons: 3 },
   ];
-  const gone = removeItem(items, overrides, "ch4");
+  const gone = removeItem(items, overrides, "ch4", standing);
   expect(gone.ok).toBe(true);
   if (gone.ok) {
     expect(gone.items.map((i) => i.id)).toEqual([
@@ -195,6 +199,28 @@ test("an item nothing depends on can be deleted, with its group counts; one that
       { groupId: "13 1", itemId: "ch2", lessons: 3 },
     ]);
   }
+});
+
+test("a pin, a merge or a group's position on an item's lessons stops the delete on the screen too", () => {
+  const items = syntheticScheme("ial-business-u4");
+  const pin = {
+    pins: [{ lessonId: "ch4#1" }],
+    merges: [],
+    positions: [],
+  };
+  expect(removeItem(items, [], "ch4", pin)).toEqual({
+    ok: false,
+    blockedBy: ["a pin holds one of its lessons"],
+  });
+  const at = {
+    pins: [],
+    merges: [],
+    positions: [{ nextLessonId: "ch4#2", doneItemIds: [] }],
+  };
+  expect(removeItem(items, [], "ch4", at)).toEqual({
+    ok: false,
+    blockedBy: ["a group is at one of its lessons or has finished it"],
+  });
 });
 
 test("spec references come from the chapters an item is linked to", () => {
@@ -235,4 +261,35 @@ test("a lesson-count suggestion is read as a difference, and anything else is no
   expect(suggestionOf({ ...item, kind: "other" })).toBeNull();
   expect(suggestionOf({ ...item, data: { to: "5" } })).toBeNull();
   expect(suggestionOf({ ...item, data: null })).toBeNull();
+});
+
+test("after a run, the status line says nothing differs only when the run made no suggestions", () => {
+  const run = (itemIds: string[], note: string | null = null) => ({
+    status: "done" as const,
+    failure: null,
+    note,
+    itemIds,
+  });
+  expect(askedStatus(run([]))).toEqual({
+    text: "No suggestion differs from your numbers.",
+    problem: false,
+  });
+  // a suggestion that was made, and has since been accepted, is not "no suggestion"
+  expect(askedStatus(run(["item-1"]))).toBeNull();
+  expect(askedStatus(run(["item-1"], "1 suggestion was left out."))).toEqual({
+    text: "1 suggestion was left out.",
+    problem: false,
+  });
+  expect(
+    askedStatus({
+      status: "failed",
+      failure: "Claude took too long and was stopped. Nothing was saved.",
+      note: null,
+      itemIds: [],
+    }),
+  ).toEqual({
+    text: "Claude took too long and was stopped. Nothing was saved.",
+    problem: true,
+  });
+  expect(askedStatus(null)).toBeNull();
 });

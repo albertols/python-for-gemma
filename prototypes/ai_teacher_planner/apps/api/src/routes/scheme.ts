@@ -133,6 +133,10 @@ const importRoute = createRoute({
               message: z.string(),
             }),
           ),
+          keptAssessments: z.number().int().nonnegative().openapi({
+            description:
+              "With no schedule chosen, how many of her stored assessments the items carry through unchanged",
+          }),
           changes: z.array(
             z.object({
               id: z.string(),

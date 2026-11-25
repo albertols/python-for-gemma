@@ -107,3 +107,21 @@ test("an unknown course is a 404", async () => {
   const app = await planner("m2-planned");
   expect((await post(app, "/api/scheme/nope/suggest-counts")).status).toBe(404);
 });
+
+test("with Claude Code signed out the answer is the fixed sentence, code ai-unavailable, and no job exists", async () => {
+  const app = await planner("m2-planned");
+  const out = await app.request("/api/test/ai", {
+    method: "POST",
+    headers: { "x-planner-test": "1", "content-type": "application/json" },
+    body: JSON.stringify({ mode: "signed-out" }),
+  });
+  expect(out.status).toBe(200);
+  const res = await post(app, URL);
+  expect(res.status).toBe(409);
+  expect(res.body.error).toEqual({
+    code: "ai-unavailable",
+    message:
+      "Claude Code is signed out. Run `claude` in a terminal and sign in, then try again.",
+  });
+  expect(await get(app, "/api/ai/runs")).toEqual([]);
+});

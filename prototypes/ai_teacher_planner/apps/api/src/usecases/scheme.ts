@@ -1,5 +1,6 @@
 import {
   type CourseId,
+  deleteBlockers,
   expandLessons,
   type GroupOverride,
   type Lesson,
@@ -81,6 +82,21 @@ export function saveScheme(
   }
   const groups = new Set(groupsOf(repos, courseId).map((g) => g.id));
   issues.push(...overrideIssues(overrides, items, groups));
+  // an item that something depends on stays: the dependants are named
+  const kept = new Set(items.map((i) => i.id));
+  const decisions = repos.decisions.forCourse(courseId);
+  const standing = {
+    pins: decisions.pins,
+    merges: decisions.merges,
+    positions: repos.facts.positions(courseId),
+  };
+  for (const gone of repos.scheme
+    .items(courseId)
+    .filter((i) => !kept.has(i.id))) {
+    const why = deleteBlockers(items, gone, standing);
+    if (why.length > 0)
+      issues.push(`"${gone.title}" cannot be deleted: ${why.join("; ")}.`);
+  }
   if (issues.length > 0)
     throw new ApiError(
       422,

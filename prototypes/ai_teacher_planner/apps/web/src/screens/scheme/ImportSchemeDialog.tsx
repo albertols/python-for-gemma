@@ -152,6 +152,9 @@ export function ImportSchemeDialog({
               </ul>
             )}
           </section>
+          {result.keptAssessments > 0 ? (
+            <p>Assessments kept (no schedule chosen)</p>
+          ) : null}
           <section aria-labelledby={`${titleId}-changes`}>
             <h3 id={`${titleId}-changes`} className="font-semibold">
               What would change in your scheme
