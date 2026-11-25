@@ -355,7 +355,8 @@ export type Conflict =
   | { kind: "pin-slot-unavailable"; pinId: string; groupId: GroupId; lessonId: LessonId; slotKey: SlotKey }
   | { kind: "not-after-missed"; pinId: string; groupId: GroupId; lessonId: LessonId; date: IsoDate; plannedDate: IsoDate | null }
   | { kind: "hl-prerequisite"; groupId: GroupId; lessonId: LessonId; prerequisiteItemId: string; finishesOn: IsoDate | null };   // from M4
-export interface PlanSnapshot { courseId: CourseId; today: IsoDate; placements: Placement[]; assessments: AssessmentPlacement[]; checkpoints: Checkpoint[]; overflow: Overflow[]; absorbed: { groupId: GroupId; lessonId: LessonId }[]; conflicts: Conflict[] }
+export interface PlanSnapshot { courseId: CourseId; today: IsoDate; placements: Placement[]; assessments: AssessmentPlacement[]; checkpoints: Checkpoint[]; overflow: Overflow[]; absorbed: { groupId: GroupId; lessonId: LessonId; checkpointId: string }[]; conflicts: Conflict[] }
+// absorbed: a buffer lesson dropped to make room, with its checkpoint. Once that checkpoint is before today the buffer is used up (spec 10.4): carryHistory carries it from `previous` into the new snapshot's `absorbed` and it is never planned again; one absorbed at a checkpoint still ahead can come back if the loss goes away (Task 2.12 fix round)
 export interface PlanInputs { courseId: CourseId; today: IsoDate; groups: Group[]; slots: Slot[]; blocks: TeachingBlock[]; items: SowItem[]; overrides: GroupOverride[]; positions: Position[]; log: LessonLogEntry[]; pins: Pin[]; merges: Merge[]; coverChoices: CoverChoice[]; homework: HomeworkMode[]; holds: PaceHold[]; flexEdits: FlexEdit[]; previous: PlanSnapshot | null; exams: ExternalExam[] /* the plan's groups only; ExternalExam is from M1b exams.ts */; revisionWeeks: number }
 // Task 2.3 adds `exams` and `revisionWeeks`; Task 2.12's loadPlanInputs fills them (revisionWeeks from Course).
 

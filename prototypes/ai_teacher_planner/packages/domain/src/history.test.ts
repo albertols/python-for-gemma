@@ -14,6 +14,7 @@ import type {
   PlanInputs,
   PlanSnapshot,
 } from "./plan.ts";
+import { isUpToDate } from "./revisions.ts";
 import { sequence } from "./sequence.ts";
 
 const world = (): PlanInputs => paceWorld();
@@ -572,5 +573,109 @@ describe("nextLesson", () => {
     const w = world();
     w.positions = w.positions.map((p) => ({ ...p, nextLessonId: null }));
     expect(nextLesson(sequence(w), "13 1")).toBeNull();
+  });
+});
+
+describe("buffer lessons that absorbed a loss", () => {
+  /** 13 1 alone, with b1 (4 buffer lessons) before a1: 10 lessons are due in 8 slots, so b1#3 and b1#4 absorb the loss. */
+  const buffered = (patch: Partial<PlanInputs> = {}): PlanInputs => {
+    const w = world();
+    const c2 = w.items.find((i) => i.id === "c2");
+    if (!c2) throw new Error("no c2");
+    return {
+      ...w,
+      groups: w.groups.filter((g) => g.id === "13 1"),
+      slots: w.slots.filter((s) => s.groupId === "13 1"),
+      positions: w.positions.filter((p) => p.groupId === "13 1"),
+      items: [
+        ...w.items,
+        {
+          ...c2,
+          id: "b1",
+          kind: "buffer",
+          order: 2.5,
+          lessons: 4,
+          title: "b1",
+        },
+      ],
+      ...patch,
+    };
+  };
+  /** a1 has been sat by everyone: after 27 Nov it is no longer a planned assessment. */
+  const sat = (w: PlanInputs) =>
+    w.items.map((i) =>
+      i.assessment
+        ? { ...i, assessment: { ...i.assessment, status: "sat" as const } }
+        : i,
+    );
+  const buffers = (s: PlanSnapshot) =>
+    s.placements
+      .filter((p) => p.lessonId.startsWith("b1#"))
+      .map((p) => [p.lessonId, p.slotKey ? slotDate(p.slotKey) : null]);
+  const ok = (head: PlanSnapshot, fresh: PlanSnapshot, w: PlanInputs) =>
+    isUpToDate({ head, fresh, slots: w.slots, flexEdits: [] });
+
+  test("once their checkpoint has passed, they stay used: the plan does not teach them later", () => {
+    const w = buffered();
+    const head = sequence(w);
+    expect(head.absorbed.map((a) => a.lessonId)).toEqual(["b1#3", "b1#4"]);
+    const after = sequence({
+      ...w,
+      items: sat(w),
+      today: "2026-12-02",
+      previous: head,
+    });
+    // measured before the fix: b1#3 on 7 Dec and b1#4 on 9 Dec
+    expect(buffers(after)).toEqual([
+      ["b1#1", "2026-11-23"],
+      ["b1#2", "2026-11-25"],
+    ]);
+    expect(head.absorbed).toEqual([
+      { groupId: "13 1", lessonId: "b1#3", checkpointId: "cp:a1" },
+      { groupId: "13 1", lessonId: "b1#4", checkpointId: "cp:a1" },
+    ]);
+    expect(after.absorbed).toEqual(head.absorbed);
+    // and the chain remembers: a plan made on top of that one still has them used
+    const month = sequence({
+      ...w,
+      items: sat(w),
+      today: "2026-12-09",
+      previous: after,
+    });
+    expect(buffers(month)).toEqual(buffers(after));
+    expect(month.absorbed).toEqual(head.absorbed);
+  });
+
+  test("with nothing changed the plan stays up to date a week and a month later", () => {
+    const w = buffered();
+    const head = sequence(w);
+    const week = sequence({ ...w, today: "2026-11-16", previous: head });
+    expect(ok(head, week, w)).toBe(true);
+    // a1 is behind every group by then, so it is marked sat; the plan itself is unchanged
+    const month = sequence({
+      ...w,
+      items: sat(w),
+      today: "2026-12-09",
+      previous: head,
+    });
+    expect(ok(head, month, w)).toBe(true);
+  });
+
+  test("an absorption at a checkpoint still ahead is undone when the lost slot comes back", () => {
+    const w = buffered();
+    const lost = "13 1|2026-11-18|2";
+    const cancelled = w.slots.map((s) =>
+      s.key === lost ? { ...s, status: "cancelled" as const } : s,
+    );
+    const head = sequence({ ...w, slots: cancelled });
+    expect(head.absorbed.map((a) => a.lessonId)).toEqual([
+      "b1#2",
+      "b1#3",
+      "b1#4",
+    ]);
+    // a week later, still before a1, the slot is open again
+    const restored = sequence({ ...w, today: "2026-11-16", previous: head });
+    expect(restored.absorbed.map((a) => a.lessonId)).toEqual(["b1#3", "b1#4"]);
+    expect(buffers(restored).map(([id]) => id)).toEqual(["b1#1", "b1#2"]);
   });
 });

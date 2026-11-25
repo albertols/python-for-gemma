@@ -51,7 +51,7 @@ Look for the colour split: green is stored, blue is worked out by the engine eac
 
 Look for the amber gates: a candidate revision becomes the head revision only when Gemma accepts the diff, and the accept is refused when the head or the candidate changed after the preview. Before that, the pace line keeps parallel groups level at each checkpoint and turns their free slots into spare lessons. The board, the check-in and the "up to date?" check read the head.
 
-![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, history and the freeze horizon, per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff with metrics and accept (refused when stale), head revision, read by the board placements, the check-in, the up-to-date check, parity, coverage and reminders](06-scheduling-pipeline.svg)
+![Scheduling pipeline: calendar workbook to calendar days, slots, scheme expanded to lessons, history and the freeze horizon (buffer lessons that absorbed a loss stay used), per-group sequencing with official exams and the revision block, the pace line for parallel groups, candidate revision, diff with metrics and accept (refused when stale), head revision, read by the board placements, the check-in, the up-to-date check, parity, coverage and reminders](06-scheduling-pipeline.svg)
 
 ## 7. AI flow
 

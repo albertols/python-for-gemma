@@ -38,7 +38,7 @@ interface GroupPlan {
   placements: Placement[];
   assessments: AssessmentPlacement[];
   overflow: Overflow[];
-  absorbed: { groupId: GroupId; lessonId: LessonId }[];
+  absorbed: PlanSnapshot["absorbed"];
   conflicts: Conflict[];
 }
 
@@ -261,13 +261,22 @@ function prepareGroup(
       wholeReserved.add(a.slotKey);
     }
   }
+  const known = new Set(lessons.map((l) => l.id));
+  // Buffer lessons that absorbed a loss at a checkpoint now past are used up (spec 10.4).
+  const consumed = carried.consumed.filter((a) => known.has(a.lessonId));
+  out.absorbed.push(...consumed);
+  const usedUp = new Set(consumed.map((a) => a.lessonId));
   // Slot pins fix a lesson; one that cannot be honoured is a conflict and the lesson stays in the stream.
   const undeclared = new Set(
     lessons
-      .filter((l) => !declared.has(l.id) && !carried.deliveredIds.has(l.id))
+      .filter(
+        (l) =>
+          !declared.has(l.id) &&
+          !carried.deliveredIds.has(l.id) &&
+          !usedUp.has(l.id),
+      )
       .map((l) => l.id),
   );
-  const known = new Set(lessons.map((l) => l.id));
   const pinnedLessons = new Set<LessonId>();
   const slotPins = inputs.pins
     .filter((p) => p.groupId === g.id && p.kind === "slot")
@@ -662,7 +671,11 @@ function planPaceSet(
         flex(plan.checkpoint.id, slot);
       for (const id of w.absorbed)
         for (const lessonId of withSecond(id))
-          p.out.absorbed.push({ groupId: g, lessonId });
+          p.out.absorbed.push({
+            groupId: g,
+            lessonId,
+            checkpointId: plan.checkpoint.id,
+          });
       const short = w.short.flatMap((id) =>
         entryOf.get(id)?.kind === "lesson" ? withSecond(id) : [],
       );

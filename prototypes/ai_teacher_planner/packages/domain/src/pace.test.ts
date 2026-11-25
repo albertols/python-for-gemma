@@ -290,7 +290,7 @@ describe("the pace line before an assessment", () => {
     cancel(w, "13 3|2026-11-24|5");
     const two = planOf(w);
     expect(two.snapshot.absorbed).toEqual([
-      { groupId: "13 3", lessonId: "b1#1" },
+      { groupId: "13 3", lessonId: "b1#1", checkpointId: "cp:a1" },
     ]);
     expect(two.snapshot.overflow).toEqual([]);
     expect(two.dateIn("13 3", "c2#3") < two.anchorDate("13 3", "a1")).toBe(

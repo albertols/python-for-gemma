@@ -187,7 +187,12 @@ export interface PlanSnapshot {
   assessments: AssessmentPlacement[];
   checkpoints: Checkpoint[];
   overflow: Overflow[];
-  absorbed: { groupId: GroupId; lessonId: LessonId }[];
+  /**
+   * Buffer lessons dropped to make room, with the checkpoint whose window they
+   * made room in. Once that checkpoint is before today the lesson is used up:
+   * later plans carry the entry as it is and never plan the lesson again.
+   */
+  absorbed: { groupId: GroupId; lessonId: LessonId; checkpointId: string }[];
   conflicts: Conflict[];
 }
 export interface PlanInputs {

@@ -110,6 +110,12 @@ export interface Carried {
   declaredKept: Placement[];
   /** Assessments from today to the horizon on slots that are still usable: copied as they are. */
   frozenAssessments: AssessmentPlacement[];
+  /**
+   * Buffer lessons used up: absorbed in the previous plan at a checkpoint that is
+   * now before today (or that the previous plan had already carried as used).
+   * They stay absorbed and are never planned again. By lesson id.
+   */
+  consumed: PlanSnapshot["absorbed"];
 }
 
 /** The latest log entry per lesson, oldest first, so a later entry wins. */
@@ -129,6 +135,7 @@ const byRecorded = (a: LessonLogEntry, b: LessonLogEntry) =>
  * - A `taught` or `homework` entry for a lesson with no past placement adds one.
  * - A past spare lesson that was still only planned is dropped, unless she edited it.
  * - Placements from today to the horizon are frozen, if their slot is still usable.
+ * - A buffer lesson absorbed at a checkpoint that is now past is used up (`consumed`).
  * - Declared lessons (from her position) win over any placement.
  */
 export function carryHistory(args: {
@@ -148,6 +155,7 @@ export function carryHistory(args: {
     deliveredIds: new Set(),
     declaredKept: [],
     frozenAssessments: [],
+    consumed: [],
   };
   if (previous === null) return out;
 
@@ -224,6 +232,21 @@ export function carryHistory(args: {
   out.history = [...past, ...added];
   for (const p of out.history)
     if (DELIVERED.has(p.state)) out.deliveredIds.add(p.lessonId);
+
+  // A checkpoint missing from the previous plan was already past when it was made.
+  const checkpointDate = new Map(
+    previous.checkpoints.map((c) => [c.id, c.date]),
+  );
+  out.consumed = previous.absorbed
+    .filter((a) => {
+      if (a.groupId !== groupId) return false;
+      if (declared.has(a.lessonId) || out.deliveredIds.has(a.lessonId))
+        return false;
+      const date = checkpointDate.get(a.checkpointId);
+      return date === undefined || date < today;
+    })
+    .map((a) => ({ ...a }))
+    .sort((a, b) => cmp(a.lessonId, b.lessonId));
 
   out.frozen = mine
     .filter((p) => {
