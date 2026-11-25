@@ -1,9 +1,15 @@
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
-import { AiError } from "./port.ts";
+import { AiError, type SkillId } from "./port.ts";
 import {
   buildPrompt,
   descriptionOf,
@@ -76,6 +82,10 @@ describe("buildPrompt", () => {
       "..\\resources\\a",
       "../../resources/a",
       "resources/year13/a.xlsx",
+      "./resources/year13/a.xlsx",
+      "././resources/a",
+      "  ./resources/a",
+      ".\\resources\\a",
       "Resources/a",
     ];
     for (const title of refused)
@@ -86,6 +96,8 @@ describe("buildPrompt", () => {
     for (const text of [
       "see prototypes/resources/a.pdf",
       "see ../resources/a.pdf",
+      "see ./resources/a.pdf",
+      "line one\n./resources/a.pdf",
       "line one\nresources/a.pdf",
       "PROTOTYPES\\Resources\\a",
     ])
@@ -294,6 +306,79 @@ describe("registry", () => {
       expect(problems).toHaveLength(1);
       expect(problems[0]).toMatch(/content-not-registered.*description/);
     });
+  });
+
+  test("every registered skill with a SKILL.md gets the description check, whatever its id starts with", () => {
+    const odd = "odd-registered-skill" as SkillId;
+    const root = mkdtempSync(join(tmpdir(), "planner-skills-"));
+    const dir = join(root, ".claude/skills", odd);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      "---\nname: odd\ndescription: Make slides.\n---\nbody\n",
+    );
+    writeFileSync(
+      join(dir, "schema.json"),
+      JSON.stringify(jsonSchemaFor(lessonCounts)),
+    );
+    // an unregistered skill with the same odd prefix is not ours to police
+    const other = join(root, ".claude/skills/odd-unregistered");
+    mkdirSync(other, { recursive: true });
+    writeFileSync(
+      join(other, "SKILL.md"),
+      "---\ndescription: Anything.\n---\n",
+    );
+    skills[odd] = {
+      ...lessonCounts,
+      id: odd,
+      promptPath: `.claude/skills/${odd}/SKILL.md`,
+    };
+    try {
+      const problems = skillFileProblems(root, [
+        "planner-suggest-lesson-counts",
+      ]);
+      expect(problems).toHaveLength(1);
+      expect(problems[0]).toMatch(/odd-registered-skill.*description/);
+    } finally {
+      delete skills[odd];
+    }
+  });
+
+  test("readSkillText follows real paths: a symlink inside .claude/skills cannot point outside it", () => {
+    const root = mkdtempSync(join(tmpdir(), "planner-root-"));
+    const skillsDir = join(root, ".claude/skills");
+    mkdirSync(join(skillsDir, "inside"), { recursive: true });
+    writeFileSync(join(skillsDir, "inside/SKILL.md"), "inside text");
+    writeFileSync(join(root, "secret.md"), "outside text");
+    mkdirSync(join(root, "elsewhere"));
+    writeFileSync(join(root, "elsewhere/SKILL.md"), "elsewhere text");
+    symlinkSync(join(root, "secret.md"), join(skillsDir, "file-link.md"));
+    symlinkSync(join(root, "elsewhere"), join(skillsDir, "dir-link"));
+    const at = (promptPath: string) => ({ ...lessonCounts, promptPath });
+    expect(readSkillText(at(".claude/skills/inside/SKILL.md"), root)).toBe(
+      "inside text",
+    );
+    for (const promptPath of [
+      ".claude/skills/file-link.md",
+      ".claude/skills/dir-link/SKILL.md",
+    ])
+      expect(() => readSkillText(at(promptPath), root), promptPath).toThrow(
+        /\.claude\/skills/,
+      );
+  });
+
+  test("a symlink to a file that stays inside .claude/skills is allowed", () => {
+    const root = mkdtempSync(join(tmpdir(), "planner-root-"));
+    const skillsDir = join(root, ".claude/skills");
+    mkdirSync(join(skillsDir, "real"), { recursive: true });
+    writeFileSync(join(skillsDir, "real/SKILL.md"), "real text");
+    symlinkSync(join(skillsDir, "real"), join(skillsDir, "alias"));
+    expect(
+      readSkillText(
+        { ...lessonCounts, promptPath: ".claude/skills/alias/SKILL.md" },
+        root,
+      ),
+    ).toBe("real text");
   });
 
   test("the ruling-41 description pattern can fail", () => {

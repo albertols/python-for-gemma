@@ -27,7 +27,7 @@ Look for the dashed box: everything v1 uses sits on Gemma's Mac, and a single pu
 
 Look for the two things that import the engine (the web app and the API) and the one route to a model, through the AiProvider port.
 
-![Containers: web app, local API, engine, SQLite file, ResourceGateway, the packages/ai AiProvider port with skill registry, and its adapters](02-containers.svg)
+![Containers: web app, local API, engine, SQLite file, ResourceGateway, the packages/ai AiProvider port with skill registry and stream parser, the Claude Code CLI adapter, and the fake](02-containers.svg)
 
 ## 3. Backend components
 
@@ -55,9 +55,9 @@ Look for the amber gate: a candidate revision becomes the head revision only whe
 
 ## 7. AI flow
 
-Look for what crosses to the model (extracted text) and what comes back (JSON), then the review step at the end.
+Look for what crosses to the model (extracted text) and what comes back (JSON), the Claude Code adapter that starts `claude -p` and checks the answer against the schema, then the review step at the end.
 
-![AI flow sequence: ask, run, store, review](07-ai-flow.svg)
+![AI flow sequence: ask, run (provider, Claude Code adapter, claude -p, schema check), store, review](07-ai-flow.svg)
 
 ## 8. Data and privacy
 

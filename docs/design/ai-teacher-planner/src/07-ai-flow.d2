@@ -13,7 +13,8 @@ flow: "" {
   api: "API job" {class: concept}
   gateway: "ResourceGateway" {class: warn}
   provider: "AiProvider (packages/ai)\nregistry, prompt builder, fake for tests" {class: ai}
-  cli: "Claude Code CLI" {class: ai}
+  adapter: "ClaudeCodeCliProvider\nflags, stream parser, schema check" {class: ai}
+  cli: "claude -p (child process)" {class: ai}
   model: "Claude model" {class: ai}
 
   ask: "1. Ask" {
@@ -25,10 +26,12 @@ flow: "" {
 
   run: "2. Run" {
     api -> provider: "skill id, input JSON, text, Zod schema"
-    provider -> cli: "claude -p, no file tools"
+    provider -> adapter: "skill text + input as one prompt"
+    adapter -> cli: "proven flags, no API key, stdin closed"
     cli -> model: "extracted text only"
     model -> cli: "JSON"
-    cli -> provider: "structured output"
+    cli -> adapter: "stream-json lines"
+    adapter -> provider: "output checked against the Zod schema"
     provider -> api: "schema-valid data"
     api -> web: "progress events"
   }

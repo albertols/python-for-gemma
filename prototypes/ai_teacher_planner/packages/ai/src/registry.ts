@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -48,16 +48,32 @@ export function repoRoot(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
 }
 
+/**
+ * Reads a skill's text from `promptPath` (relative to the repo root). The file must be under
+ * `.claude/skills`, both as written and after following every symlink, so a link inside that
+ * folder cannot lead out of it. `root` is for tests.
+ */
+export function readSkillFile(
+  promptPath: string,
+  root: string = repoRoot(),
+): string {
+  const skillsDir = resolve(root, ".claude/skills");
+  const file = resolve(root, promptPath);
+  const refuse = () =>
+    new Error(
+      `A skill prompt must be under .claude/skills, not "${promptPath}"`,
+    );
+  if (!file.startsWith(`${skillsDir}${sep}`)) throw refuse();
+  const realFile = realpathSync(file);
+  if (!realFile.startsWith(`${realpathSync(skillsDir)}${sep}`)) throw refuse();
+  return readFileSync(realFile, "utf8");
+}
+
 export function readSkillText(
   skill: SkillDefinition<unknown, unknown>,
+  root: string = repoRoot(),
 ): string {
-  const root = resolve(repoRoot(), ".claude/skills");
-  const file = resolve(repoRoot(), skill.promptPath);
-  if (!file.startsWith(`${root}${sep}`))
-    throw new Error(
-      `A skill prompt must be under .claude/skills, not "${skill.promptPath}"`,
-    );
-  return readFileSync(file, "utf8");
+  return readSkillFile(skill.promptPath, root);
 }
 
 /** The `description:` line of a SKILL.md front matter, or "" when there is none. */
@@ -92,7 +108,8 @@ function pointsAtResources(
   const s = normalisePath(raw);
   if (s.includes("prototypes/resources")) return true;
   if (/(^|[^a-z0-9_.-])\.\.\/resources(\/|$)/.test(s)) return true;
-  if (/(^|\n)\s*resources\//.test(s)) return true;
+  if (/(^|[^a-z0-9_.-])\.\/resources(\/|$)/.test(s)) return true;
+  if (/(^|\n)\s*(\.\/)*resources\//.test(s)) return true;
   if (extraRoot) {
     const root = normalisePath(extraRoot).replace(/\/+$/, "");
     if (root !== "" && s.includes(root)) return true;
@@ -150,8 +167,8 @@ export function buildPrompt(
 /**
  * Problems between the registry, the pending list and the files on disk, under `root`:
  * a pending skill that has a SKILL.md, a live skill without one or with a stale schema.json,
- * and every planner-* or content-* SKILL.md (registered or not) whose description lacks the
- * "for the app, not interactive" opening (ruling 41).
+ * and every SKILL.md whose description lacks the "for the app, not interactive" opening
+ * (ruling 41): each registered skill, whatever its id, and each planner-* or content-* folder.
  */
 export function skillFileProblems(
   root: string,
@@ -183,9 +200,12 @@ export function skillFileProblems(
       problems.push(`${skill.id}: schema.json is missing or stale`);
   }
   const dirs = existsSync(skillsDir) ? readdirSync(skillsDir).sort() : [];
+  const registeredIds = new Set<string>(
+    Object.values(skills).flatMap((s) => (s ? [s.id] : [])),
+  );
   for (const id of dirs) {
-    if (!/^(planner|content)-/.test(id) || INTERACTIVE_SKILLS.includes(id))
-      continue;
+    const ours = registeredIds.has(id) || /^(planner|content)-/.test(id);
+    if (!ours || INTERACTIVE_SKILLS.includes(id)) continue;
     if (!existsSync(textOf(id))) continue;
     if (!APP_ONLY.test(descriptionOf(readFileSync(textOf(id), "utf8"))))
       problems.push(

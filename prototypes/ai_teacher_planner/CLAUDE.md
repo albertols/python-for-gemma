@@ -56,7 +56,7 @@ Tools come from mise. If `node` or `pnpm` is "not found", prefix with `~/.local/
 Scenario written and passing; tests written first; type-check and lint clean; no real names or student data; AI output has provenance and a review step; diagrams updated; clicked through in Chrome with Claude in Chrome and looked at as an image (screenshots are committed to `docs/design/ai-teacher-planner/screens/` at each milestone gate); Gemma has clicked through it.
 
 ## Headless Claude, as proven on 19 Nov 2026
-`claude -p "<prompt>" --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` unset. Never `--bare`: it ignores the subscription sign-in. See ADR-007.
+`claude -p "<prompt>" --model <alias> --tools "" --setting-sources "" --strict-mcp-config --disallowedTools "mcp__*" --permission-mode dontAsk --output-format stream-json --verbose --json-schema '<schema>' --no-session-persistence < /dev/null`, with `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` unset. Never `--bare`: it ignores the subscription sign-in. See ADR-007.
 
 ## Machine limits
 M1 Air, 8 GB RAM. No Docker, no database server, no long-running dev server in daily use, one Playwright worker, use the installed Chrome (`channel: 'chrome'`).
